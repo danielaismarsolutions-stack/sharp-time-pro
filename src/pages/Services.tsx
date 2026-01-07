@@ -96,76 +96,75 @@ export default function Services() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Services</h1>
-          <p className="text-muted-foreground">Manage your service offerings</p>
+          <h1 className="text-xl md:text-2xl font-bold">Services</h1>
+          <p className="text-muted-foreground text-sm">Manage your service offerings</p>
         </div>
-        <div className="flex items-center gap-4">
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'grid' | 'table')}>
+        <div className="flex items-center gap-2 md:gap-4">
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'grid' | 'table')} className="hidden sm:block">
             <TabsList>
-              <TabsTrigger value="grid">
+              <TabsTrigger value="grid" className="min-h-[40px]">
                 <LayoutGrid className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="table">
+              <TabsTrigger value="table" className="min-h-[40px]">
                 <List className="h-4 w-4" />
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button onClick={() => { setEditingService(null); setIsModalOpen(true); }}>
+          <Button onClick={() => { setEditingService(null); setIsModalOpen(true); }} className="h-11 min-h-[44px] flex-1 sm:flex-none">
             <Plus className="h-4 w-4 mr-2" />
             Add Service
           </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Stats Cards - 2x2 on mobile */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card className="border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
               Total Services
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{services.length}</p>
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <p className="text-xl md:text-2xl font-bold">{services.length}</p>
           </CardContent>
         </Card>
         <Card className="border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Services
+          <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
+              Active
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-status-success">{activeServices.length}</p>
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <p className="text-xl md:text-2xl font-bold text-status-success">{activeServices.length}</p>
           </CardContent>
         </Card>
         <Card className="border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
               Avg. Duration
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <p className="text-xl md:text-2xl font-bold">
               {services.length > 0
                 ? Math.round(services.reduce((sum, s) => sum + s.duration, 0) / services.length)
-                : 0}{' '}
-              min
+                : 0}m
             </p>
           </CardContent>
         </Card>
         <Card className="border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
               Avg. Price
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <p className="text-xl md:text-2xl font-bold">
               €{services.length > 0
                 ? Math.round(services.reduce((sum, s) => sum + s.price, 0) / services.length)
                 : 0}
@@ -174,152 +173,73 @@ export default function Services() {
         </Card>
       </div>
 
-      {/* Services Display */}
-      {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {services.map((service) => (
-            <Card key={service.id} className="border-border relative overflow-hidden">
-              <div
-                className="absolute top-0 left-0 w-1 h-full"
-                style={{ backgroundColor: service.color }}
-              />
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-lg">{service.name}</CardTitle>
-                    {service.description && (
-                      <p className="text-sm text-muted-foreground mt-1">{service.description}</p>
-                    )}
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => {
-                        setEditingService(service);
-                        setIsModalOpen(true);
-                      }}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={() => handleDeleteService(service.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+      {/* Services Grid - always grid on mobile */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+        {services.map((service) => (
+          <Card key={service.id} className="border-border relative overflow-hidden touch-manipulation">
+            <div
+              className="absolute top-0 left-0 w-1 h-full"
+              style={{ backgroundColor: service.color }}
+            />
+            <CardHeader className="pb-2 p-4 md:p-6 md:pb-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="text-base md:text-lg truncate">{service.name}</CardTitle>
+                  {service.description && (
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{service.description}</p>
+                  )}
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      {service.duration} min
-                    </div>
-                    <div className="flex items-center gap-1 text-sm font-medium">
-                      <DollarSign className="h-4 w-4" />
-                      €{service.price}
-                    </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 min-h-[44px] min-w-[44px] shrink-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem className="min-h-[44px]" onClick={() => {
+                      setEditingService(service);
+                      setIsModalOpen(true);
+                    }}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive min-h-[44px]"
+                      onClick={() => handleDeleteService(service.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+              <div className="flex items-center justify-between mb-3 md:mb-4">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    {service.duration}m
+                  </div>
+                  <div className="flex items-center gap-1 text-sm font-medium">
+                    <DollarSign className="h-4 w-4" />
+                    €{service.price}
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <Badge variant={service.isActive ? 'default' : 'secondary'}>
-                    {service.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                  <Switch
-                    checked={service.isActive}
-                    onCheckedChange={() => handleToggleActive(service)}
-                  />
-                </div>
-                {(service.bufferBefore > 0 || service.bufferAfter > 0) && (
-                  <p className="text-xs text-muted-foreground mt-3">
-                    Buffer: {service.bufferBefore}min before, {service.bufferAfter}min after
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <Card className="border-border">
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Service</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Buffer</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {services.map((service) => (
-                  <TableRow key={service.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: service.color }}
-                        />
-                        <div>
-                          <p className="font-medium">{service.name}</p>
-                          {service.description && (
-                            <p className="text-sm text-muted-foreground">{service.description}</p>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{service.duration} min</TableCell>
-                    <TableCell className="font-medium">€{service.price}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {service.bufferBefore + service.bufferAfter > 0
-                        ? `${service.bufferBefore}/${service.bufferAfter} min`
-                        : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={service.isActive}
-                        onCheckedChange={() => handleToggleActive(service)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setEditingService(service);
-                            setIsModalOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive"
-                          onClick={() => handleDeleteService(service.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+              </div>
+              <div className="flex items-center justify-between">
+                <Badge variant={service.isActive ? 'default' : 'secondary'}>
+                  {service.isActive ? 'Active' : 'Inactive'}
+                </Badge>
+                <Switch
+                  checked={service.isActive}
+                  onCheckedChange={() => handleToggleActive(service)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       {/* Service Modal */}
       <ServiceModal

@@ -103,26 +103,26 @@ export default function ClientDetail() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/clients')}>
+      <div className="flex items-center gap-3 md:gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/clients')} className="h-10 w-10 min-h-[44px] min-w-[44px]">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">{client.name}</h1>
-          <p className="text-muted-foreground">Client Profile</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold truncate">{client.name}</h1>
+          <p className="text-muted-foreground text-sm">Client Profile</p>
         </div>
-        <Button variant="outline" onClick={() => setIsModalOpen(true)}>
-          <Edit className="h-4 w-4 mr-2" />
-          Edit
+        <Button variant="outline" size="sm" onClick={() => setIsModalOpen(true)} className="h-10 min-h-[44px]">
+          <Edit className="h-4 w-4 md:mr-2" />
+          <span className="hidden md:inline">Edit</span>
         </Button>
-        <Button variant="destructive" size="icon" onClick={handleDeleteClient}>
+        <Button variant="destructive" size="icon" onClick={handleDeleteClient} className="h-10 w-10 min-h-[44px] min-w-[44px]">
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Left Column - Client Info */}
         <div className="space-y-6">
           {/* Contact Card */}

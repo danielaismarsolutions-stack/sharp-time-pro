@@ -433,54 +433,54 @@ export default function Calendar() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => navigateDate('prev')}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 md:p-4 border-b border-border">
+        <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-1 md:gap-2">
+            <Button variant="outline" size="icon" onClick={() => navigateDate('prev')} className="h-9 w-9 min-h-[44px] min-w-[44px]">
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" onClick={() => navigateDate('next')}>
+            <Button variant="outline" size="icon" onClick={() => navigateDate('next')} className="h-9 w-9 min-h-[44px] min-w-[44px]">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <h2 className="text-xl font-semibold">
-            {viewMode === 'day' && format(currentDate, 'EEEE, MMMM d, yyyy')}
+          <h2 className="text-base md:text-xl font-semibold truncate">
+            {viewMode === 'day' && format(currentDate, 'EEE, MMM d')}
             {viewMode === 'week' &&
-              `${format(weekDays[0], 'MMM d')} - ${format(weekDays[6], 'MMM d, yyyy')}`}
+              `${format(weekDays[0], 'MMM d')} - ${format(weekDays[6], 'd')}`}
             {viewMode === 'month' && format(currentDate, 'MMMM yyyy')}
           </h2>
-          <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date())}>
+          <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date())} className="hidden sm:flex min-h-[44px]">
             Today
           </Button>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-            <TabsList>
-              <TabsTrigger value="day" className="gap-2">
-                <List className="h-4 w-4" />
-                Day
+            <TabsList className="h-9 md:h-10">
+              <TabsTrigger value="day" className="text-xs md:text-sm px-2 md:px-3 min-h-[36px]">
+                <List className="h-4 w-4 md:mr-1" />
+                <span className="hidden md:inline">Day</span>
               </TabsTrigger>
-              <TabsTrigger value="week" className="gap-2">
-                <LayoutGrid className="h-4 w-4" />
-                Week
+              <TabsTrigger value="week" className="text-xs md:text-sm px-2 md:px-3 min-h-[36px]">
+                <LayoutGrid className="h-4 w-4 md:mr-1" />
+                <span className="hidden md:inline">Week</span>
               </TabsTrigger>
-              <TabsTrigger value="month" className="gap-2">
-                <CalendarIcon className="h-4 w-4" />
-                Month
+              <TabsTrigger value="month" className="text-xs md:text-sm px-2 md:px-3 min-h-[36px]">
+                <CalendarIcon className="h-4 w-4 md:mr-1" />
+                <span className="hidden md:inline">Month</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
 
-          <Button onClick={() => openNewBooking()}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Booking
+          <Button onClick={() => openNewBooking()} size="sm" className="h-9 md:h-10 min-h-[44px]">
+            <Plus className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">New Booking</span>
           </Button>
         </div>
       </div>
 
       {/* Calendar Content */}
-      <Card className="flex-1 m-4 mt-0 overflow-hidden border-border">
+      <Card className="flex-1 m-2 md:m-4 mt-0 overflow-hidden border-border">
         {viewMode === 'day' && renderDayView()}
         {viewMode === 'week' && renderWeekView()}
         {viewMode === 'month' && renderMonthView()}

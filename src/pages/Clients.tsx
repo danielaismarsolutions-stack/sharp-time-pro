@@ -166,39 +166,39 @@ export default function Clients() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Clients</h1>
-          <p className="text-muted-foreground">Manage your client database</p>
+          <h1 className="text-xl md:text-2xl font-bold">Clients</h1>
+          <p className="text-muted-foreground text-sm">Manage your client database</p>
         </div>
-        <Button onClick={() => { setEditingClient(null); setIsModalOpen(true); }}>
+        <Button onClick={() => { setEditingClient(null); setIsModalOpen(true); }} className="h-11 min-h-[44px]">
           <Plus className="h-4 w-4 mr-2" />
           Add Client
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Stats Cards - 2x2 on mobile */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card className="border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
               Total Clients
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{clients.length}</p>
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <p className="text-xl md:text-2xl font-bold">{clients.length}</p>
           </CardContent>
         </Card>
         <Card className="border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
               Active This Month
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <p className="text-xl md:text-2xl font-bold">
               {clients.filter((c) => {
                 if (!c.lastVisit) return false;
                 const lastVisit = new Date(c.lastVisit);
@@ -209,40 +209,40 @@ export default function Clients() {
           </CardContent>
         </Card>
         <Card className="border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
               Total Revenue
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <p className="text-xl md:text-2xl font-bold">
               €{clients.reduce((sum, c) => sum + c.totalSpent, 0).toLocaleString()}
             </p>
           </CardContent>
         </Card>
         <Card className="border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
               Avg. per Client
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <p className="text-xl md:text-2xl font-bold">
               €{clients.length > 0 ? Math.round(clients.reduce((sum, c) => sum + c.totalSpent, 0) / clients.length) : 0}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search & Table */}
+      {/* Search & Client List */}
       <Card className="border-border">
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
+        <CardHeader className="p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search clients..."
-                className="pl-9"
+                className="pl-9 h-11 min-h-[44px]"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -251,141 +251,172 @@ export default function Clients() {
               />
             </div>
             <p className="text-sm text-muted-foreground">
-              {filteredAndSortedClients.length} clients found
+              {filteredAndSortedClients.length} clients
             </p>
           </div>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <SortHeader field="name">Name</SortHeader>
-                <TableHead>Contact</TableHead>
-                <SortHeader field="totalVisits">Visits</SortHeader>
-                <SortHeader field="totalSpent">Total Spent</SortHeader>
-                <SortHeader field="lastVisit">Last Visit</SortHeader>
-                <TableHead>Tags</TableHead>
-                <TableHead className="w-[50px]" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedClients.map((client) => (
-                <TableRow
-                  key={client.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => navigate(`/clients/${client.id}`)}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-medium">
-                        {client.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
-                      </div>
-                      <span className="font-medium">{client.name}</span>
+        <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+          {/* Mobile: Card list */}
+          <div className="md:hidden space-y-3">
+            {paginatedClients.map((client) => (
+              <div
+                key={client.id}
+                className="p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors touch-manipulation active:bg-muted min-h-[72px]"
+                onClick={() => navigate(`/clients/${client.id}`)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 min-w-[48px] rounded-full bg-primary/20 flex items-center justify-center text-primary font-medium">
+                    {client.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{client.name}</p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{client.phone}</span>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Phone className="h-3 w-3 text-muted-foreground" />
-                        {client.phone}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Mail className="h-3 w-3" />
-                        {client.email}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{client.totalVisits}</Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">€{client.totalSpent}</TableCell>
-                  <TableCell>
-                    {client.lastVisit ? (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                        {format(new Date(client.lastVisit), 'MMM d, yyyy')}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">Never</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      {client.tags?.slice(0, 2).map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                      {client.tags && client.tags.length > 2 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{client.tags.length - 2}
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/clients/${client.id}`);
-                        }}>
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingClient(client);
-                          setIsModalOpen(true);
-                        }}>
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteClient(client.id);
-                          }}
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="font-bold">€{client.totalSpent}</p>
+                    <Badge variant="secondary" className="text-xs">{client.totalVisits} visits</Badge>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: Table */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <SortHeader field="name">Name</SortHeader>
+                  <TableHead>Contact</TableHead>
+                  <SortHeader field="totalVisits">Visits</SortHeader>
+                  <SortHeader field="totalSpent">Total Spent</SortHeader>
+                  <SortHeader field="lastVisit">Last Visit</SortHeader>
+                  <TableHead>Tags</TableHead>
+                  <TableHead className="w-[50px]" />
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {paginatedClients.map((client) => (
+                  <TableRow
+                    key={client.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => navigate(`/clients/${client.id}`)}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-medium">
+                          {client.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
+                        </div>
+                        <span className="font-medium">{client.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="h-3 w-3 text-muted-foreground" />
+                          {client.phone}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Mail className="h-3 w-3" />
+                          {client.email}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{client.totalVisits}</Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">€{client.totalSpent}</TableCell>
+                    <TableCell>
+                      {client.lastVisit ? (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          {format(new Date(client.lastVisit), 'MMM d, yyyy')}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">Never</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        {client.tags?.slice(0, 2).map((tag) => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                        {client.tags && client.tags.length > 2 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{client.tags.length - 2}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-10 w-10 min-h-[44px] min-w-[44px]">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem className="min-h-[44px]" onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/clients/${client.id}`);
+                          }}>
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="min-h-[44px]" onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingClient(client);
+                            setIsModalOpen(true);
+                          }}>
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive min-h-[44px]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClient(client.id);
+                            }}
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-              <p className="text-sm text-muted-foreground">
-                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{' '}
-                {Math.min(currentPage * ITEMS_PER_PAGE, filteredAndSortedClients.length)} of{' '}
-                {filteredAndSortedClients.length} clients
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t border-border">
+              <p className="text-sm text-muted-foreground order-2 sm:order-1">
+                {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredAndSortedClients.length)} of {filteredAndSortedClients.length}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 order-1 sm:order-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
+                  className="h-10 min-h-[44px] min-w-[44px]"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm">
-                  Page {currentPage} of {totalPages}
+                <span className="text-sm px-2">
+                  {currentPage} / {totalPages}
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
+                  className="h-10 min-h-[44px] min-w-[44px]"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
