@@ -1,0 +1,145 @@
+import { Link, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import {
+  LayoutDashboard,
+  Calendar,
+  Users,
+  Scissors,
+  BarChart3,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
+interface SidebarProps {
+  collapsed: boolean;
+  onToggle: () => void;
+}
+
+const navItems = [
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+  { icon: Calendar, label: 'Calendar', path: '/calendar' },
+  { icon: Users, label: 'Clients', path: '/clients' },
+  { icon: Scissors, label: 'Services', path: '/services' },
+  { icon: BarChart3, label: 'Reports', path: '/reports' },
+  { icon: Settings, label: 'Settings', path: '/settings' },
+];
+
+export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+  const location = useLocation();
+  const { logout, user } = useAuth();
+
+  const NavItem = ({ icon: Icon, label, path }: typeof navItems[0]) => {
+    const isActive = location.pathname === path || location.pathname.startsWith(path + '/');
+    
+    const content = (
+      <Link
+        to={path}
+        className={cn(
+          'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
+          'hover:bg-sidebar-accent',
+          isActive && 'bg-sidebar-accent text-primary font-medium',
+          !isActive && 'text-sidebar-foreground/80'
+        )}
+      >
+        <Icon className={cn('h-5 w-5 shrink-0', isActive && 'text-primary')} />
+        {!collapsed && <span className="truncate">{label}</span>}
+      </Link>
+    );
+
+    if (collapsed) {
+      return (
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>{content}</TooltipTrigger>
+          <TooltipContent side="right" className="font-medium">
+            {label}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return content;
+  };
+
+  return (
+    <aside
+      className={cn(
+        'h-screen bg-sidebar-background border-r border-sidebar-border flex flex-col transition-all duration-300',
+        collapsed ? 'w-16' : 'w-60'
+      )}
+    >
+      {/* Logo */}
+      <div className={cn(
+        'h-16 flex items-center border-b border-sidebar-border px-4',
+        collapsed ? 'justify-center' : 'justify-between'
+      )}>
+        {!collapsed && (
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <Scissors className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="font-semibold text-sidebar-foreground">BarberPro</span>
+          </div>
+        )}
+        {collapsed && (
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <Scissors className="h-4 w-4 text-primary-foreground" />
+          </div>
+        )}
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-dark">
+        {navItems.map((item) => (
+          <NavItem key={item.path} {...item} />
+        ))}
+      </nav>
+
+      {/* User section */}
+      <div className="border-t border-sidebar-border p-3 space-y-2">
+        {!collapsed && user && (
+          <div className="px-3 py-2">
+            <p className="text-sm font-medium text-sidebar-foreground truncate">{user.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+          </div>
+        )}
+        
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size={collapsed ? 'icon' : 'default'}
+              className={cn(
+                'w-full text-sidebar-foreground/80 hover:text-destructive hover:bg-destructive/10',
+                !collapsed && 'justify-start'
+              )}
+              onClick={logout}
+            >
+              <LogOut className="h-5 w-5" />
+              {!collapsed && <span className="ml-3">Logout</span>}
+            </Button>
+          </TooltipTrigger>
+          {collapsed && (
+            <TooltipContent side="right">Logout</TooltipContent>
+          )}
+        </Tooltip>
+      </div>
+
+      {/* Collapse toggle */}
+      <button
+        onClick={onToggle}
+        className="absolute -right-3 top-20 w-6 h-6 bg-sidebar-background border border-sidebar-border rounded-full flex items-center justify-center hover:bg-sidebar-accent transition-colors"
+      >
+        {collapsed ? (
+          <ChevronRight className="h-3 w-3" />
+        ) : (
+          <ChevronLeft className="h-3 w-3" />
+        )}
+      </button>
+    </aside>
+  );
+}
