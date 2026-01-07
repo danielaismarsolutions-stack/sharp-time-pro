@@ -8,6 +8,12 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Calendar from "./pages/Calendar";
+import Clients from "./pages/Clients";
+import ClientDetail from "./pages/ClientDetail";
+import Services from "./pages/Services";
+import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,11 +36,12 @@ const App = () => (
               }
             >
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/calendar" element={<Dashboard />} />
-              <Route path="/clients" element={<Dashboard />} />
-              <Route path="/services" element={<Dashboard />} />
-              <Route path="/reports" element={<Dashboard />} />
-              <Route path="/settings" element={<Dashboard />} />
+              <Route path="/calendar" element={<Calendar />} />
+              <Route path="/clients" element={<Clients />} />
+              <Route path="/clients/:id" element={<ClientDetail />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
