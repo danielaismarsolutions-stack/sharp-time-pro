@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { motion } from 'framer-motion';
 import {
   Search,
   Plus,
@@ -35,6 +37,7 @@ import { clientsApi } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import ClientModal from '@/components/clients/ClientModal';
+import { AnimatedCard, AnimatedList, AnimatedListItem } from '@/components/ui/animated-card';
 
 type SortField = 'name' | 'totalVisits' | 'totalSpent' | 'lastVisit';
 type SortOrder = 'asc' | 'desc';
@@ -63,7 +66,7 @@ export default function Clients() {
       const data = await clientsApi.getAll();
       setClients(data);
     } catch (error) {
-      toast({ title: 'Error loading clients', variant: 'destructive' });
+      toast({ title: 'Error al cargar clientes', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -125,11 +128,11 @@ export default function Clients() {
     if (editingClient) {
       const updated = await clientsApi.update(editingClient.id, clientData);
       setClients((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-      toast({ title: 'Client updated successfully' });
+      toast({ title: 'Cliente actualizado correctamente' });
     } else {
       const created = await clientsApi.create(clientData as Omit<Client, 'id' | 'createdAt' | 'totalVisits' | 'totalSpent' | 'lastVisit'>);
       setClients((prev) => [...prev, created]);
-      toast({ title: 'Client created successfully' });
+      toast({ title: 'Cliente creado correctamente' });
     }
     setEditingClient(null);
   };
@@ -137,7 +140,7 @@ export default function Clients() {
   const handleDeleteClient = async (id: string) => {
     await clientsApi.delete(id);
     setClients((prev) => prev.filter((c) => c.id !== id));
-    toast({ title: 'Client deleted' });
+    toast({ title: 'Cliente eliminado' });
   };
 
   const SortHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
@@ -166,123 +169,146 @@ export default function Clients() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="p-4 md:p-6 space-y-4 md:space-y-6"
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold">Clients</h1>
-          <p className="text-muted-foreground text-sm">Manage your client database</p>
-        </div>
-        <Button onClick={() => { setEditingClient(null); setIsModalOpen(true); }} className="h-11 min-h-[44px]">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Client
-        </Button>
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <h1 className="text-xl md:text-2xl font-bold">Clientes</h1>
+          <p className="text-muted-foreground text-sm">Gestiona tu base de datos de clientes</p>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <Button onClick={() => { setEditingClient(null); setIsModalOpen(true); }} className="h-11 min-h-[44px]">
+            <Plus className="h-4 w-4 mr-2" />
+            Añadir Cliente
+          </Button>
+        </motion.div>
       </div>
 
       {/* Stats Cards - 2x2 on mobile */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <Card className="border-border">
-          <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-              Total Clients
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-            <p className="text-xl md:text-2xl font-bold">{clients.length}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-              Active This Month
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-            <p className="text-xl md:text-2xl font-bold">
-              {clients.filter((c) => {
-                if (!c.lastVisit) return false;
-                const lastVisit = new Date(c.lastVisit);
-                const now = new Date();
-                return lastVisit.getMonth() === now.getMonth() && lastVisit.getFullYear() === now.getFullYear();
-              }).length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-              Total Revenue
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-            <p className="text-xl md:text-2xl font-bold">
-              €{clients.reduce((sum, c) => sum + c.totalSpent, 0).toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-              Avg. per Client
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-            <p className="text-xl md:text-2xl font-bold">
-              €{clients.length > 0 ? Math.round(clients.reduce((sum, c) => sum + c.totalSpent, 0) / clients.length) : 0}
-            </p>
-          </CardContent>
-        </Card>
+        <AnimatedCard delay={0}>
+          <Card className="border-border h-full">
+            <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
+                Total Clientes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+              <p className="text-xl md:text-2xl font-bold">{clients.length}</p>
+            </CardContent>
+          </Card>
+        </AnimatedCard>
+        <AnimatedCard delay={1}>
+          <Card className="border-border h-full">
+            <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
+                Activos Este Mes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+              <p className="text-xl md:text-2xl font-bold">
+                {clients.filter((c) => {
+                  if (!c.lastVisit) return false;
+                  const lastVisit = new Date(c.lastVisit);
+                  const now = new Date();
+                  return lastVisit.getMonth() === now.getMonth() && lastVisit.getFullYear() === now.getFullYear();
+                }).length}
+              </p>
+            </CardContent>
+          </Card>
+        </AnimatedCard>
+        <AnimatedCard delay={2}>
+          <Card className="border-border h-full">
+            <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
+                Ingresos Totales
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+              <p className="text-xl md:text-2xl font-bold">
+                €{clients.reduce((sum, c) => sum + c.totalSpent, 0).toLocaleString()}
+              </p>
+            </CardContent>
+          </Card>
+        </AnimatedCard>
+        <AnimatedCard delay={3}>
+          <Card className="border-border h-full">
+            <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
+                Prom. por Cliente
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+              <p className="text-xl md:text-2xl font-bold">
+                €{clients.length > 0 ? Math.round(clients.reduce((sum, c) => sum + c.totalSpent, 0) / clients.length) : 0}
+              </p>
+            </CardContent>
+          </Card>
+        </AnimatedCard>
       </div>
 
       {/* Search & Client List */}
-      <Card className="border-border">
-        <CardHeader className="p-4 md:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search clients..."
-                className="pl-9 h-11 min-h-[44px]"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {filteredAndSortedClients.length} clients
-            </p>
-          </div>
-        </CardHeader>
-        <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
-          {/* Mobile: Card list */}
-          <div className="md:hidden space-y-3">
-            {paginatedClients.map((client) => (
-              <div
-                key={client.id}
-                className="p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors touch-manipulation active:bg-muted min-h-[72px]"
-                onClick={() => navigate(`/clients/${client.id}`)}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 min-w-[48px] rounded-full bg-primary/20 flex items-center justify-center text-primary font-medium">
-                    {client.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{client.name}</p>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Phone className="h-3 w-3 shrink-0" />
-                      <span className="truncate">{client.phone}</span>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-bold">€{client.totalSpent}</p>
-                    <Badge variant="secondary" className="text-xs">{client.totalVisits} visits</Badge>
-                  </div>
-                </div>
+      <AnimatedCard delay={4}>
+        <Card className="border-border">
+          <CardHeader className="p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar clientes..."
+                  className="pl-9 h-11 min-h-[44px]"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                />
               </div>
-            ))}
-          </div>
+              <p className="text-sm text-muted-foreground">
+                {filteredAndSortedClients.length} clientes
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+            {/* Mobile: Card list */}
+            <AnimatedList className="md:hidden space-y-3">
+              {paginatedClients.map((client, index) => (
+                <AnimatedListItem key={client.id}>
+                  <motion.div
+                    whileTap={{ scale: 0.98 }}
+                    className="p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors touch-manipulation active:bg-muted min-h-[72px]"
+                    onClick={() => navigate(`/clients/${client.id}`)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 min-w-[48px] rounded-full bg-primary/20 flex items-center justify-center text-primary font-medium">
+                        {client.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{client.name}</p>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Phone className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{client.phone}</span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-bold">€{client.totalSpent}</p>
+                        <Badge variant="secondary" className="text-xs">{client.totalVisits} visitas</Badge>
+                      </div>
+                    </div>
+                  </motion.div>
+                </AnimatedListItem>
+              ))}
+            </AnimatedList>
 
           {/* Desktop: Table */}
           <div className="hidden md:block">
@@ -425,6 +451,7 @@ export default function Clients() {
           )}
         </CardContent>
       </Card>
+      </AnimatedCard>
 
       {/* Client Modal */}
       <ClientModal
@@ -433,6 +460,6 @@ export default function Clients() {
         client={editingClient}
         onSave={handleSaveClient}
       />
-    </div>
+    </motion.div>
   );
 }

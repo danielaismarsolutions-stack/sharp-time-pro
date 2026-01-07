@@ -1,13 +1,14 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Users, Scissors, BarChart3, Settings } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { LayoutDashboard, Calendar, Users, Scissors, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Home', path: '/dashboard' },
-  { icon: Calendar, label: 'Calendar', path: '/calendar' },
-  { icon: Users, label: 'Clients', path: '/clients' },
-  { icon: Scissors, label: 'Services', path: '/services' },
-  { icon: Settings, label: 'Settings', path: '/settings' },
+  { icon: LayoutDashboard, label: 'Inicio', path: '/dashboard' },
+  { icon: Calendar, label: 'Agenda', path: '/calendar' },
+  { icon: Users, label: 'Clientes', path: '/clients' },
+  { icon: Scissors, label: 'Servicios', path: '/services' },
+  { icon: Settings, label: 'Ajustes', path: '/settings' },
 ];
 
 export default function BottomNav() {
@@ -25,11 +26,23 @@ export default function BottomNav() {
               key={item.path}
               to={item.path}
               className={cn(
-                'flex flex-col items-center justify-center gap-1 w-full h-full min-h-[44px] min-w-[44px] transition-colors active:bg-muted/50',
+                'relative flex flex-col items-center justify-center gap-1 w-full h-full min-h-[44px] min-w-[44px] transition-colors active:bg-muted/50',
                 isActive ? 'text-primary' : 'text-muted-foreground'
               )}
             >
-              <item.icon className={cn('h-5 w-5', isActive && 'text-primary')} />
+              {isActive && (
+                <motion.div
+                  layoutId="bottomNavIndicator"
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-primary rounded-full"
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                />
+              )}
+              <motion.div
+                whileTap={{ scale: 0.9 }}
+                transition={{ duration: 0.1 }}
+              >
+                <item.icon className={cn('h-5 w-5', isActive && 'text-primary')} />
+              </motion.div>
               <span className="text-[10px] font-medium">{item.label}</span>
             </NavLink>
           );

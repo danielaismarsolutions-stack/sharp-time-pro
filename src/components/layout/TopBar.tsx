@@ -23,9 +23,9 @@ interface TopBarProps {
 export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
   const { user, logout } = useAuth();
   const [notifications] = useState([
-    { id: 1, message: 'New booking from Carlos García', time: '5 min ago' },
-    { id: 2, message: 'Appointment cancelled by Miguel R.', time: '1 hour ago' },
-    { id: 3, message: 'Reminder: Roberto Ruiz at 3:00 PM', time: '2 hours ago' },
+    { id: 1, message: 'Nueva reserva de Carlos García', time: 'Hace 5 min' },
+    { id: 2, message: 'Cita cancelada por Miguel R.', time: 'Hace 1 hora' },
+    { id: 3, message: 'Recordatorio: Roberto Ruiz a las 15:00', time: 'Hace 2 horas' },
   ]);
 
   const initials = user?.name
@@ -46,7 +46,7 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search clients, bookings..."
+              placeholder="Buscar clientes, reservas..."
               className="pl-9 pr-12 h-10 bg-muted/50 border-transparent focus:border-border focus:bg-background"
               onClick={onSearchOpen}
               readOnly
@@ -79,7 +79,7 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+            <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {notifications.map((notif) => (
               <DropdownMenuItem key={notif.id} className="flex flex-col items-start gap-1 py-3 min-h-[44px]">
@@ -89,7 +89,7 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
             ))}
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-center justify-center text-primary min-h-[44px]">
-              View all notifications
+              Ver todas las notificaciones
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -113,11 +113,11 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="min-h-[44px]">Profile settings</DropdownMenuItem>
-            <DropdownMenuItem className="min-h-[44px]">Help & support</DropdownMenuItem>
+            <DropdownMenuItem className="min-h-[44px]">Configuración del perfil</DropdownMenuItem>
+            <DropdownMenuItem className="min-h-[44px]">Ayuda y soporte</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive min-h-[44px]">
-              Log out
+              Cerrar sesión
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
