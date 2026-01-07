@@ -162,103 +162,103 @@ export default function Reports() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Reports & Analytics</h1>
-          <p className="text-muted-foreground">Business performance overview</p>
+          <h1 className="text-xl md:text-2xl font-bold">Reports</h1>
+          <p className="text-muted-foreground text-sm">Business performance overview</p>
         </div>
         <Tabs value={period} onValueChange={(v) => setPeriod(v as Period)}>
-          <TabsList>
-            <TabsTrigger value="week">Week</TabsTrigger>
-            <TabsTrigger value="month">Month</TabsTrigger>
-            <TabsTrigger value="quarter">Quarter</TabsTrigger>
-            <TabsTrigger value="year">Year</TabsTrigger>
+          <TabsList className="h-10">
+            <TabsTrigger value="week" className="text-xs md:text-sm px-2 md:px-3 min-h-[36px]">Week</TabsTrigger>
+            <TabsTrigger value="month" className="text-xs md:text-sm px-2 md:px-3 min-h-[36px]">Month</TabsTrigger>
+            <TabsTrigger value="quarter" className="text-xs md:text-sm px-2 md:px-3 min-h-[36px]">Qtr</TabsTrigger>
+            <TabsTrigger value="year" className="text-xs md:text-sm px-2 md:px-3 min-h-[36px]">Year</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* KPI Cards - 2x2 on mobile */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card className="border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Revenue
+          <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
+              Revenue
             </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-muted-foreground hidden sm:block" />
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">€{totalRevenue.toLocaleString()}</p>
-            <div className="flex items-center gap-1 text-sm text-status-success">
-              <TrendingUp className="h-4 w-4" />
-              <span>+12% from last {period}</span>
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <p className="text-xl md:text-2xl font-bold">€{totalRevenue.toLocaleString()}</p>
+            <div className="flex items-center gap-1 text-xs md:text-sm text-status-success">
+              <TrendingUp className="h-3 w-3 md:h-4 md:w-4" />
+              <span>+12%</span>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Appointments
+          <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
+              Appointments
             </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Calendar className="h-4 w-4 text-muted-foreground hidden sm:block" />
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">{filteredBookings.length}</p>
-            <p className="text-sm text-muted-foreground">
-              {completedBookings.length} completed
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <p className="text-xl md:text-2xl font-bold">{filteredBookings.length}</p>
+            <p className="text-[10px] md:text-sm text-muted-foreground">
+              {completedBookings.length} done
             </p>
           </CardContent>
         </Card>
 
         <Card className="border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Completion Rate
+          <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
+              Completion
             </CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <BarChart3 className="h-4 w-4 text-muted-foreground hidden sm:block" />
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-status-success">{completionRate}%</p>
-            <p className="text-sm text-muted-foreground">
-              {cancellationRate}% cancelled, {noShowRate}% no-show
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <p className="text-xl md:text-2xl font-bold text-status-success">{completionRate}%</p>
+            <p className="text-[10px] md:text-sm text-muted-foreground">
+              {cancellationRate}% cancelled
             </p>
           </CardContent>
         </Card>
 
         <Card className="border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Avg. per Appointment
+          <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
+              Avg/Appt
             </CardTitle>
-            <PieChart className="h-4 w-4 text-muted-foreground" />
+            <PieChart className="h-4 w-4 text-muted-foreground hidden sm:block" />
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold">
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <p className="text-xl md:text-2xl font-bold">
               €{completedBookings.length > 0 ? Math.round(totalRevenue / completedBookings.length) : 0}
             </p>
-            <p className="text-sm text-muted-foreground">
-              {clients.length} total clients
+            <p className="text-[10px] md:text-sm text-muted-foreground">
+              {clients.length} clients
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Charts Row - stack on mobile */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Revenue Trend */}
         <Card className="border-border">
-          <CardHeader>
-            <CardTitle>Revenue Trend (Last 7 Days)</CardTitle>
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="text-base md:text-lg">Revenue Trend</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
+          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+            <div className="h-[200px] md:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={revenueTrend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
-                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Line
                     type="monotone"
@@ -275,16 +275,16 @@ export default function Reports() {
 
         {/* Revenue by Service */}
         <Card className="border-border">
-          <CardHeader>
-            <CardTitle>Revenue by Service</CardTitle>
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="text-base md:text-lg">By Service</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
+          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+            <div className="h-[200px] md:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={serviceChartData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
-                  <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" width={100} />
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" width={80} fontSize={11} />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                 </BarChart>
@@ -294,23 +294,23 @@ export default function Reports() {
         </Card>
       </div>
 
-      {/* Second Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Second Row - stack on mobile */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Booking Status */}
         <Card className="border-border">
-          <CardHeader>
-            <CardTitle>Booking Status</CardTitle>
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="text-base md:text-lg">Status</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
+          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+            <div className="h-[180px] md:h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPie>
                   <Pie
                     data={statusData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
+                    innerRadius={40}
+                    outerRadius={60}
                     paddingAngle={5}
                     dataKey="value"
                   >
@@ -318,7 +318,7 @@ export default function Reports() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Legend />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
                   <ChartTooltip content={<ChartTooltipContent />} />
                 </RechartsPie>
               </ResponsiveContainer>
@@ -328,16 +328,16 @@ export default function Reports() {
 
         {/* Busiest Hours */}
         <Card className="border-border">
-          <CardHeader>
-            <CardTitle>Busiest Hours</CardTitle>
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="text-base md:text-lg">Busiest Hours</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
+          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+            <div className="h-[180px] md:h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={hoursChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="hour" stroke="hsl(var(--muted-foreground))" fontSize={10} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <XAxis dataKey="hour" stroke="hsl(var(--muted-foreground))" fontSize={9} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar dataKey="bookings" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -347,22 +347,22 @@ export default function Reports() {
         </Card>
 
         {/* Top Clients */}
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle>Top Clients by Revenue</CardTitle>
+        <Card className="border-border md:col-span-2 lg:col-span-1">
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="text-base md:text-lg">Top Clients</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+            <div className="space-y-3 md:space-y-4">
               {topClients.map((client, index) => (
-                <div key={client.id} className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium">
+                <div key={client.id} className="flex items-center gap-3 min-h-[44px]">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium shrink-0">
                     {index + 1}
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{client.name}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{client.name}</p>
                     <p className="text-xs text-muted-foreground">{client.totalVisits} visits</p>
                   </div>
-                  <p className="font-bold">€{client.totalSpent}</p>
+                  <p className="font-bold text-sm shrink-0">€{client.totalSpent}</p>
                 </div>
               ))}
             </div>

@@ -154,33 +154,33 @@ export default function Settings() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your business configuration</p>
+        <h1 className="text-xl md:text-2xl font-bold">Settings</h1>
+        <p className="text-muted-foreground text-sm">Manage your business configuration</p>
       </div>
 
-      <Tabs defaultValue="business" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="business" className="gap-2">
+      <Tabs defaultValue="business" className="space-y-4 md:space-y-6">
+        <TabsList className="w-full overflow-x-auto flex justify-start h-auto p-1">
+          <TabsTrigger value="business" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <Building2 className="h-4 w-4" />
-            Business
+            <span className="hidden sm:inline">Business</span>
           </TabsTrigger>
-          <TabsTrigger value="hours" className="gap-2">
+          <TabsTrigger value="hours" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <Clock className="h-4 w-4" />
-            Hours
+            <span className="hidden sm:inline">Hours</span>
           </TabsTrigger>
-          <TabsTrigger value="booking" className="gap-2">
+          <TabsTrigger value="booking" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <Calendar className="h-4 w-4" />
-            Booking
+            <span className="hidden sm:inline">Booking</span>
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2">
+          <TabsTrigger value="notifications" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <Bell className="h-4 w-4" />
-            Notifications
+            <span className="hidden sm:inline">Notifs</span>
           </TabsTrigger>
-          <TabsTrigger value="account" className="gap-2">
+          <TabsTrigger value="account" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <User className="h-4 w-4" />
-            Account
+            <span className="hidden sm:inline">Account</span>
           </TabsTrigger>
         </TabsList>
 
