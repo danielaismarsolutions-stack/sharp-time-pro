@@ -3,68 +3,107 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Users, DollarSign, Clock, Plus, UserPlus, ArrowRight, RefreshCw } from 'lucide-react';
+import { Calendar, Users, DollarSign, TrendingUp, Plus, ArrowRight, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { bookingsApi } from '@/services/api';
-import { Booking } from '@/types';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { apiClient } from '@/services/apiClient';
+import { ApiBooking } from '@/types/api';
 import { cn } from '@/lib/utils';
-import { AnimatedCard, AnimatedList, AnimatedListItem } from '@/components/ui/animated-card';
+import { AnimatedCard } from '@/components/ui/animated-card';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [todayBookings, setTodayBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<ApiBooking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const today = format(new Date(), 'yyyy-MM-dd');
-
-  const fetchData = useCallback(async () => {
+  const loadBookings = useCallback(async () => {
     try {
-      const bookings = await bookingsApi.getAll({ date: today });
-      setTodayBookings(bookings);
+      setError(null);
+      const data = await apiClient.bookings.getAll();
+      setBookings(data);
+      console.log('✅ Bookings loaded:', data);
+    } catch (err) {
+      console.error('❌ Error loading bookings:', err);
+      setError('No se pudieron cargar las citas. Por favor, intente de nuevo.');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [today]);
+  }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    loadBookings();
+  }, [loadBookings]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    fetchData();
+    loadBookings();
   };
 
+  // Calculate stats
   const stats = {
-    totalToday: todayBookings.length,
-    completed: todayBookings.filter(b => b.status === 'completed').length,
-    upcoming: todayBookings.filter(b => b.status === 'confirmed' || b.status === 'pending').length,
-    revenue: todayBookings.filter(b => b.status === 'completed').reduce((sum, b) => sum + b.servicePrice, 0),
+    totalBookings: bookings.length,
+    confirmedBookings: bookings.filter(b => b.status === 'confirmed').length,
+    todayRevenue: bookings.reduce((sum, b) => sum + b.service_price, 0),
+    averagePrice: bookings.length > 0 
+      ? bookings.reduce((sum, b) => sum + b.service_price, 0) / bookings.length 
+      : 0,
   };
 
-  const nextBooking = todayBookings
-    .filter(b => b.status === 'confirmed' || b.status === 'pending')
-    .sort((a, b) => a.time.localeCompare(b.time))[0];
-
-  const statusColors: Record<string, string> = {
-    pending: 'status-pending',
-    confirmed: 'status-confirmed',
-    completed: 'status-completed',
-    cancelled: 'status-cancelled',
-    'no-show': 'status-noshow',
+  // Status badge colors and labels
+  const getStatusBadge = (status: string) => {
+    const statusConfig: Record<string, { class: string; label: string }> = {
+      confirmed: { class: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', label: 'Confirmada' },
+      pending: { class: 'bg-amber-500/10 text-amber-500 border-amber-500/20', label: 'Pendiente' },
+      completed: { class: 'bg-blue-500/10 text-blue-500 border-blue-500/20', label: 'Completada' },
+      cancelled: { class: 'bg-red-500/10 text-red-500 border-red-500/20', label: 'Cancelada' },
+      no_show: { class: 'bg-gray-500/10 text-gray-500 border-gray-500/20', label: 'No asistió' },
+    };
+    return statusConfig[status] || { class: 'bg-gray-500/10 text-gray-500', label: status };
   };
 
-  const statusLabels: Record<string, string> = {
-    pending: 'Pendiente',
-    confirmed: 'Confirmada',
-    completed: 'Completada',
-    cancelled: 'Cancelada',
-    'no-show': 'No asistió',
-  };
+  // Format time (HH:mm:ss -> HH:mm)
+  const formatTime = (time: string) => time.slice(0, 5);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground text-lg">Cargando citas...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 p-4">
+        <div className="rounded-full bg-destructive/10 p-4">
+          <AlertCircle className="h-12 w-12 text-destructive" />
+        </div>
+        <h2 className="text-xl font-semibold text-center">Error al cargar</h2>
+        <p className="text-muted-foreground text-center max-w-md">{error}</p>
+        <Button onClick={handleRefresh} disabled={isRefreshing}>
+          {isRefreshing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Reintentando...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Reintentar
+            </>
+          )}
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <motion.div 
@@ -108,30 +147,30 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Stats Cards - 2x2 grid on mobile */}
+      {/* Stats Cards - 4 cards grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <AnimatedCard delay={0}>
           <Card className="touch-manipulation h-full">
             <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Citas Hoy</CardTitle>
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Total Citas</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground hidden sm:block" />
             </CardHeader>
             <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <div className="text-xl md:text-2xl font-bold">{stats.totalToday}</div>
-              <p className="text-[10px] md:text-xs text-muted-foreground">{stats.completed} listas, {stats.upcoming} pendientes</p>
+              <div className="text-xl md:text-2xl font-bold">{stats.totalBookings}</div>
+              <p className="text-[10px] md:text-xs text-muted-foreground">reservas totales</p>
             </CardContent>
           </Card>
         </AnimatedCard>
 
         <AnimatedCard delay={1}>
-          <Card className="touch-manipulation h-full">
+          <Card className="touch-manipulation h-full border-emerald-500/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Ingresos</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground hidden sm:block" />
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Confirmadas</CardTitle>
+              <Users className="h-4 w-4 text-emerald-500 hidden sm:block" />
             </CardHeader>
             <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <div className="text-xl md:text-2xl font-bold">€{stats.revenue}</div>
-              <p className="text-[10px] md:text-xs text-emerald-400">+12% vs ayer</p>
+              <div className="text-xl md:text-2xl font-bold text-emerald-500">{stats.confirmedBookings}</div>
+              <p className="text-[10px] md:text-xs text-emerald-500/70">citas confirmadas</p>
             </CardContent>
           </Card>
         </AnimatedCard>
@@ -139,81 +178,105 @@ export default function Dashboard() {
         <AnimatedCard delay={2}>
           <Card className="touch-manipulation h-full">
             <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Clientes</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground hidden sm:block" />
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Ingresos</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground hidden sm:block" />
             </CardHeader>
             <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <div className="text-xl md:text-2xl font-bold">248</div>
-              <p className="text-[10px] md:text-xs text-muted-foreground">+3 esta semana</p>
+              <div className="text-xl md:text-2xl font-bold">€{stats.todayRevenue.toFixed(2)}</div>
+              <p className="text-[10px] md:text-xs text-muted-foreground">ingresos totales</p>
             </CardContent>
           </Card>
         </AnimatedCard>
 
         <AnimatedCard delay={3}>
-          <Card className={cn('touch-manipulation h-full', nextBooking && 'border-primary/50 glow-primary')}>
+          <Card className="touch-manipulation h-full">
             <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Próxima</CardTitle>
-              <Clock className="h-4 w-4 text-primary hidden sm:block" />
+              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Promedio</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground hidden sm:block" />
             </CardHeader>
             <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              {nextBooking ? (
-                <>
-                  <div className="text-xl md:text-2xl font-bold">{nextBooking.time}</div>
-                  <p className="text-[10px] md:text-xs text-muted-foreground truncate">{nextBooking.clientName}</p>
-                </>
-              ) : (
-                <div className="text-sm text-muted-foreground">Sin más citas hoy</div>
-              )}
+              <div className="text-xl md:text-2xl font-bold">€{stats.averagePrice.toFixed(2)}</div>
+              <p className="text-[10px] md:text-xs text-muted-foreground">precio promedio</p>
             </CardContent>
           </Card>
         </AnimatedCard>
       </div>
 
-      {/* Today's Schedule */}
+      {/* Bookings Table */}
       <AnimatedCard delay={4}>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between p-4 md:p-6">
-            <CardTitle className="text-base md:text-lg">Agenda de Hoy</CardTitle>
+            <CardTitle className="text-base md:text-lg">Listado de Citas</CardTitle>
             <Button variant="ghost" size="sm" className="h-9 min-h-[44px] px-2 md:px-3" onClick={() => navigate('/calendar')}>
               <span className="hidden sm:inline">Ver Calendario</span>
               <span className="sm:hidden">Ver</span>
               <ArrowRight className="ml-1 md:ml-2 h-4 w-4" />
             </Button>
           </CardHeader>
-          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
-            {isLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />)}
+          <CardContent className="p-0 md:p-6 md:pt-0">
+            {bookings.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No hay citas registradas
               </div>
-            ) : todayBookings.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No hay citas programadas para hoy</div>
             ) : (
-              <AnimatedList className="space-y-2 md:space-y-3">
-                <AnimatePresence>
-                  {todayBookings.slice(0, 6).map((booking, index) => (
-                    <AnimatedListItem key={booking.id}>
-                      <motion.div 
-                        whileTap={{ scale: 0.98 }}
-                        className="flex items-center justify-between p-3 md:p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors touch-manipulation active:bg-muted min-h-[64px]"
-                      >
-                        <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-                          <div className="text-center min-w-[50px] md:min-w-[60px]">
-                            <div className="text-base md:text-lg font-semibold">{booking.time}</div>
-                            <div className="text-[10px] md:text-xs text-muted-foreground">{booking.serviceDuration}m</div>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="font-medium text-sm md:text-base truncate">{booking.clientName}</div>
-                            <div className="text-xs md:text-sm text-muted-foreground truncate">{booking.serviceName} • €{booking.servicePrice}</div>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className={cn('text-[10px] md:text-xs shrink-0 ml-2', statusColors[booking.status])}>
-                          {statusLabels[booking.status]}
-                        </Badge>
-                      </motion.div>
-                    </AnimatedListItem>
-                  ))}
-                </AnimatePresence>
-              </AnimatedList>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="font-semibold">Cliente</TableHead>
+                      <TableHead className="font-semibold">Servicio</TableHead>
+                      <TableHead className="font-semibold">Fecha y Hora</TableHead>
+                      <TableHead className="font-semibold text-center">Duración</TableHead>
+                      <TableHead className="font-semibold text-right">Precio</TableHead>
+                      <TableHead className="font-semibold text-center">Estado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <AnimatePresence>
+                      {bookings.map((booking, index) => (
+                        <motion.tr
+                          key={booking.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="hover:bg-muted/30 transition-colors"
+                        >
+                          <TableCell>
+                            <div className="font-medium">{booking.client_name}</div>
+                            <div className="text-xs text-muted-foreground">{booking.client_phone}</div>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {booking.service_name}
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">
+                              {format(new Date(booking.booking_date), "d MMM yyyy", { locale: es })}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="text-muted-foreground">{booking.service_duration} min</span>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            €{booking.service_price.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge 
+                              variant="outline" 
+                              className={cn("text-xs", getStatusBadge(booking.status).class)}
+                            >
+                              {getStatusBadge(booking.status).label}
+                            </Badge>
+                          </TableCell>
+                        </motion.tr>
+                      ))}
+                    </AnimatePresence>
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
