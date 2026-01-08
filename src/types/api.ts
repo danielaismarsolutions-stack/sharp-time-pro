@@ -34,6 +34,7 @@ export interface ApiBooking {
   service_name: string;
   service_duration: number; // minutes
   service_price: number; // decimal
+  barber: string | null; // barber handling the booking
   notes: string | null;
   cancellation_reason: string | null;
   reminder_sent_at: string | null;

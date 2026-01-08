@@ -225,6 +225,7 @@ export default function Dashboard() {
                     <TableRow className="bg-muted/50">
                       <TableHead className="font-semibold">Cliente</TableHead>
                       <TableHead className="font-semibold">Servicio</TableHead>
+                      <TableHead className="font-semibold">Barbero</TableHead>
                       <TableHead className="font-semibold">Fecha y Hora</TableHead>
                       <TableHead className="font-semibold text-center">Duración</TableHead>
                       <TableHead className="font-semibold text-right">Precio</TableHead>
@@ -248,6 +249,9 @@ export default function Dashboard() {
                           </TableCell>
                           <TableCell className="font-medium">
                             {booking.service_name}
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-muted-foreground">{booking.barber || '—'}</span>
                           </TableCell>
                           <TableCell>
                             <div className="font-medium">
