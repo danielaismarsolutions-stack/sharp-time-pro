@@ -35,14 +35,23 @@ async function fetchApi<T>(
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const json: ApiResponse<T> = await response.json();
+    const json = await response.json();
     
-    if (!json.success) {
-      throw new Error(json.error?.message || 'API request failed');
+    // Handle both wrapped response {success, data} and raw data
+    let data: T;
+    if (json && typeof json === 'object' && 'success' in json) {
+      // Wrapped response format
+      if (!json.success) {
+        throw new Error(json.error?.message || 'API request failed');
+      }
+      data = json.data;
+    } else {
+      // Raw data format (array or object directly)
+      data = json;
     }
     
-    console.log('✅ API Response:', json.data);
-    return json.data;
+    console.log('✅ API Response:', data);
+    return data;
   } catch (error) {
     console.error('❌ API Error:', error);
     throw error;
