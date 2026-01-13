@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Users, DollarSign, TrendingUp, Plus, ArrowRight, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+import { Calendar, Users, DollarSign, TrendingUp, Plus, ArrowRight, RefreshCw, Loader2, AlertCircle, Scissors } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -53,6 +53,26 @@ export default function Dashboard() {
       ? bookings.reduce((sum, b) => sum + b.service_price, 0) / bookings.length 
       : 0,
   };
+
+  // Calculate stats per barber
+  const barberStats = bookings.reduce((acc, booking) => {
+    const barberName = booking.barber || 'Sin asignar';
+    if (!acc[barberName]) {
+      acc[barberName] = { totalBookings: 0, totalRevenue: 0 };
+    }
+    acc[barberName].totalBookings += 1;
+    acc[barberName].totalRevenue += booking.service_price;
+    return acc;
+  }, {} as Record<string, { totalBookings: number; totalRevenue: number }>);
+
+  const barberStatsList = Object.entries(barberStats)
+    .map(([name, data]) => ({
+      name,
+      totalBookings: data.totalBookings,
+      totalRevenue: data.totalRevenue,
+      averagePrice: data.totalBookings > 0 ? data.totalRevenue / data.totalBookings : 0,
+    }))
+    .sort((a, b) => b.totalRevenue - a.totalRevenue);
 
   // Status badge colors and labels
   const getStatusBadge = (status: string) => {
@@ -201,6 +221,49 @@ export default function Dashboard() {
           </Card>
         </AnimatedCard>
       </div>
+
+      {/* Barber Stats */}
+      {barberStatsList.length > 0 && (
+        <AnimatedCard delay={4}>
+          <Card>
+            <CardHeader className="p-4 md:p-6">
+              <CardTitle className="text-base md:text-lg flex items-center gap-2">
+                <Scissors className="h-5 w-5" />
+                Estadísticas por Barbero
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                {barberStatsList.map((barber, index) => (
+                  <motion.div
+                    key={barber.name}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="font-semibold text-sm md:text-base mb-3">{barber.name}</div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <div className="text-lg md:text-xl font-bold text-primary">{barber.totalBookings}</div>
+                        <div className="text-[10px] md:text-xs text-muted-foreground">Citas</div>
+                      </div>
+                      <div>
+                        <div className="text-lg md:text-xl font-bold text-emerald-500">€{barber.totalRevenue.toFixed(0)}</div>
+                        <div className="text-[10px] md:text-xs text-muted-foreground">Ingresos</div>
+                      </div>
+                      <div>
+                        <div className="text-lg md:text-xl font-bold">€{barber.averagePrice.toFixed(0)}</div>
+                        <div className="text-[10px] md:text-xs text-muted-foreground">Promedio</div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </AnimatedCard>
+      )}
 
       {/* Bookings Table */}
       <AnimatedCard delay={4}>
