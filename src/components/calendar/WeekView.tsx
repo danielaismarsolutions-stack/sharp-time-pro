@@ -195,6 +195,7 @@ interface WeekBookingCardProps {
 
 function WeekBookingCard({ booking, style, colorClasses, onClick }: WeekBookingCardProps) {
   const startTime = booking.start_time.substring(0, 5);
+  const endTime = booking.end_time.substring(0, 5);
   const isSmall = style.height < 40;
 
   return (
@@ -213,23 +214,25 @@ function WeekBookingCard({ booking, style, colorClasses, onClick }: WeekBookingC
     >
       {/* Compact layout for very small cards */}
       {isSmall ? (
-        <div className="flex items-center justify-between gap-2 h-full">
-          <span className="text-[11px] font-semibold">{startTime}</span>
-          <span className="text-[10px] font-medium truncate">{booking.client_name}</span>
+        <div className="flex items-center justify-between gap-1 h-full">
+          <span className="text-[11px] font-semibold shrink-0">
+            {startTime}-{endTime}
+          </span>
+          <span className="text-[11px] font-bold shrink-0">€{booking.service_price}</span>
         </div>
       ) : (
         <>
-          {/* Row 1: Time (left) + Service (right) */}
-          <div className="flex justify-between items-baseline gap-2 mb-0.5">
-            <span className="text-xs font-semibold shrink-0">
-              {startTime}
+          {/* Row 1: Time range + Price */}
+          <div className="flex justify-between items-baseline gap-1 mb-0.5">
+            <span className="text-[11px] font-semibold shrink-0">
+              {startTime}-{endTime}
             </span>
-            <span className="text-[11px] font-medium truncate">
-              {booking.service_name}
+            <span className="text-[11px] font-bold shrink-0">
+              €{booking.service_price}
             </span>
           </div>
           {/* Row 2: Client name */}
-          <div className="text-[11px] opacity-80 truncate">
+          <div className="text-[11px] font-medium truncate">
             {booking.client_name}
           </div>
         </>
