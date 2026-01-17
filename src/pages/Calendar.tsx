@@ -51,6 +51,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/bookings/BookingModal';
 import { BookingDetailModal, StatusBadge, StatusDot, BookingStatus } from '@/components/calendar';
+import { ServiceLegend } from '@/components/calendar/ServiceLegend';
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -557,7 +558,7 @@ export default function Calendar() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 md:p-4 border-b border-border bg-card">
+      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 md:p-4 border-b border-border bg-card">
         <div className="flex items-center gap-2 md:gap-4">
           <div className="flex items-center gap-1">
             <Button variant="outline" size="icon" onClick={() => navigateDate('prev')} className="h-9 w-9">
@@ -617,6 +618,9 @@ export default function Calendar() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
+
+          {/* Service Legend */}
+          <ServiceLegend services={services} />
 
           {/* Refresh Button */}
           <Button variant="outline" size="icon" onClick={loadData} className="h-9 w-9">
