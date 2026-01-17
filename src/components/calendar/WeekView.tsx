@@ -162,6 +162,9 @@ const statusColors: Record<BookingStatus, string> = {
 
 function WeekBookingCard({ booking, style, onClick }: WeekBookingCardProps) {
   const startTime = booking.start_time.substring(0, 5);
+  const endTime = booking.end_time.substring(0, 5);
+  const isSmall = style.height < 45;
+  const isMedium = style.height >= 45 && style.height < 60;
 
   return (
     <button
@@ -175,16 +178,34 @@ function WeekBookingCard({ booking, style, onClick }: WeekBookingCardProps) {
         height: style.height,
       }}
     >
-      {/* Time + Client Name Row */}
-      <div className="flex items-center gap-1.5">
-        <StatusDot status={booking.status as BookingStatus} size="sm" />
-        <span className="text-[11px] font-semibold text-foreground">{startTime}</span>
-        <span className="text-[11px] font-medium text-foreground truncate">{booking.client_name}</span>
-      </div>
-      {/* Service Row */}
-      <div className="text-[10px] text-muted-foreground truncate pl-4 mt-0.5">
-        {booking.service_name}
-      </div>
+      {/* Compact layout for small cards */}
+      {isSmall ? (
+        <div className="flex items-center gap-1.5 h-full">
+          <StatusDot status={booking.status as BookingStatus} size="sm" />
+          <span className="text-[10px] font-semibold">{startTime}</span>
+          <span className="text-[10px] font-medium truncate">{booking.client_name}</span>
+        </div>
+      ) : (
+        <>
+          {/* Time Row */}
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <StatusDot status={booking.status as BookingStatus} size="sm" />
+            <span className="text-[11px] font-semibold text-foreground">
+              {startTime} - {endTime}
+            </span>
+          </div>
+          {/* Client Name */}
+          <div className="text-[11px] font-medium truncate text-foreground pl-4">
+            {booking.client_name}
+          </div>
+          {/* Service - show if not medium */}
+          {!isMedium && (
+            <div className="text-[10px] text-muted-foreground truncate pl-4">
+              {booking.service_name}
+            </div>
+          )}
+        </>
+      )}
     </button>
   );
 }
