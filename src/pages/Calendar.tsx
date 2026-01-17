@@ -44,9 +44,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Client, Service } from '@/types';
-import { ApiBooking } from '@/types/api';
-import { clientsApi, servicesApi } from '@/services/api';
-import { apiClient } from '@/services/apiClient';
+import { ApiBooking, ApiBookingStatus } from '@/types/api';
+import { supabaseClientsApi } from '@/services/supabaseClients';
+import { supabaseServicesApi } from '@/services/supabaseServices';
+import { supabaseBookingsApi } from '@/services/supabaseBookings';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/bookings/BookingModal';
@@ -107,18 +108,19 @@ export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
 
-  // Load data
+  // Load data from Supabase
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [bookingsData, clientsData, servicesData] = await Promise.all([
-        apiClient.bookings.getAll(),
-        clientsApi.getAll(),
-        servicesApi.getAll(),
+        supabaseBookingsApi.getAll(),
+        supabaseClientsApi.getAll(),
+        supabaseServicesApi.getAll(),
       ]);
       setBookings(bookingsData);
       setClients(clientsData);
       setServices(servicesData);
+      console.log('✅ Calendar data loaded from Supabase');
     } catch (error) {
       console.error('Error loading data:', error);
       toast({ title: 'Error al cargar datos', variant: 'destructive' });
@@ -192,20 +194,25 @@ export default function Calendar() {
   };
 
   const handleStatusChange = async (bookingId: string, status: BookingStatus) => {
-    try {
-      await apiClient.bookings.update(bookingId, { status });
-      setBookings((prev) =>
-        prev.map((b) =>
-          b.id === bookingId
-            ? { ...b, status, updated_at: new Date().toISOString() }
-            : b
-        )
+    // Optimistic update
+    const previousBookings = [...bookings];
+    const previousSelected = selectedBooking;
+    
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id === bookingId
+          ? { ...b, status: status as ApiBookingStatus, updated_at: new Date().toISOString() }
+          : b
+      )
+    );
+    if (selectedBooking?.id === bookingId) {
+      setSelectedBooking((prev) =>
+        prev ? { ...prev, status: status as ApiBookingStatus, updated_at: new Date().toISOString() } : null
       );
-      if (selectedBooking?.id === bookingId) {
-        setSelectedBooking((prev) =>
-          prev ? { ...prev, status, updated_at: new Date().toISOString() } : null
-        );
-      }
+    }
+    
+    try {
+      await supabaseBookingsApi.updateStatus(bookingId, status as ApiBookingStatus);
       const statusLabels: Record<BookingStatus, string> = {
         pending: 'pendiente',
         confirmed: 'confirmada',
@@ -215,24 +222,36 @@ export default function Calendar() {
       };
       toast({ title: `Cita marcada como ${statusLabels[status]}` });
     } catch (error) {
+      // Rollback on error
+      setBookings(previousBookings);
+      setSelectedBooking(previousSelected);
       toast({ title: 'Error al actualizar', variant: 'destructive' });
     }
   };
 
   const handleDeleteBooking = async (bookingId: string) => {
+    // Optimistic update
+    const previousBookings = [...bookings];
+    setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+    setIsDetailOpen(false);
+    setSelectedBooking(null);
+    
     try {
-      await apiClient.bookings.delete(bookingId);
-      setBookings((prev) => prev.filter((b) => b.id !== bookingId));
-      setIsDetailOpen(false);
-      setSelectedBooking(null);
-      toast({ title: 'Cita eliminada' });
+      await supabaseBookingsApi.delete(bookingId);
+      toast({ title: 'Cita eliminada correctamente' });
     } catch (error) {
-      toast({ title: 'Error al eliminar', variant: 'destructive' });
+      // Rollback on error
+      setBookings(previousBookings);
+      toast({ title: 'Error al eliminar la cita', variant: 'destructive' });
     }
   };
 
   const handleEditBooking = (booking: ApiBooking) => {
-    toast({ title: 'Próximamente', description: 'Edición de citas disponible pronto' });
+    // Open the booking modal with the booking data for editing
+    setSelectedBooking(booking);
+    setIsDetailOpen(false);
+    setIsModalOpen(true);
+    toast({ title: 'Modo edición', description: 'Edita los detalles de la cita' });
   };
 
   const openNewBooking = (date?: Date) => {
@@ -667,16 +686,87 @@ export default function Calendar() {
         onDelete={handleDeleteBooking}
       />
 
-      {/* Booking Modal for new bookings */}
+      {/* Booking Modal for new/edit bookings */}
       <BookingModal
         open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        booking={null}
+        onOpenChange={(open) => {
+          setIsModalOpen(open);
+          if (!open) {
+            setSelectedBooking(null);
+          }
+        }}
+        booking={selectedBooking ? {
+          id: selectedBooking.id,
+          clientId: selectedBooking.client_id,
+          clientName: selectedBooking.client_name,
+          clientPhone: selectedBooking.client_phone,
+          clientEmail: selectedBooking.client_email || '',
+          serviceId: selectedBooking.service_id,
+          serviceName: selectedBooking.service_name,
+          serviceDuration: selectedBooking.service_duration,
+          servicePrice: selectedBooking.service_price,
+          date: selectedBooking.booking_date,
+          time: selectedBooking.start_time.substring(0, 5),
+          status: selectedBooking.status.replace('_', '-') as any,
+          source: selectedBooking.source.replace('_', '-') as any,
+          notes: selectedBooking.notes || '',
+          createdAt: selectedBooking.created_at,
+        } : null}
         clients={clients}
         services={services}
         onSave={async (data) => {
-          toast({ title: 'Próximamente', description: 'Creación de citas disponible pronto' });
-          setIsModalOpen(false);
+          try {
+            // Calculate end time based on service duration
+            const selectedService = services.find(s => s.id === data.serviceId);
+            const duration = selectedService?.duration || data.serviceDuration || 30;
+            
+            // Parse start time and calculate end time
+            const [hours, minutes] = (data.time || '09:00').split(':').map(Number);
+            const endHours = hours + Math.floor((minutes + duration) / 60);
+            const endMinutes = (minutes + duration) % 60;
+            const endTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}:00`;
+            
+            if (selectedBooking) {
+              // Update existing booking
+              const updatedBooking = await supabaseBookingsApi.update(selectedBooking.id, {
+                booking_date: data.date,
+                start_time: `${data.time}:00`,
+                end_time: endTime,
+                status: (data.status?.replace('-', '_') || 'confirmed') as any,
+                notes: data.notes || null,
+              });
+              
+              setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updatedBooking : b));
+              toast({ title: 'Cita actualizada correctamente' });
+            } else {
+              // Create new booking
+              const newBooking = await supabaseBookingsApi.create({
+                client_id: data.clientId || '',
+                service_id: data.serviceId || '',
+                booking_date: data.date || '',
+                start_time: `${data.time}:00`,
+                end_time: endTime,
+                status: 'confirmed',
+                source: ((data.source || 'phone').replace('-', '_')) as 'online' | 'phone' | 'walk_in',
+                client_name: data.clientName || '',
+                client_phone: data.clientPhone || '',
+                client_email: data.clientEmail || null,
+                service_name: data.serviceName || '',
+                service_duration: duration,
+                service_price: data.servicePrice || 0,
+                notes: data.notes || null,
+              });
+              
+              setBookings(prev => [...prev, newBooking]);
+              toast({ title: 'Cita creada correctamente' });
+            }
+            
+            setIsModalOpen(false);
+            setSelectedBooking(null);
+          } catch (error) {
+            console.error('Error saving booking:', error);
+            toast({ title: 'Error al guardar la cita', variant: 'destructive' });
+          }
         }}
         selectedDate={selectedDate}
       />
