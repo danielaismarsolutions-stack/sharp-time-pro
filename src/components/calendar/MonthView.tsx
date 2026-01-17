@@ -137,24 +137,43 @@ interface BookingCardProps {
   onClick: (e: React.MouseEvent) => void;
 }
 
+// Status-based colors for consistency
+const statusColors: Record<BookingStatus, string> = {
+  pending: 'bg-amber-500/15 border-l-amber-400 hover:bg-amber-500/25',
+  confirmed: 'bg-blue-500/15 border-l-blue-400 hover:bg-blue-500/25',
+  completed: 'bg-emerald-500/15 border-l-emerald-400 hover:bg-emerald-500/25',
+  cancelled: 'bg-rose-500/15 border-l-rose-400 hover:bg-rose-500/25',
+  no_show: 'bg-purple-500/15 border-l-purple-400 hover:bg-purple-500/25',
+};
+
 function BookingCard({ booking, onClick }: BookingCardProps) {
   const time = booking.start_time.substring(0, 5);
-  const truncatedName = booking.client_name.length > 12 
-    ? booking.client_name.substring(0, 10) + '...' 
-    : booking.client_name;
+  const serviceName = booking.service_name?.length > 15 
+    ? booking.service_name.substring(0, 13) + '...' 
+    : booking.service_name;
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-1.5 py-0.5 rounded text-[10px] sm:text-xs truncate',
-        'bg-secondary/50 hover:bg-secondary/80 transition-colors',
-        'flex items-center gap-1'
+        'w-full text-left px-2 py-1.5 rounded-md border-l-2 transition-colors',
+        'flex flex-col gap-0.5',
+        statusColors[booking.status as BookingStatus] || 'bg-secondary/50 border-l-secondary'
       )}
     >
-      <StatusDot status={booking.status as BookingStatus} size="sm" />
-      <span className="font-medium">{time}</span>
-      <span className="truncate text-muted-foreground hidden sm:inline">{truncatedName}</span>
+      {/* Time Row */}
+      <div className="flex items-center gap-1.5">
+        <StatusDot status={booking.status as BookingStatus} size="sm" />
+        <span className="text-xs font-semibold text-foreground">{time}</span>
+      </div>
+      {/* Client Name */}
+      <span className="text-xs font-medium text-foreground truncate pl-4">
+        {booking.client_name}
+      </span>
+      {/* Service */}
+      <span className="text-[10px] text-muted-foreground truncate pl-4">
+        {serviceName}
+      </span>
     </button>
   );
 }

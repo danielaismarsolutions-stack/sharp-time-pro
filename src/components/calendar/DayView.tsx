@@ -107,68 +107,68 @@ interface DayBookingCardProps {
   onClick: () => void;
 }
 
+// Status-based colors for consistency
+const statusColors: Record<BookingStatus, string> = {
+  pending: 'bg-amber-500/15 border-l-amber-400 hover:bg-amber-500/25',
+  confirmed: 'bg-blue-500/15 border-l-blue-400 hover:bg-blue-500/25',
+  completed: 'bg-emerald-500/15 border-l-emerald-400 hover:bg-emerald-500/25',
+  cancelled: 'bg-rose-500/15 border-l-rose-400 hover:bg-rose-500/25',
+  no_show: 'bg-purple-500/15 border-l-purple-400 hover:bg-purple-500/25',
+};
+
 function DayBookingCard({ booking, style, onClick }: DayBookingCardProps) {
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
-
-  // Status-based colors
-  const statusColors: Record<BookingStatus, string> = {
-    pending: 'bg-amber-500/20 border-l-amber-400',
-    confirmed: 'bg-blue-500/20 border-l-blue-400',
-    completed: 'bg-emerald-500/20 border-l-emerald-400',
-    cancelled: 'bg-rose-500/20 border-l-rose-400',
-    no_show: 'bg-purple-500/20 border-l-purple-400',
-  };
-
   const isLarge = style.height >= 80;
+  const isMedium = style.height >= 60 && style.height < 80;
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        'absolute left-2 right-4 rounded-lg border border-border/50 border-l-4 p-3 overflow-hidden transition-all cursor-pointer hover:shadow-lg hover:scale-[1.01]',
-        statusColors[booking.status as BookingStatus] || 'bg-secondary/50'
+        'absolute left-2 right-4 rounded-lg border border-border/30 border-l-4 p-3 overflow-hidden transition-all cursor-pointer hover:shadow-lg hover:scale-[1.005]',
+        statusColors[booking.status as BookingStatus] || 'bg-secondary/50 border-l-secondary'
       )}
       style={{
         top: style.top,
         height: style.height,
       }}
     >
-      {/* Header */}
+      {/* Header - Always visible */}
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-sm">
+          <span className="font-bold text-sm text-foreground">
             {startTime} - {endTime}
           </span>
           <StatusBadge status={booking.status as BookingStatus} size="sm" />
         </div>
-        <span className="text-sm font-medium text-primary">€{booking.service_price}</span>
+        <span className="text-sm font-semibold text-primary">€{booking.service_price}</span>
       </div>
 
-      {/* Content */}
-      <div className={cn('flex gap-4', isLarge ? 'flex-row' : 'flex-col gap-1')}>
+      {/* Main Info - Always visible */}
+      <div className="flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-2">
-          <User className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-sm font-medium">{booking.client_name}</span>
+          <User className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-semibold text-foreground">{booking.client_name}</span>
         </div>
-        {isLarge && (
-          <>
-            <div className="flex items-center gap-2">
-              <Scissors className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{booking.service_name}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{booking.client_phone}</span>
-            </div>
-          </>
-        )}
+        <div className="flex items-center gap-2">
+          <Scissors className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">{booking.service_name}</span>
+        </div>
       </div>
 
-      {/* Barber */}
-      {isLarge && booking.barber && (
-        <div className="mt-1 text-xs text-muted-foreground">
-          Barbero: {booking.barber}
+      {/* Extra details for larger cards */}
+      {(isLarge || isMedium) && (
+        <div className="flex items-center gap-4 mt-1.5 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">{booking.client_phone}</span>
+          </div>
+          {booking.barber && (
+            <span className="text-xs text-muted-foreground">
+              Barbero: <span className="font-medium">{booking.barber}</span>
+            </span>
+          )}
         </div>
       )}
     </button>

@@ -151,37 +151,60 @@ interface WeekBookingCardProps {
   onClick: () => void;
 }
 
+// Status-based colors for consistency
+const statusColors: Record<BookingStatus, string> = {
+  pending: 'bg-amber-500/15 border-l-amber-400 hover:bg-amber-500/25',
+  confirmed: 'bg-blue-500/15 border-l-blue-400 hover:bg-blue-500/25',
+  completed: 'bg-emerald-500/15 border-l-emerald-400 hover:bg-emerald-500/25',
+  cancelled: 'bg-rose-500/15 border-l-rose-400 hover:bg-rose-500/25',
+  no_show: 'bg-purple-500/15 border-l-purple-400 hover:bg-purple-500/25',
+};
+
 function WeekBookingCard({ booking, style, onClick }: WeekBookingCardProps) {
   const startTime = booking.start_time.substring(0, 5);
-
-  // Status-based colors
-  const statusColors: Record<BookingStatus, string> = {
-    pending: 'bg-amber-500/20 border-amber-500/50 hover:bg-amber-500/30',
-    confirmed: 'bg-blue-500/20 border-blue-500/50 hover:bg-blue-500/30',
-    completed: 'bg-emerald-500/20 border-emerald-500/50 hover:bg-emerald-500/30',
-    cancelled: 'bg-rose-500/20 border-rose-500/50 hover:bg-rose-500/30',
-    no_show: 'bg-purple-500/20 border-purple-500/50 hover:bg-purple-500/30',
-  };
+  const endTime = booking.end_time.substring(0, 5);
+  const isSmall = style.height < 45;
+  const isMedium = style.height >= 45 && style.height < 60;
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        'absolute left-1 right-1 rounded-md border px-1.5 py-1 overflow-hidden transition-colors cursor-pointer',
-        statusColors[booking.status as BookingStatus] || 'bg-secondary/50 border-border'
+        'absolute left-1 right-1 rounded-md border-l-2 border border-border/30 px-2 py-1 overflow-hidden transition-all cursor-pointer hover:shadow-md',
+        statusColors[booking.status as BookingStatus] || 'bg-secondary/50 border-l-secondary'
       )}
       style={{
         top: style.top,
         height: style.height,
       }}
     >
-      <div className="flex items-center gap-1 mb-0.5">
-        <StatusDot status={booking.status as BookingStatus} size="sm" />
-        <span className="text-[10px] font-medium">{startTime}</span>
-      </div>
-      <div className="text-[10px] font-medium truncate">{booking.client_name}</div>
-      {style.height > 40 && (
-        <div className="text-[9px] text-muted-foreground truncate">{booking.service_name}</div>
+      {/* Compact layout for small cards */}
+      {isSmall ? (
+        <div className="flex items-center gap-1.5 h-full">
+          <StatusDot status={booking.status as BookingStatus} size="sm" />
+          <span className="text-[10px] font-semibold">{startTime}</span>
+          <span className="text-[10px] font-medium truncate">{booking.client_name}</span>
+        </div>
+      ) : (
+        <>
+          {/* Time Row */}
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <StatusDot status={booking.status as BookingStatus} size="sm" />
+            <span className="text-[11px] font-semibold text-foreground">
+              {startTime} - {endTime}
+            </span>
+          </div>
+          {/* Client Name */}
+          <div className="text-[11px] font-medium truncate text-foreground pl-4">
+            {booking.client_name}
+          </div>
+          {/* Service - show if not medium */}
+          {!isMedium && (
+            <div className="text-[10px] text-muted-foreground truncate pl-4">
+              {booking.service_name}
+            </div>
+          )}
+        </>
       )}
     </button>
   );
