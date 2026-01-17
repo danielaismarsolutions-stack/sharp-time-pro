@@ -196,13 +196,13 @@ interface WeekBookingCardProps {
 function WeekBookingCard({ booking, style, colorClasses, onClick }: WeekBookingCardProps) {
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
-  const isSmall = style.height < 40;
+  const isSmall = style.height < 30;
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        'absolute left-1 right-1 rounded-md px-2 py-1.5 overflow-hidden transition-colors cursor-pointer shadow-sm text-left',
+        'absolute left-0.5 right-0.5 rounded-md px-1 py-0.5 overflow-hidden transition-colors cursor-pointer shadow-sm text-left',
         colorClasses.bg,
         colorClasses.hover,
         colorClasses.text
@@ -214,25 +214,25 @@ function WeekBookingCard({ booking, style, colorClasses, onClick }: WeekBookingC
     >
       {/* Compact layout for very small cards */}
       {isSmall ? (
-        <div className="flex items-center justify-between gap-1 h-full">
-          <span className="text-[11px] font-semibold shrink-0">
+        <div className="flex items-center justify-between gap-0.5 h-full">
+          <span className="text-[9px] font-semibold shrink-0">
             {startTime}-{endTime}
           </span>
-          <span className="text-[11px] font-bold shrink-0">€{booking.service_price}</span>
+          <span className="text-[9px] font-bold shrink-0">€{booking.service_price}</span>
         </div>
       ) : (
         <>
           {/* Row 1: Time range + Price */}
-          <div className="flex justify-between items-baseline gap-1 mb-0.5">
-            <span className="text-[11px] font-semibold shrink-0">
+          <div className="flex justify-between items-baseline gap-0.5">
+            <span className="text-[9px] font-semibold shrink-0">
               {startTime}-{endTime}
             </span>
-            <span className="text-[11px] font-bold shrink-0">
+            <span className="text-[9px] font-bold shrink-0">
               €{booking.service_price}
             </span>
           </div>
           {/* Row 2: Client name */}
-          <div className="text-[11px] font-medium truncate">
+          <div className="text-[9px] font-medium truncate leading-tight">
             {booking.client_name}
           </div>
         </>

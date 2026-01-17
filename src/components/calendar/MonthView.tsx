@@ -182,25 +182,30 @@ interface BookingCardProps {
 }
 
 function BookingCard({ booking, colorClasses, onClick }: BookingCardProps) {
-  const time = booking.start_time.substring(0, 5);
+  const startTime = booking.start_time.substring(0, 5);
+  const endTime = booking.end_time.substring(0, 5);
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-2 py-1.5 rounded-md transition-colors shadow-sm',
+        'w-full text-left px-1.5 py-1 rounded-md transition-colors shadow-sm',
         colorClasses.bg,
         colorClasses.hover,
         colorClasses.text
       )}
     >
-      {/* Row 1: Time (left) + Service (right) */}
-      <div className="flex justify-between items-baseline gap-1 mb-0.5">
-        <span className="text-[11px] font-semibold shrink-0">{time}</span>
-        <span className="text-[10px] font-medium truncate">{booking.service_name}</span>
+      {/* Row 1: Time range + Price */}
+      <div className="flex justify-between items-baseline gap-0.5">
+        <span className="text-[9px] font-semibold shrink-0">
+          {startTime}-{endTime}
+        </span>
+        <span className="text-[9px] font-bold shrink-0">
+          €{booking.service_price}
+        </span>
       </div>
       {/* Row 2: Client name */}
-      <div className="text-[10px] opacity-80 truncate">
+      <div className="text-[9px] font-medium truncate">
         {booking.client_name}
       </div>
     </button>
