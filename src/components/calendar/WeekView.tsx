@@ -10,7 +10,7 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { StatusDot, BookingStatus } from './StatusBadge';
+import { BookingStatus } from './StatusBadge';
 import { ApiBooking } from '@/types/api';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -151,59 +151,53 @@ interface WeekBookingCardProps {
   onClick: () => void;
 }
 
-// Status-based colors for consistency
-const statusColors: Record<BookingStatus, string> = {
-  pending: 'bg-amber-500/15 border-l-amber-400 hover:bg-amber-500/25',
-  confirmed: 'bg-blue-500/15 border-l-blue-400 hover:bg-blue-500/25',
-  completed: 'bg-emerald-500/15 border-l-emerald-400 hover:bg-emerald-500/25',
-  cancelled: 'bg-rose-500/15 border-l-rose-400 hover:bg-rose-500/25',
-  no_show: 'bg-purple-500/15 border-l-purple-400 hover:bg-purple-500/25',
+
+// Status-based solid colors for better text contrast
+const solidStatusColors: Record<BookingStatus, string> = {
+  pending: 'bg-amber-500 hover:bg-amber-600',
+  confirmed: 'bg-blue-500 hover:bg-blue-600',
+  completed: 'bg-emerald-500 hover:bg-emerald-600',
+  cancelled: 'bg-rose-500 hover:bg-rose-600',
+  no_show: 'bg-purple-500 hover:bg-purple-600',
 };
 
 function WeekBookingCard({ booking, style, onClick }: WeekBookingCardProps) {
   const startTime = booking.start_time.substring(0, 5);
-  const endTime = booking.end_time.substring(0, 5);
-  const isSmall = style.height < 45;
-  const isMedium = style.height >= 45 && style.height < 60;
+  const isSmall = style.height < 40;
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        'absolute left-1 right-1 rounded-md border-l-2 border border-border/30 px-2 py-1 overflow-hidden transition-all cursor-pointer hover:shadow-md',
-        statusColors[booking.status as BookingStatus] || 'bg-secondary/50 border-l-secondary'
+        'absolute left-1 right-1 rounded-md px-2 py-1.5 overflow-hidden transition-colors cursor-pointer shadow-sm text-white text-left',
+        solidStatusColors[booking.status as BookingStatus] || 'bg-secondary hover:bg-secondary/80'
       )}
       style={{
         top: style.top,
         height: style.height,
       }}
     >
-      {/* Compact layout for small cards */}
+      {/* Compact layout for very small cards */}
       {isSmall ? (
-        <div className="flex items-center gap-1.5 h-full">
-          <StatusDot status={booking.status as BookingStatus} size="sm" />
-          <span className="text-[10px] font-semibold">{startTime}</span>
+        <div className="flex items-center justify-between gap-2 h-full">
+          <span className="text-[11px] font-semibold">{startTime}</span>
           <span className="text-[10px] font-medium truncate">{booking.client_name}</span>
         </div>
       ) : (
         <>
-          {/* Time Row */}
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <StatusDot status={booking.status as BookingStatus} size="sm" />
-            <span className="text-[11px] font-semibold text-foreground">
-              {startTime} - {endTime}
+          {/* Row 1: Time (left) + Service (right) */}
+          <div className="flex justify-between items-baseline gap-2 mb-0.5">
+            <span className="text-xs font-semibold shrink-0">
+              {startTime}
+            </span>
+            <span className="text-[11px] font-medium truncate">
+              {booking.service_name}
             </span>
           </div>
-          {/* Client Name */}
-          <div className="text-[11px] font-medium truncate text-foreground pl-4">
+          {/* Row 2: Client name */}
+          <div className="text-[11px] opacity-90 truncate">
             {booking.client_name}
           </div>
-          {/* Service - show if not medium */}
-          {!isMedium && (
-            <div className="text-[10px] text-muted-foreground truncate pl-4">
-              {booking.service_name}
-            </div>
-          )}
         </>
       )}
     </button>
