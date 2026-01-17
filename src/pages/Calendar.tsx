@@ -51,7 +51,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/bookings/BookingModal';
 import { BookingDetailModal, StatusBadge, StatusDot, BookingStatus } from '@/components/calendar';
-import { ServiceLegend } from '@/components/calendar/ServiceLegend';
+import { ServiceLegend, MobileServiceLegend } from '@/components/calendar/ServiceLegend';
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -650,6 +650,9 @@ export default function Calendar() {
         {viewMode === 'week' && renderWeekView()}
         {viewMode === 'month' && renderMonthView()}
       </Card>
+
+      {/* Mobile Service Legend - always visible below calendar */}
+      <MobileServiceLegend services={services} />
 
       {/* Booking Detail Modal */}
       <BookingDetailModal
