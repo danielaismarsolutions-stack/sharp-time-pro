@@ -54,14 +54,42 @@ import { BookingDetailModal, StatusBadge, StatusDot, BookingStatus } from '@/com
 
 type ViewMode = 'day' | 'week' | 'month';
 
-// Solid status colors for better text contrast (matching MonthView/WeekView)
-const statusColors: Record<string, string> = {
-  pending: 'bg-amber-500 hover:bg-amber-600',
-  confirmed: 'bg-blue-500 hover:bg-blue-600',
-  completed: 'bg-emerald-500 hover:bg-emerald-600',
-  cancelled: 'bg-rose-500 hover:bg-rose-600',
-  no_show: 'bg-purple-500 hover:bg-purple-600',
-  'no-show': 'bg-purple-500 hover:bg-purple-600',
+// Predefined pastel colors for services (fallback when service has no color)
+const pastelColors = [
+  { bg: 'bg-blue-200', hover: 'hover:bg-blue-300', text: 'text-blue-900' },
+  { bg: 'bg-emerald-200', hover: 'hover:bg-emerald-300', text: 'text-emerald-900' },
+  { bg: 'bg-amber-200', hover: 'hover:bg-amber-300', text: 'text-amber-900' },
+  { bg: 'bg-rose-200', hover: 'hover:bg-rose-300', text: 'text-rose-900' },
+  { bg: 'bg-violet-200', hover: 'hover:bg-violet-300', text: 'text-violet-900' },
+  { bg: 'bg-pink-200', hover: 'hover:bg-pink-300', text: 'text-pink-900' },
+  { bg: 'bg-cyan-200', hover: 'hover:bg-cyan-300', text: 'text-cyan-900' },
+  { bg: 'bg-lime-200', hover: 'hover:bg-lime-300', text: 'text-lime-900' },
+];
+
+// Map service colors to pastel classes
+const serviceColorMap: Record<string, { bg: string; hover: string; text: string }> = {
+  '#3b82f6': { bg: 'bg-blue-200', hover: 'hover:bg-blue-300', text: 'text-blue-900' },
+  '#10b981': { bg: 'bg-emerald-200', hover: 'hover:bg-emerald-300', text: 'text-emerald-900' },
+  '#f59e0b': { bg: 'bg-amber-200', hover: 'hover:bg-amber-300', text: 'text-amber-900' },
+  '#ef4444': { bg: 'bg-red-200', hover: 'hover:bg-red-300', text: 'text-red-900' },
+  '#8b5cf6': { bg: 'bg-violet-200', hover: 'hover:bg-violet-300', text: 'text-violet-900' },
+  '#ec4899': { bg: 'bg-pink-200', hover: 'hover:bg-pink-300', text: 'text-pink-900' },
+  '#06b6d4': { bg: 'bg-cyan-200', hover: 'hover:bg-cyan-300', text: 'text-cyan-900' },
+  '#84cc16': { bg: 'bg-lime-200', hover: 'hover:bg-lime-300', text: 'text-lime-900' },
+  '#6366f1': { bg: 'bg-indigo-200', hover: 'hover:bg-indigo-300', text: 'text-indigo-900' },
+  '#14b8a6': { bg: 'bg-teal-200', hover: 'hover:bg-teal-300', text: 'text-teal-900' },
+  '#f97316': { bg: 'bg-orange-200', hover: 'hover:bg-orange-300', text: 'text-orange-900' },
+};
+
+// Get pastel color classes for a booking based on its service
+const getServicePastelColor = (booking: ApiBooking, services: Service[]) => {
+  const service = services.find(s => s.id === booking.service_id || s.name === booking.service_name);
+  if (service?.color && serviceColorMap[service.color]) {
+    return serviceColorMap[service.color];
+  }
+  // Fallback: use hash of service name to pick a consistent color
+  const hash = (booking.service_name || '').split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+  return pastelColors[hash % pastelColors.length];
 };
 
 export default function Calendar() {
@@ -279,12 +307,15 @@ export default function Calendar() {
                 {/* Bookings overlay */}
                 {dayBookings.map((booking) => {
                   const { top, height } = getBookingPosition(booking);
+                  const colorClasses = getServicePastelColor(booking, services);
                   return (
                     <div
                       key={booking.id}
                       className={cn(
-                        'absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-md px-2 py-1.5 cursor-pointer transition-colors shadow-sm text-white overflow-hidden',
-                        statusColors[booking.status]
+                        'absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-md px-2 py-1.5 cursor-pointer transition-colors shadow-sm overflow-hidden',
+                        colorClasses.bg,
+                        colorClasses.hover,
+                        colorClasses.text
                       )}
                       style={{ top, height }}
                       onClick={(e) => {
@@ -302,7 +333,7 @@ export default function Calendar() {
                         </span>
                       </div>
                       {/* Row 2: Client name */}
-                      <p className="text-[10px] opacity-90 truncate">{booking.client_name}</p>
+                      <p className="text-[10px] opacity-80 truncate">{booking.client_name}</p>
                     </div>
                   );
                 })}
@@ -355,12 +386,15 @@ export default function Calendar() {
               const top = ((startHour - 8) * 80) + ((startMinute / 60) * 80);
               const height = Math.max((duration / 60) * 80, 60);
 
+              const colorClasses = getServicePastelColor(booking, services);
               return (
                 <div
                   key={booking.id}
                   className={cn(
                     'absolute left-2 right-4 rounded-lg border-l-4 px-3 py-2 cursor-pointer transition-all hover:shadow-lg hover:scale-[1.01]',
-                    statusColors[booking.status]
+                    colorClasses.bg,
+                    colorClasses.hover,
+                    colorClasses.text
                   )}
                   style={{ top, height }}
                   onClick={(e) => {
@@ -462,25 +496,36 @@ export default function Calendar() {
                         </span>
                       </div>
                       <div className="space-y-0.5">
-                        {dayBookings.slice(0, 3).map((booking) => (
-                          <div
-                            key={booking.id}
-                            className={cn(
-                              'text-[10px] md:text-xs px-1 py-0.5 rounded truncate cursor-pointer flex items-center gap-1',
-                              'bg-secondary/50 hover:bg-secondary/80 transition-colors'
-                            )}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openBookingDetail(booking);
-                            }}
-                          >
-                            <StatusDot status={booking.status as BookingStatus} size="sm" />
-                            <span className="font-medium">{booking.start_time.substring(0, 5)}</span>
-                            <span className="truncate hidden sm:inline text-muted-foreground">
-                              {booking.client_name}
-                            </span>
-                          </div>
-                        ))}
+                        {dayBookings.slice(0, 3).map((booking) => {
+                          const colorClasses = getServicePastelColor(booking, services);
+                          return (
+                            <div
+                              key={booking.id}
+                              className={cn(
+                                'px-2 py-1.5 rounded-md cursor-pointer transition-colors shadow-sm',
+                                colorClasses.bg,
+                                colorClasses.hover,
+                                colorClasses.text
+                              )}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openBookingDetail(booking);
+                              }}
+                            >
+                              {/* Row 1: Time (left) + Service (right) */}
+                              <div className="flex justify-between items-baseline gap-1 mb-0.5">
+                                <span className="text-[11px] font-semibold shrink-0">
+                                  {booking.start_time.substring(0, 5)}
+                                </span>
+                                <span className="text-[10px] font-medium truncate">
+                                  {booking.service_name}
+                                </span>
+                              </div>
+                              {/* Row 2: Client name */}
+                              <p className="text-[10px] opacity-80 truncate">{booking.client_name}</p>
+                            </div>
+                          );
+                        })}
                         {dayBookings.length > 3 && (
                           <p className="text-[10px] md:text-xs text-primary font-medium px-1">
                             +{dayBookings.length - 3} más
