@@ -54,13 +54,14 @@ import { BookingDetailModal, StatusBadge, StatusDot, BookingStatus } from '@/com
 
 type ViewMode = 'day' | 'week' | 'month';
 
+// Solid status colors for better text contrast (matching MonthView/WeekView)
 const statusColors: Record<string, string> = {
-  pending: 'bg-amber-500/20 border-amber-500/50 text-amber-400',
-  confirmed: 'bg-blue-500/20 border-blue-500/50 text-blue-400',
-  completed: 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400',
-  cancelled: 'bg-rose-500/20 border-rose-500/50 text-rose-400',
-  no_show: 'bg-purple-500/20 border-purple-500/50 text-purple-400',
-  'no-show': 'bg-purple-500/20 border-purple-500/50 text-purple-400',
+  pending: 'bg-amber-500 hover:bg-amber-600',
+  confirmed: 'bg-blue-500 hover:bg-blue-600',
+  completed: 'bg-emerald-500 hover:bg-emerald-600',
+  cancelled: 'bg-rose-500 hover:bg-rose-600',
+  no_show: 'bg-purple-500 hover:bg-purple-600',
+  'no-show': 'bg-purple-500 hover:bg-purple-600',
 };
 
 export default function Calendar() {
@@ -282,7 +283,7 @@ export default function Calendar() {
                     <div
                       key={booking.id}
                       className={cn(
-                        'absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-md border px-1 md:px-2 py-0.5 md:py-1 cursor-pointer transition-all hover:ring-2 hover:ring-primary/50 overflow-hidden',
+                        'absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-md px-2 py-1.5 cursor-pointer transition-colors shadow-sm text-white overflow-hidden',
                         statusColors[booking.status]
                       )}
                       style={{ top, height }}
@@ -291,16 +292,17 @@ export default function Calendar() {
                         openBookingDetail(booking);
                       }}
                     >
-                      <div className="flex items-center gap-1 mb-0.5">
-                        <StatusDot status={booking.status as BookingStatus} size="sm" />
-                        <span className="text-[10px] font-medium">
+                      {/* Row 1: Time (left) + Service (right) */}
+                      <div className="flex justify-between items-baseline gap-1 mb-0.5">
+                        <span className="text-[11px] font-semibold shrink-0">
                           {booking.start_time.substring(0, 5)}
                         </span>
+                        <span className="text-[10px] font-medium truncate">
+                          {booking.service_name}
+                        </span>
                       </div>
-                      <p className="text-[10px] md:text-xs font-medium truncate">{booking.client_name}</p>
-                      {height > 40 && (
-                        <p className="text-[9px] md:text-xs opacity-75 truncate">{booking.service_name}</p>
-                      )}
+                      {/* Row 2: Client name */}
+                      <p className="text-[10px] opacity-90 truncate">{booking.client_name}</p>
                     </div>
                   );
                 })}
