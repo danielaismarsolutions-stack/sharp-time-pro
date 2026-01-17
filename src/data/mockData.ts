@@ -6,14 +6,13 @@ const generateId = () => Math.random().toString(36).substring(2, 11);
 
 // Services
 export const mockServices: Service[] = [
-  { id: 's1', name: 'Classic Haircut', description: 'Traditional haircut with clippers and scissors', duration: 30, price: 25, color: '#3b82f6', isActive: true, bufferBefore: 0, bufferAfter: 5 },
-  { id: 's2', name: 'Beard Trim', description: 'Shape and trim beard to desired style', duration: 20, price: 15, color: '#10b981', isActive: true, bufferBefore: 0, bufferAfter: 5 },
-  { id: 's3', name: 'Haircut & Beard', description: 'Complete grooming package', duration: 45, price: 35, color: '#8b5cf6', isActive: true, bufferBefore: 0, bufferAfter: 5 },
-  { id: 's4', name: 'Hot Towel Shave', description: 'Luxurious traditional straight razor shave', duration: 30, price: 30, color: '#f59e0b', isActive: true, bufferBefore: 0, bufferAfter: 5 },
-  { id: 's5', name: 'Kids Haircut', description: 'Haircut for children under 12', duration: 20, price: 18, color: '#ec4899', isActive: true, bufferBefore: 0, bufferAfter: 5 },
-  { id: 's6', name: 'Senior Haircut', description: 'Haircut for seniors 65+', duration: 25, price: 20, color: '#6366f1', isActive: true, bufferBefore: 0, bufferAfter: 5 },
-  { id: 's7', name: 'Hair & Scalp Treatment', description: 'Deep conditioning and massage', duration: 40, price: 40, color: '#14b8a6', isActive: true, bufferBefore: 0, bufferAfter: 5 },
-  { id: 's8', name: 'Hair Coloring', description: 'Full hair color service', duration: 60, price: 55, color: '#f97316', isActive: false, bufferBefore: 0, bufferAfter: 10 },
+  { id: 's1', name: 'Rapar + arreglo de barba', description: '', duration: 25, price: 17, color: '#3b82f6', isActive: true, bufferBefore: 0, bufferAfter: 5 },
+  { id: 's2', name: 'Arreglo de barba', description: '', duration: 15, price: 10, color: '#10b981', isActive: true, bufferBefore: 0, bufferAfter: 5 },
+  { id: 's3', name: 'Corte degradado', description: '', duration: 40, price: 15, color: '#8b5cf6', isActive: true, bufferBefore: 0, bufferAfter: 5 },
+  { id: 's4', name: 'Corte clásico', description: '', duration: 30, price: 15, color: '#f59e0b', isActive: true, bufferBefore: 0, bufferAfter: 5 },
+  { id: 's5', name: 'Corte niño', description: '', duration: 30, price: 12, color: '#ec4899', isActive: true, bufferBefore: 0, bufferAfter: 5 },
+  { id: 's6', name: 'Mechas / Color', description: '', duration: 90, price: 0, color: '#6366f1', isActive: true, bufferBefore: 0, bufferAfter: 5 },
+  { id: 's7', name: 'Corte + barba', description: '', duration: 45, price: 21, color: '#14b8a6', isActive: true, bufferBefore: 0, bufferAfter: 5 },
 ];
 
 // Clients with realistic data
