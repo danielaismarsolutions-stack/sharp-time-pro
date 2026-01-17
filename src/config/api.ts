@@ -1,12 +1,21 @@
 // API Configuration
-// Configuration for connecting to the n8n backend
+// Configuration for connecting to the backend
+
+// Supabase Configuration
+export const SUPABASE_CONFIG = {
+  url: 'https://omeeupvetsacxbgojifx.supabase.co',
+  anonKey: 'sb_publishable_Fio9nb2ZT7xPsq22fmlJ5g_NxReiNEV',
+};
+
+// Business ID for the barbershop
+export const BUSINESS_ID = '11111111-1111-1111-1111-111111111111';
 
 export const API_CONFIG = {
   // Base URL for the n8n webhook API
   BASE_URL: 'https://n8n2.srv1037212.hstgr.cloud/webhook',
   
   // Test business ID (hardcoded for now)
-  BUSINESS_ID: '11111111-1111-1111-1111-111111111111',
+  BUSINESS_ID: BUSINESS_ID,
   
   // API Endpoints
   ENDPOINTS: {
