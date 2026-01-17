@@ -148,32 +148,28 @@ const statusColors: Record<BookingStatus, string> = {
 
 function BookingCard({ booking, onClick }: BookingCardProps) {
   const time = booking.start_time.substring(0, 5);
-  const serviceName = booking.service_name?.length > 15 
-    ? booking.service_name.substring(0, 13) + '...' 
+  const serviceName = booking.service_name?.length > 18 
+    ? booking.service_name.substring(0, 16) + '...' 
     : booking.service_name;
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-2 py-1.5 rounded-md border-l-2 transition-colors',
-        'flex flex-col gap-0.5',
+        'w-full text-left px-2 py-1 rounded-md border-l-2 transition-colors',
         statusColors[booking.status as BookingStatus] || 'bg-secondary/50 border-l-secondary'
       )}
     >
-      {/* Time Row */}
+      {/* Time + Client Name Row */}
       <div className="flex items-center gap-1.5">
         <StatusDot status={booking.status as BookingStatus} size="sm" />
         <span className="text-xs font-semibold text-foreground">{time}</span>
+        <span className="text-xs font-medium text-foreground truncate">{booking.client_name}</span>
       </div>
-      {/* Client Name */}
-      <span className="text-xs font-medium text-foreground truncate pl-4">
-        {booking.client_name}
-      </span>
-      {/* Service */}
-      <span className="text-[10px] text-muted-foreground truncate pl-4">
+      {/* Service Row */}
+      <div className="text-[10px] text-muted-foreground truncate pl-4 mt-0.5">
         {serviceName}
-      </span>
+      </div>
     </button>
   );
 }
