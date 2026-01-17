@@ -12,7 +12,7 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { StatusDot, BookingStatus } from './StatusBadge';
+import { BookingStatus } from './StatusBadge';
 import { ApiBooking } from '@/types/api';
 
 interface MonthViewProps {
@@ -137,43 +137,35 @@ interface BookingCardProps {
   onClick: (e: React.MouseEvent) => void;
 }
 
-// Status-based colors for consistency
-const statusColors: Record<BookingStatus, string> = {
-  pending: 'bg-amber-500/15 border-l-amber-400 hover:bg-amber-500/25',
-  confirmed: 'bg-blue-500/15 border-l-blue-400 hover:bg-blue-500/25',
-  completed: 'bg-emerald-500/15 border-l-emerald-400 hover:bg-emerald-500/25',
-  cancelled: 'bg-rose-500/15 border-l-rose-400 hover:bg-rose-500/25',
-  no_show: 'bg-purple-500/15 border-l-purple-400 hover:bg-purple-500/25',
+// Status-based solid colors for better text contrast
+const solidStatusColors: Record<BookingStatus, string> = {
+  pending: 'bg-amber-500 hover:bg-amber-600',
+  confirmed: 'bg-blue-500 hover:bg-blue-600',
+  completed: 'bg-emerald-500 hover:bg-emerald-600',
+  cancelled: 'bg-rose-500 hover:bg-rose-600',
+  no_show: 'bg-purple-500 hover:bg-purple-600',
 };
 
 function BookingCard({ booking, onClick }: BookingCardProps) {
   const time = booking.start_time.substring(0, 5);
-  const serviceName = booking.service_name?.length > 15 
-    ? booking.service_name.substring(0, 13) + '...' 
-    : booking.service_name;
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-2 py-1.5 rounded-md border-l-2 transition-colors',
-        'flex flex-col gap-0.5',
-        statusColors[booking.status as BookingStatus] || 'bg-secondary/50 border-l-secondary'
+        'w-full text-left px-2 py-1.5 rounded-md transition-colors shadow-sm text-white',
+        solidStatusColors[booking.status as BookingStatus] || 'bg-secondary hover:bg-secondary/80'
       )}
     >
-      {/* Time Row */}
-      <div className="flex items-center gap-1.5">
-        <StatusDot status={booking.status as BookingStatus} size="sm" />
-        <span className="text-xs font-semibold text-foreground">{time}</span>
+      {/* Row 1: Time (left) + Service (right) */}
+      <div className="flex justify-between items-baseline gap-1 mb-0.5">
+        <span className="text-[11px] font-semibold shrink-0">{time}</span>
+        <span className="text-[10px] font-medium truncate">{booking.service_name}</span>
       </div>
-      {/* Client Name */}
-      <span className="text-xs font-medium text-foreground truncate pl-4">
+      {/* Row 2: Client name */}
+      <div className="text-[10px] opacity-90 truncate">
         {booking.client_name}
-      </span>
-      {/* Service */}
-      <span className="text-[10px] text-muted-foreground truncate pl-4">
-        {serviceName}
-      </span>
+      </div>
     </button>
   );
 }
