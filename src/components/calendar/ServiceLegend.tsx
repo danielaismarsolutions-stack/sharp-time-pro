@@ -8,6 +8,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ServiceLegendProps {
   services: Service[];
@@ -50,8 +51,30 @@ const getServicePastelColor = (service: Service) => {
   return pastelColors[hash % pastelColors.length];
 };
 
+function LegendContent({ serviceColors }: { serviceColors: { service: Service; colors: { bg: string; text: string } }[] }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {serviceColors.map(({ service, colors }) => (
+        <div
+          key={service.id}
+          className={cn(
+            'flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] sm:text-xs font-medium',
+            colors.bg,
+            colors.text
+          )}
+        >
+          <span className="truncate max-w-[100px] sm:max-w-[150px]">
+            {service.name}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function ServiceLegend({ services }: ServiceLegendProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const serviceColors = useMemo(() => {
     return services.map((service) => ({
@@ -62,6 +85,12 @@ export function ServiceLegend({ services }: ServiceLegendProps) {
 
   if (services.length === 0) return null;
 
+  // Mobile: inline legend (no button)
+  if (isMobile) {
+    return null; // Will be rendered separately below the calendar
+  }
+
+  // Desktop: collapsible button
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
@@ -71,7 +100,7 @@ export function ServiceLegend({ services }: ServiceLegendProps) {
           className="h-9 gap-1.5"
         >
           <Palette className="h-4 w-4" />
-          <span className="hidden sm:inline">Leyenda</span>
+          <span>Leyenda</span>
           {isOpen ? (
             <ChevronUp className="h-3 w-3" />
           ) : (
@@ -84,24 +113,47 @@ export function ServiceLegend({ services }: ServiceLegendProps) {
           <p className="text-xs font-medium text-muted-foreground mb-2">
             Colores por servicio
           </p>
-          <div className="flex flex-wrap gap-2">
-            {serviceColors.map(({ service, colors }) => (
-              <div
-                key={service.id}
-                className={cn(
-                  'flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] sm:text-xs font-medium',
-                  colors.bg,
-                  colors.text
-                )}
-              >
-                <span className="truncate max-w-[100px] sm:max-w-[150px]">
-                  {service.name}
-                </span>
-              </div>
-            ))}
-          </div>
+          <LegendContent serviceColors={serviceColors} />
         </div>
       </CollapsibleContent>
     </Collapsible>
+  );
+}
+
+// Mobile-only inline legend component
+export function MobileServiceLegend({ services }: ServiceLegendProps) {
+  const isMobile = useIsMobile();
+
+  const serviceColors = useMemo(() => {
+    return services.map((service) => ({
+      service,
+      colors: getServicePastelColor(service),
+    }));
+  }, [services]);
+
+  if (!isMobile || services.length === 0) return null;
+
+  return (
+    <div className="px-2 py-3 border-t border-border bg-card">
+      <p className="text-xs font-medium text-muted-foreground mb-2">
+        Colores por servicio
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {serviceColors.map(({ service, colors }) => (
+          <div
+            key={service.id}
+            className={cn(
+              'flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium',
+              colors.bg,
+              colors.text
+            )}
+          >
+            <span className="truncate max-w-[80px]">
+              {service.name}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
