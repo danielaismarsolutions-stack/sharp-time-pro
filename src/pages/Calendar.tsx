@@ -323,17 +323,17 @@ export default function Calendar() {
                         openBookingDetail(booking);
                       }}
                     >
-                      {/* Row 1: Time (left) + Service (right) */}
+                      {/* Row 1: Time range + Price */}
                       <div className="flex justify-between items-baseline gap-1 mb-0.5">
                         <span className="text-[11px] font-semibold shrink-0">
-                          {booking.start_time.substring(0, 5)}
+                          {booking.start_time.substring(0, 5)}-{booking.end_time.substring(0, 5)}
                         </span>
-                        <span className="text-[10px] font-medium truncate">
-                          {booking.service_name}
+                        <span className="text-[11px] font-bold shrink-0">
+                          €{booking.service_price}
                         </span>
                       </div>
                       {/* Row 2: Client name */}
-                      <p className="text-[10px] opacity-80 truncate">{booking.client_name}</p>
+                      <p className="text-[11px] font-medium truncate">{booking.client_name}</p>
                     </div>
                   );
                 })}
