@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { format } from 'date-fns';
-import { Bell, Search, Command, Menu } from 'lucide-react';
+import { Bell, Search, Command, Check, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -13,7 +12,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications, formatNotificationTime, getNotificationIcon } from '@/contexts/NotificationContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 interface TopBarProps {
   onSearchOpen?: () => void;
@@ -22,11 +24,7 @@ interface TopBarProps {
 
 export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
   const { user, logout } = useAuth();
-  const [notifications] = useState([
-    { id: 1, message: 'Nueva reserva de Carlos García', time: 'Hace 5 min' },
-    { id: 2, message: 'Cita cancelada por Miguel R.', time: 'Hace 1 hora' },
-    { id: 3, message: 'Recordatorio: Roberto Ruiz a las 15:00', time: 'Hace 2 horas' },
-  ]);
+  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
 
   const initials = user?.name
     ?.split(' ')
@@ -71,26 +69,81 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative h-10 w-10 min-h-[44px] min-w-[44px]">
               <Bell className="h-5 w-5" />
-              {notifications.length > 0 && (
+              {unreadCount > 0 && (
                 <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]">
-                  {notifications.length}
+                  {unreadCount > 9 ? '9+' : unreadCount}
                 </Badge>
               )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
+            <div className="flex items-center justify-between px-2">
+              <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
+              {notifications.length > 0 && (
+                <div className="flex gap-1">
+                  {unreadCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        markAllAsRead();
+                      }}
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      Marcar leídas
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-muted-foreground"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      clearAll();
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
             <DropdownMenuSeparator />
-            {notifications.map((notif) => (
-              <DropdownMenuItem key={notif.id} className="flex flex-col items-start gap-1 py-3 min-h-[44px]">
-                <span className="text-sm">{notif.message}</span>
-                <span className="text-xs text-muted-foreground">{notif.time}</span>
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-center justify-center text-primary min-h-[44px]">
-              Ver todas las notificaciones
-            </DropdownMenuItem>
+            <ScrollArea className="h-[300px]">
+              {notifications.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground text-sm">
+                  No hay notificaciones
+                </div>
+              ) : (
+                notifications.map((notif) => (
+                  <DropdownMenuItem
+                    key={notif.id}
+                    className={cn(
+                      "flex items-start gap-3 py-3 min-h-[44px] cursor-pointer",
+                      !notif.read && "bg-primary/5"
+                    )}
+                    onClick={() => markAsRead(notif.id)}
+                  >
+                    <span className="text-lg flex-shrink-0">{getNotificationIcon(notif.type)}</span>
+                    <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                      <span className={cn("text-sm", !notif.read && "font-medium")}>
+                        {notif.title}
+                      </span>
+                      <span className="text-xs text-muted-foreground truncate">
+                        {notif.message}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatNotificationTime(notif.createdAt)}
+                      </span>
+                    </div>
+                    {!notif.read && (
+                      <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-1" />
+                    )}
+                  </DropdownMenuItem>
+                ))
+              )}
+            </ScrollArea>
           </DropdownMenuContent>
         </DropdownMenu>
 

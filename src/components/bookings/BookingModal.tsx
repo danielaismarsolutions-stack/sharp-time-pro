@@ -27,6 +27,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Booking, Client, Service } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 interface BookingModalProps {
   open: boolean;
@@ -57,6 +58,7 @@ export default function BookingModal({
   selectedDate,
 }: BookingModalProps) {
   const { toast } = useToast();
+  const { addNotification } = useNotifications();
   const [isLoading, setIsLoading] = useState(false);
   const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
   const [formData, setFormData] = useState({
@@ -124,6 +126,32 @@ export default function BookingModal({
         source: formData.source,
         notes: formData.notes,
       });
+      
+      // Add notification
+      if (booking) {
+        addNotification({
+          type: 'booking_updated',
+          title: 'Cita actualizada',
+          message: `${selectedClient?.name || 'Cliente'} - ${selectedService?.name || 'Servicio'} el ${format(date, 'dd/MM/yyyy')} a las ${formData.time}`,
+          data: {
+            clientId: formData.clientId,
+            clientName: selectedClient?.name,
+            serviceName: selectedService?.name,
+          },
+        });
+      } else {
+        addNotification({
+          type: 'booking_created',
+          title: 'Nueva reserva',
+          message: `${selectedClient?.name || 'Cliente'} - ${selectedService?.name || 'Servicio'} el ${format(date, 'dd/MM/yyyy')} a las ${formData.time}`,
+          data: {
+            clientId: formData.clientId,
+            clientName: selectedClient?.name,
+            serviceName: selectedService?.name,
+          },
+        });
+      }
+      
       onOpenChange(false);
       toast({
         title: booking ? 'Booking updated' : 'Booking created',
