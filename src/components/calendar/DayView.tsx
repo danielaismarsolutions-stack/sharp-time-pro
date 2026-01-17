@@ -120,13 +120,12 @@ function DayBookingCard({ booking, style, onClick }: DayBookingCardProps) {
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
   const isLarge = style.height >= 80;
-  const isMedium = style.height >= 60 && style.height < 80;
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        'absolute left-2 right-4 rounded-lg border border-border/30 border-l-4 p-3 overflow-hidden transition-all cursor-pointer hover:shadow-lg hover:scale-[1.005]',
+        'absolute left-2 right-4 rounded-lg border border-border/30 border-l-4 px-3 py-2 overflow-hidden transition-all cursor-pointer hover:shadow-lg hover:scale-[1.005]',
         statusColors[booking.status as BookingStatus] || 'bg-secondary/50 border-l-secondary'
       )}
       style={{
@@ -134,32 +133,25 @@ function DayBookingCard({ booking, style, onClick }: DayBookingCardProps) {
         height: style.height,
       }}
     >
-      {/* Header - Always visible */}
-      <div className="flex items-center justify-between mb-1">
+      {/* Time + Client Name Row */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-sm text-foreground">
-            {startTime} - {endTime}
-          </span>
           <StatusBadge status={booking.status as BookingStatus} size="sm" />
+          <span className="font-bold text-sm text-foreground">{startTime} - {endTime}</span>
+          <span className="text-sm font-semibold text-foreground">{booking.client_name}</span>
         </div>
         <span className="text-sm font-semibold text-primary">€{booking.service_price}</span>
       </div>
 
-      {/* Main Info - Always visible */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-semibold text-foreground">{booking.client_name}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Scissors className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground">{booking.service_name}</span>
-        </div>
+      {/* Service Row */}
+      <div className="flex items-center gap-2 mt-1 pl-1">
+        <Scissors className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-sm font-medium text-muted-foreground">{booking.service_name}</span>
       </div>
 
       {/* Extra details for larger cards */}
-      {(isLarge || isMedium) && (
-        <div className="flex items-center gap-4 mt-1.5 flex-wrap">
+      {isLarge && (
+        <div className="flex items-center gap-4 mt-1.5 pl-1 flex-wrap">
           <div className="flex items-center gap-2">
             <Phone className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">{booking.client_phone}</span>
