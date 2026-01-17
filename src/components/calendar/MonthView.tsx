@@ -12,19 +12,58 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { BookingStatus } from './StatusBadge';
 import { ApiBooking } from '@/types/api';
+import { Service } from '@/types';
 
 interface MonthViewProps {
   currentDate: Date;
   bookings: ApiBooking[];
+  services: Service[];
   onDateClick: (date: Date) => void;
   onBookingClick: (booking: ApiBooking) => void;
 }
 
 const MAX_VISIBLE_BOOKINGS = 3;
 
-export function MonthView({ currentDate, bookings, onDateClick, onBookingClick }: MonthViewProps) {
+// Predefined pastel colors for services
+const pastelColors = [
+  { bg: 'bg-blue-200', hover: 'hover:bg-blue-300', text: 'text-blue-900' },
+  { bg: 'bg-emerald-200', hover: 'hover:bg-emerald-300', text: 'text-emerald-900' },
+  { bg: 'bg-amber-200', hover: 'hover:bg-amber-300', text: 'text-amber-900' },
+  { bg: 'bg-rose-200', hover: 'hover:bg-rose-300', text: 'text-rose-900' },
+  { bg: 'bg-violet-200', hover: 'hover:bg-violet-300', text: 'text-violet-900' },
+  { bg: 'bg-pink-200', hover: 'hover:bg-pink-300', text: 'text-pink-900' },
+  { bg: 'bg-cyan-200', hover: 'hover:bg-cyan-300', text: 'text-cyan-900' },
+  { bg: 'bg-lime-200', hover: 'hover:bg-lime-300', text: 'text-lime-900' },
+];
+
+// Map service colors to pastel classes
+const serviceColorMap: Record<string, { bg: string; hover: string; text: string }> = {
+  '#3b82f6': { bg: 'bg-blue-200', hover: 'hover:bg-blue-300', text: 'text-blue-900' },
+  '#10b981': { bg: 'bg-emerald-200', hover: 'hover:bg-emerald-300', text: 'text-emerald-900' },
+  '#f59e0b': { bg: 'bg-amber-200', hover: 'hover:bg-amber-300', text: 'text-amber-900' },
+  '#ef4444': { bg: 'bg-red-200', hover: 'hover:bg-red-300', text: 'text-red-900' },
+  '#8b5cf6': { bg: 'bg-violet-200', hover: 'hover:bg-violet-300', text: 'text-violet-900' },
+  '#ec4899': { bg: 'bg-pink-200', hover: 'hover:bg-pink-300', text: 'text-pink-900' },
+  '#06b6d4': { bg: 'bg-cyan-200', hover: 'hover:bg-cyan-300', text: 'text-cyan-900' },
+  '#84cc16': { bg: 'bg-lime-200', hover: 'hover:bg-lime-300', text: 'text-lime-900' },
+  '#6366f1': { bg: 'bg-indigo-200', hover: 'hover:bg-indigo-300', text: 'text-indigo-900' },
+  '#14b8a6': { bg: 'bg-teal-200', hover: 'hover:bg-teal-300', text: 'text-teal-900' },
+  '#f97316': { bg: 'bg-orange-200', hover: 'hover:bg-orange-300', text: 'text-orange-900' },
+};
+
+// Get pastel color classes for a booking based on its service
+const getServicePastelColor = (booking: ApiBooking, services: Service[]) => {
+  const service = services.find(s => s.id === booking.service_id || s.name === booking.service_name);
+  if (service?.color && serviceColorMap[service.color]) {
+    return serviceColorMap[service.color];
+  }
+  // Fallback: use hash of service name to pick a consistent color
+  const hash = (booking.service_name || '').split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+  return pastelColors[hash % pastelColors.length];
+};
+
+export function MonthView({ currentDate, bookings, services, onDateClick, onBookingClick }: MonthViewProps) {
   // Generate calendar days grid
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
@@ -102,16 +141,20 @@ export function MonthView({ currentDate, bookings, onDateClick, onBookingClick }
 
               {/* Bookings */}
               <div className="space-y-0.5">
-                {dayBookings.slice(0, MAX_VISIBLE_BOOKINGS).map((booking) => (
-                  <BookingCard
-                    key={booking.id}
-                    booking={booking}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onBookingClick(booking);
-                    }}
-                  />
-                ))}
+                {dayBookings.slice(0, MAX_VISIBLE_BOOKINGS).map((booking) => {
+                  const colorClasses = getServicePastelColor(booking, services);
+                  return (
+                    <BookingCard
+                      key={booking.id}
+                      booking={booking}
+                      colorClasses={colorClasses}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onBookingClick(booking);
+                      }}
+                    />
+                  );
+                })}
                 {hasMore && (
                   <button
                     className="text-[10px] sm:text-xs text-primary hover:underline font-medium pl-1"
@@ -134,27 +177,21 @@ export function MonthView({ currentDate, bookings, onDateClick, onBookingClick }
 
 interface BookingCardProps {
   booking: ApiBooking;
+  colorClasses: { bg: string; hover: string; text: string };
   onClick: (e: React.MouseEvent) => void;
 }
 
-// Status-based solid colors for better text contrast
-const solidStatusColors: Record<BookingStatus, string> = {
-  pending: 'bg-amber-500 hover:bg-amber-600',
-  confirmed: 'bg-blue-500 hover:bg-blue-600',
-  completed: 'bg-emerald-500 hover:bg-emerald-600',
-  cancelled: 'bg-rose-500 hover:bg-rose-600',
-  no_show: 'bg-purple-500 hover:bg-purple-600',
-};
-
-function BookingCard({ booking, onClick }: BookingCardProps) {
+function BookingCard({ booking, colorClasses, onClick }: BookingCardProps) {
   const time = booking.start_time.substring(0, 5);
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-2 py-1.5 rounded-md transition-colors shadow-sm text-white',
-        solidStatusColors[booking.status as BookingStatus] || 'bg-secondary hover:bg-secondary/80'
+        'w-full text-left px-2 py-1.5 rounded-md transition-colors shadow-sm',
+        colorClasses.bg,
+        colorClasses.hover,
+        colorClasses.text
       )}
     >
       {/* Row 1: Time (left) + Service (right) */}
@@ -163,7 +200,7 @@ function BookingCard({ booking, onClick }: BookingCardProps) {
         <span className="text-[10px] font-medium truncate">{booking.service_name}</span>
       </div>
       {/* Row 2: Client name */}
-      <div className="text-[10px] opacity-90 truncate">
+      <div className="text-[10px] opacity-80 truncate">
         {booking.client_name}
       </div>
     </button>

@@ -10,20 +10,59 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { BookingStatus } from './StatusBadge';
 import { ApiBooking } from '@/types/api';
+import { Service } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface WeekViewProps {
   currentDate: Date;
   bookings: ApiBooking[];
+  services: Service[];
   onBookingClick: (booking: ApiBooking) => void;
 }
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8:00 - 20:00
 const HOUR_HEIGHT = 60; // pixels per hour
 
-export function WeekView({ currentDate, bookings, onBookingClick }: WeekViewProps) {
+// Predefined pastel colors for services
+const pastelColors = [
+  { bg: 'bg-blue-200', hover: 'hover:bg-blue-300', text: 'text-blue-900' },
+  { bg: 'bg-emerald-200', hover: 'hover:bg-emerald-300', text: 'text-emerald-900' },
+  { bg: 'bg-amber-200', hover: 'hover:bg-amber-300', text: 'text-amber-900' },
+  { bg: 'bg-rose-200', hover: 'hover:bg-rose-300', text: 'text-rose-900' },
+  { bg: 'bg-violet-200', hover: 'hover:bg-violet-300', text: 'text-violet-900' },
+  { bg: 'bg-pink-200', hover: 'hover:bg-pink-300', text: 'text-pink-900' },
+  { bg: 'bg-cyan-200', hover: 'hover:bg-cyan-300', text: 'text-cyan-900' },
+  { bg: 'bg-lime-200', hover: 'hover:bg-lime-300', text: 'text-lime-900' },
+];
+
+// Map service colors to pastel classes
+const serviceColorMap: Record<string, { bg: string; hover: string; text: string }> = {
+  '#3b82f6': { bg: 'bg-blue-200', hover: 'hover:bg-blue-300', text: 'text-blue-900' },
+  '#10b981': { bg: 'bg-emerald-200', hover: 'hover:bg-emerald-300', text: 'text-emerald-900' },
+  '#f59e0b': { bg: 'bg-amber-200', hover: 'hover:bg-amber-300', text: 'text-amber-900' },
+  '#ef4444': { bg: 'bg-red-200', hover: 'hover:bg-red-300', text: 'text-red-900' },
+  '#8b5cf6': { bg: 'bg-violet-200', hover: 'hover:bg-violet-300', text: 'text-violet-900' },
+  '#ec4899': { bg: 'bg-pink-200', hover: 'hover:bg-pink-300', text: 'text-pink-900' },
+  '#06b6d4': { bg: 'bg-cyan-200', hover: 'hover:bg-cyan-300', text: 'text-cyan-900' },
+  '#84cc16': { bg: 'bg-lime-200', hover: 'hover:bg-lime-300', text: 'text-lime-900' },
+  '#6366f1': { bg: 'bg-indigo-200', hover: 'hover:bg-indigo-300', text: 'text-indigo-900' },
+  '#14b8a6': { bg: 'bg-teal-200', hover: 'hover:bg-teal-300', text: 'text-teal-900' },
+  '#f97316': { bg: 'bg-orange-200', hover: 'hover:bg-orange-300', text: 'text-orange-900' },
+};
+
+// Get pastel color classes for a booking based on its service
+const getServicePastelColor = (booking: ApiBooking, services: Service[]) => {
+  const service = services.find(s => s.id === booking.service_id || s.name === booking.service_name);
+  if (service?.color && serviceColorMap[service.color]) {
+    return serviceColorMap[service.color];
+  }
+  // Fallback: use hash of service name to pick a consistent color
+  const hash = (booking.service_name || '').split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+  return pastelColors[hash % pastelColors.length];
+};
+
+export function WeekView({ currentDate, bookings, services, onBookingClick }: WeekViewProps) {
   // Generate week days (Monday - Sunday)
   const weekDays = useMemo(() => {
     const start = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -127,11 +166,13 @@ export function WeekView({ currentDate, bookings, onBookingClick }: WeekViewProp
                 {/* Bookings */}
                 {dayBookings.map((booking) => {
                   const style = getBookingStyle(booking);
+                  const colorClasses = getServicePastelColor(booking, services);
                   return (
                     <WeekBookingCard
                       key={booking.id}
                       booking={booking}
                       style={style}
+                      colorClasses={colorClasses}
                       onClick={() => onBookingClick(booking)}
                     />
                   );
@@ -148,20 +189,11 @@ export function WeekView({ currentDate, bookings, onBookingClick }: WeekViewProp
 interface WeekBookingCardProps {
   booking: ApiBooking;
   style: { top: number; height: number };
+  colorClasses: { bg: string; hover: string; text: string };
   onClick: () => void;
 }
 
-
-// Status-based solid colors for better text contrast
-const solidStatusColors: Record<BookingStatus, string> = {
-  pending: 'bg-amber-500 hover:bg-amber-600',
-  confirmed: 'bg-blue-500 hover:bg-blue-600',
-  completed: 'bg-emerald-500 hover:bg-emerald-600',
-  cancelled: 'bg-rose-500 hover:bg-rose-600',
-  no_show: 'bg-purple-500 hover:bg-purple-600',
-};
-
-function WeekBookingCard({ booking, style, onClick }: WeekBookingCardProps) {
+function WeekBookingCard({ booking, style, colorClasses, onClick }: WeekBookingCardProps) {
   const startTime = booking.start_time.substring(0, 5);
   const isSmall = style.height < 40;
 
@@ -169,8 +201,10 @@ function WeekBookingCard({ booking, style, onClick }: WeekBookingCardProps) {
     <button
       onClick={onClick}
       className={cn(
-        'absolute left-1 right-1 rounded-md px-2 py-1.5 overflow-hidden transition-colors cursor-pointer shadow-sm text-white text-left',
-        solidStatusColors[booking.status as BookingStatus] || 'bg-secondary hover:bg-secondary/80'
+        'absolute left-1 right-1 rounded-md px-2 py-1.5 overflow-hidden transition-colors cursor-pointer shadow-sm text-left',
+        colorClasses.bg,
+        colorClasses.hover,
+        colorClasses.text
       )}
       style={{
         top: style.top,
@@ -195,7 +229,7 @@ function WeekBookingCard({ booking, style, onClick }: WeekBookingCardProps) {
             </span>
           </div>
           {/* Row 2: Client name */}
-          <div className="text-[11px] opacity-90 truncate">
+          <div className="text-[11px] opacity-80 truncate">
             {booking.client_name}
           </div>
         </>
