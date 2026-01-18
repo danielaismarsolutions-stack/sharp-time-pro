@@ -53,7 +53,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/bookings/BookingModal';
 import { BookingDetailModal, StatusBadge, StatusDot, BookingStatus } from '@/components/calendar';
-import { ServiceLegend, MobileServiceLegend } from '@/components/calendar/ServiceLegend';
+import { ServiceLegend } from '@/components/calendar/ServiceLegend';
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -670,8 +670,6 @@ export default function Calendar() {
             </TabsList>
           </Tabs>
 
-          {/* Service Legend */}
-          <ServiceLegend services={services} />
 
           {/* Refresh Button */}
           <Button variant="outline" size="icon" onClick={loadData} className="h-9 w-9">
@@ -700,10 +698,10 @@ export default function Calendar() {
         {viewMode === 'day' && renderDayView()}
         {viewMode === 'week' && renderWeekView()}
         {viewMode === 'month' && renderMonthView()}
+        
+        {/* Service Legend - always visible below calendar */}
+        <ServiceLegend services={services} />
       </Card>
-
-      {/* Mobile Service Legend - always visible below calendar */}
-      <MobileServiceLegend services={services} />
 
       {/* Booking Detail Modal */}
       <BookingDetailModal
