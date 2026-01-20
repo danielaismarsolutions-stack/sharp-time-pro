@@ -200,33 +200,36 @@ const getAdaptiveStyles = (height: number, total: number = 1) => {
     return {
       timeSize: 'text-[7px]',
       priceSize: 'text-[7px]',
-      clientSize: 'text-[7px]',
+      clientSize: 'text-[6px]',
       padding: 'px-0.5 py-0.5',
       showClient: height > 25,
       showPrice: false,
       showFullTime: false,
+      compactLayout: true,
     };
   }
   if (total === 3) {
     return {
       timeSize: 'text-[8px]',
       priceSize: 'text-[8px]',
-      clientSize: 'text-[8px]',
+      clientSize: 'text-[6px]',
       padding: 'px-1 py-0.5',
       showClient: height > 30,
       showPrice: true,
       showFullTime: false,
+      compactLayout: true,
     };
   }
   if (total === 2) {
     return {
       timeSize: 'text-[9px]',
       priceSize: 'text-[9px]',
-      clientSize: 'text-[9px]',
+      clientSize: 'text-[7px]',
       padding: 'px-1 py-0.5',
       showClient: height > 30,
       showPrice: true,
       showFullTime: true,
+      compactLayout: true,
     };
   }
   // Single booking - match the selected element format exactly
@@ -239,36 +242,40 @@ const getAdaptiveStyles = (height: number, total: number = 1) => {
       showClient: true,
       showPrice: true,
       showFullTime: true,
+      compactLayout: false,
     };
   } else if (height >= 40) {
     return {
       timeSize: 'text-[10px]',
       priceSize: 'text-[10px]',
-      clientSize: 'text-[9px]',
+      clientSize: 'text-[7px]',
       padding: 'px-1 py-0.5',
       showClient: true,
       showPrice: true,
       showFullTime: true,
+      compactLayout: true,
     };
   } else if (height >= 30) {
     return {
       timeSize: 'text-[9px]',
       priceSize: 'text-[9px]',
-      clientSize: 'text-[8px]',
+      clientSize: 'text-[6px]',
       padding: 'px-1 py-0.5',
       showClient: true,
       showPrice: true,
       showFullTime: true,
+      compactLayout: true,
     };
   } else {
     return {
       timeSize: 'text-[8px]',
       priceSize: 'text-[8px]',
-      clientSize: 'text-[7px]',
+      clientSize: 'text-[6px]',
       padding: 'px-0.5 py-0',
       showClient: height > 20,
       showPrice: true,
       showFullTime: false,
+      compactLayout: true,
     };
   }
 };
@@ -295,22 +302,44 @@ function WeekBookingCard({ booking, style, colorClasses, onClick }: WeekBookingC
         height: style.height,
       }}
     >
-      {/* Row 1: Time range + Price - matching DayView format */}
-      <div className={cn("flex justify-between items-baseline gap-0.5", style.height > 40 ? "mb-0.5" : "")}>
-        <span className={cn("font-semibold shrink-0 leading-tight", styles.timeSize)}>
-          {timeDisplay}
-        </span>
-        {styles.showPrice && (
-          <span className={cn("font-bold shrink-0 leading-tight", styles.priceSize)}>
-            €{booking.service_price}
-          </span>
-        )}
-      </div>
-      {/* Row 2: Client name - only show if card is tall enough */}
-      {styles.showClient && (
-        <p className={cn("font-medium truncate leading-tight", styles.clientSize)}>
-          {booking.client_name}
-        </p>
+      {styles.compactLayout ? (
+        <>
+          {/* Compact: Time + Price on row 1, client immediately below with minimal gap */}
+          <div className="flex justify-between items-baseline gap-0.5">
+            <span className={cn("font-semibold shrink-0 leading-none", styles.timeSize)}>
+              {timeDisplay}
+            </span>
+            {styles.showPrice && (
+              <span className={cn("font-bold shrink-0 leading-none", styles.priceSize)}>
+                €{booking.service_price}
+              </span>
+            )}
+          </div>
+          {styles.showClient && (
+            <p className={cn("font-medium truncate leading-none mt-px", styles.clientSize)}>
+              {booking.client_name}
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Standard layout for taller cards */}
+          <div className={cn("flex justify-between items-baseline gap-0.5", "mb-0.5")}>
+            <span className={cn("font-semibold shrink-0 leading-tight", styles.timeSize)}>
+              {timeDisplay}
+            </span>
+            {styles.showPrice && (
+              <span className={cn("font-bold shrink-0 leading-tight", styles.priceSize)}>
+                €{booking.service_price}
+              </span>
+            )}
+          </div>
+          {styles.showClient && (
+            <p className={cn("font-medium truncate leading-tight", styles.clientSize)}>
+              {booking.client_name}
+            </p>
+          )}
+        </>
       )}
     </button>
   );
