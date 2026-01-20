@@ -33,6 +33,7 @@ function mapDbToService(db: DbService): Service {
     isActive: db.is_active,
     bufferBefore: db.buffer_before_minutes,
     bufferAfter: db.buffer_after_minutes,
+    sortOrder: db.display_order,
   };
 }
 
@@ -168,6 +169,24 @@ export const supabaseServicesApi = {
         updated_at: new Date().toISOString(),
       }),
     });
+  },
+
+  /**
+   * Update the display order of multiple services
+   */
+  updateOrder: async (orderedIds: string[]): Promise<void> => {
+    // Update each service's display_order based on its position in the array
+    const updates = orderedIds.map((id, index) => 
+      supabaseFetch<void>(`/services?id=eq.${id}&business_id=eq.${BUSINESS_ID}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          display_order: index,
+          updated_at: new Date().toISOString(),
+        }),
+      })
+    );
+    
+    await Promise.all(updates);
   },
 };
 
