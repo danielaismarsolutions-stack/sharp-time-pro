@@ -1,5 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 import {
   X,
   User,
@@ -19,6 +20,7 @@ import {
   PhoneCall,
   Footprints,
   UserCheck,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -55,6 +57,8 @@ export function BookingDetailModal({
   onEdit,
   onDelete,
 }: BookingDetailModalProps) {
+  const navigate = useNavigate();
+  
   if (!booking) return null;
 
   const source = sourceConfig[booking.source] || sourceConfig.online;
@@ -63,6 +67,12 @@ export function BookingDetailModal({
   const endTime = booking.end_time.substring(0, 5);
   const bookingDate = parseISO(booking.booking_date);
 
+  const handleClientClick = () => {
+    if (booking.client_id) {
+      onClose();
+      navigate(`/clients/${booking.client_id}`);
+    }
+  };
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -105,17 +115,28 @@ export function BookingDetailModal({
             <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
               Información del Cliente
             </h4>
-            <div className="bg-muted/30 rounded-lg p-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                  <User className="h-5 w-5 text-primary" />
+            <div 
+              className={cn(
+                "bg-muted/30 rounded-lg p-4 space-y-3",
+                booking.client_id && "cursor-pointer hover:bg-muted/50 transition-colors group"
+              )}
+              onClick={booking.client_id ? handleClientClick : undefined}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <User className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium group-hover:text-primary transition-colors">{booking.client_name}</p>
+                    <p className="text-sm text-muted-foreground">Cliente</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium">{booking.client_name}</p>
-                  <p className="text-sm text-muted-foreground">Cliente</p>
-                </div>
+                {booking.client_id && (
+                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                )}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                 <a
                   href={`tel:${booking.client_phone}`}
                   className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
