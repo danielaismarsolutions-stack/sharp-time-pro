@@ -193,16 +193,62 @@ interface WeekBookingCardProps {
   onClick: () => void;
 }
 
+// Adaptive text sizing based on card height
+const getAdaptiveStyles = (height: number) => {
+  if (height >= 50) {
+    // Normal cards (45min+)
+    return {
+      timeSize: 'text-[10px]',
+      priceSize: 'text-[10px]',
+      clientSize: 'text-[9px]',
+      padding: 'px-1.5 py-1',
+      showClient: true,
+      layout: 'stacked' as const,
+    };
+  } else if (height >= 40) {
+    // Medium cards (30-45min)
+    return {
+      timeSize: 'text-[9px]',
+      priceSize: 'text-[9px]',
+      clientSize: 'text-[8px]',
+      padding: 'px-1 py-0.5',
+      showClient: true,
+      layout: 'stacked' as const,
+    };
+  } else if (height >= 30) {
+    // Small cards (20-30min)
+    return {
+      timeSize: 'text-[8px]',
+      priceSize: 'text-[8px]',
+      clientSize: 'text-[7px]',
+      padding: 'px-1 py-0.5',
+      showClient: true,
+      layout: 'compact' as const,
+    };
+  } else {
+    // Very small cards (<20min)
+    return {
+      timeSize: 'text-[7px]',
+      priceSize: 'text-[7px]',
+      clientSize: 'text-[6px]',
+      padding: 'px-0.5 py-0',
+      showClient: false,
+      layout: 'inline' as const,
+    };
+  }
+};
+
 function WeekBookingCard({ booking, style, colorClasses, onClick }: WeekBookingCardProps) {
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
-  const isSmall = style.height < 30;
+  const styles = getAdaptiveStyles(style.height);
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        'absolute left-0.5 right-0.5 rounded-md px-1 py-0.5 overflow-hidden transition-colors cursor-pointer shadow-sm text-left',
+        'absolute left-0.5 right-0.5 rounded-md overflow-hidden transition-colors cursor-pointer shadow-sm text-left',
+        styles.padding,
         colorClasses.bg,
         colorClasses.hover,
         colorClasses.text
@@ -212,30 +258,50 @@ function WeekBookingCard({ booking, style, colorClasses, onClick }: WeekBookingC
         height: style.height,
       }}
     >
-      {/* Compact layout for very small cards */}
-      {isSmall ? (
+      {styles.layout === 'inline' ? (
+        // Very compact: single line with time and price only
         <div className="flex items-center justify-between gap-0.5 h-full">
-          <span className="text-[9px] font-semibold shrink-0">
-            {startTime}-{endTime}
+          <span className={cn(styles.timeSize, 'font-semibold shrink-0 leading-none')}>
+            {startTime}
           </span>
-          <span className="text-[9px] font-bold shrink-0">€{booking.service_price}</span>
+          <span className={cn(styles.priceSize, 'font-bold shrink-0 leading-none')}>
+            €{booking.service_price}
+          </span>
         </div>
-      ) : (
-        <>
-          {/* Row 1: Time range + Price */}
-          <div className="flex justify-between items-baseline gap-0.5">
-            <span className="text-[9px] font-semibold shrink-0">
+      ) : styles.layout === 'compact' ? (
+        // Compact: two rows but tighter spacing
+        <div className="flex flex-col justify-center h-full gap-0">
+          <div className="flex justify-between items-center">
+            <span className={cn(styles.timeSize, 'font-semibold shrink-0 leading-none')}>
               {startTime}-{endTime}
             </span>
-            <span className="text-[9px] font-bold shrink-0">
+            <span className={cn(styles.priceSize, 'font-bold shrink-0 leading-none')}>
               €{booking.service_price}
             </span>
           </div>
-          {/* Row 2: Client name */}
-          <div className="text-[9px] font-medium truncate leading-tight">
-            {booking.client_name}
+          {styles.showClient && (
+            <div className={cn(styles.clientSize, 'font-medium truncate leading-none mt-0.5')}>
+              {booking.client_name}
+            </div>
+          )}
+        </div>
+      ) : (
+        // Standard stacked layout
+        <div className="flex flex-col h-full">
+          <div className="flex justify-between items-baseline gap-0.5">
+            <span className={cn(styles.timeSize, 'font-semibold shrink-0 leading-tight')}>
+              {startTime}-{endTime}
+            </span>
+            <span className={cn(styles.priceSize, 'font-bold shrink-0 leading-tight')}>
+              €{booking.service_price}
+            </span>
           </div>
-        </>
+          {styles.showClient && (
+            <div className={cn(styles.clientSize, 'font-medium truncate leading-tight')}>
+              {booking.client_name}
+            </div>
+          )}
+        </div>
       )}
     </button>
   );
