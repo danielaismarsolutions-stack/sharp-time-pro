@@ -1,12 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
   Plus,
   Clock,
   DollarSign,
-  MoreHorizontal,
-  Edit,
-  Trash2,
   LayoutGrid,
   List,
   RefreshCw,
@@ -14,20 +26,13 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Service } from '@/types';
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { useToast } from '@/hooks/use-toast';
 import ServiceModal from '@/components/services/ServiceModal';
+import { SortableServiceCard } from '@/components/services/SortableServiceCard';
 import { AnimatedCard } from '@/components/ui/animated-card';
 
 export default function Services() {
@@ -39,6 +44,18 @@ export default function Services() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const loadServices = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) {
@@ -66,6 +83,35 @@ export default function Services() {
   useEffect(() => {
     loadServices();
   }, [loadServices]);
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = services.findIndex((s) => s.id === active.id);
+      const newIndex = services.findIndex((s) => s.id === over.id);
+
+      const newServices = arrayMove(services, oldIndex, newIndex);
+      setServices(newServices);
+
+      // Save the new order to the database
+      setIsSavingOrder(true);
+      try {
+        await supabaseServicesApi.updateOrder(newServices.map(s => s.id));
+        toast({ title: 'Orden actualizado' });
+      } catch (error) {
+        console.error('Error saving order:', error);
+        // Rollback on error
+        setServices(services);
+        toast({ 
+          title: 'Error al guardar orden', 
+          variant: 'destructive' 
+        });
+      } finally {
+        setIsSavingOrder(false);
+      }
+    }
+  };
 
   const handleSaveService = async (serviceData: Partial<Service>) => {
     try {
@@ -131,64 +177,42 @@ export default function Services() {
       await supabaseServicesApi.delete(id);
       toast({ title: 'Servicio desactivado' });
     } catch (error) {
-      // Rollback on error
+      // Rollback
       setServices((prev) => prev.map((s) => s.id === id ? { ...s, isActive: true } : s));
       toast({ 
-        title: 'Error al eliminar servicio', 
+        title: 'Error al desactivar servicio', 
         variant: 'destructive' 
       });
     }
   };
 
-  // Calculate stats
+  const handleEditService = (service: Service) => {
+    setEditingService(service);
+    setIsModalOpen(true);
+  };
+
+  // Statistics
   const activeServices = services.filter((s) => s.isActive);
-  const avgDuration = services.length > 0
-    ? Math.round(services.reduce((sum, s) => sum + s.duration, 0) / services.length)
+  const avgDuration = activeServices.length
+    ? Math.round(activeServices.reduce((sum, s) => sum + s.duration, 0) / activeServices.length)
     : 0;
-  const avgPrice = services.length > 0
-    ? Math.round(services.reduce((sum, s) => sum + s.price, 0) / services.length)
+  const avgPrice = activeServices.length
+    ? Math.round(activeServices.reduce((sum, s) => sum + s.price, 0) / activeServices.length)
     : 0;
 
-  // Loading skeleton
   if (isLoading) {
     return (
-      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="space-y-4 md:space-y-6 p-3 md:p-6 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <Skeleton className="h-8 w-32 mb-2" />
             <Skeleton className="h-4 w-48" />
           </div>
-          <Skeleton className="h-11 w-40" />
+          <Skeleton className="h-10 w-full sm:w-32" />
         </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="border-border">
-              <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
-                <Skeleton className="h-4 w-20" />
-              </CardHeader>
-              <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-                <Skeleton className="h-8 w-12" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Card key={i} className="border-border">
-              <CardHeader className="pb-2 p-4 md:p-6 md:pb-2">
-                <Skeleton className="h-6 w-32" />
-                <Skeleton className="h-4 w-48 mt-2" />
-              </CardHeader>
-              <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
-                <Skeleton className="h-4 w-24 mb-4" />
-                <div className="flex justify-between">
-                  <Skeleton className="h-6 w-16" />
-                  <Skeleton className="h-6 w-10" />
-                </div>
-              </CardContent>
-            </Card>
+            <Skeleton key={i} className="h-48" />
           ))}
         </div>
       </div>
@@ -196,201 +220,173 @@ export default function Services() {
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="p-4 md:p-6 space-y-4 md:space-y-6"
-    >
+    <div className="space-y-4 md:space-y-6 p-3 md:p-6 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-        >
-          <h1 className="text-xl md:text-2xl font-bold">Servicios</h1>
-          <p className="text-muted-foreground text-sm">Gestiona tu catálogo de servicios</p>
-        </motion.div>
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-2 md:gap-4"
-        >
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'grid' | 'table')} className="hidden sm:block">
-            <TabsList>
-              <TabsTrigger value="grid" className="min-h-[40px]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold">Servicios</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
+            Gestiona los servicios de tu barbería. Arrastra para reordenar.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {isSavingOrder && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Guardando...
+            </div>
+          )}
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'grid' | 'table')}>
+            <TabsList className="h-10">
+              <TabsTrigger value="grid" className="min-h-[44px] min-w-[44px] px-3">
                 <LayoutGrid className="h-4 w-4" />
               </TabsTrigger>
-              <TabsTrigger value="table" className="min-h-[40px]">
+              <TabsTrigger value="table" className="min-h-[44px] min-w-[44px] px-3">
                 <List className="h-4 w-4" />
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="icon"
             onClick={() => loadServices(true)}
             disabled={isRefreshing}
-            className="h-11 w-11"
+            className="min-h-[44px] min-w-[44px]"
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
-          
-          <Button 
-            onClick={() => { setEditingService(null); setIsModalOpen(true); }} 
-            className="h-11 min-h-[44px] flex-1 sm:flex-none"
-          >
+          <Button onClick={() => setIsModalOpen(true)} className="min-h-[44px]">
             <Plus className="h-4 w-4 mr-2" />
-            Añadir Servicio
+            <span className="hidden sm:inline">Añadir Servicio</span>
+            <span className="sm:hidden">Añadir</span>
           </Button>
-        </motion.div>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-3 gap-2 md:gap-4">
         <AnimatedCard delay={0}>
-          <Card className="border-border h-full">
-            <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-                Total Servicios
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+          <Card className="p-3 md:p-4">
+            <div className="text-center">
               <p className="text-xl md:text-2xl font-bold">{services.length}</p>
-            </CardContent>
+              <p className="text-xs md:text-sm text-muted-foreground">Total</p>
+            </div>
           </Card>
         </AnimatedCard>
         <AnimatedCard delay={1}>
-          <Card className="border-border h-full">
-            <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-                Activos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <p className="text-xl md:text-2xl font-bold text-status-success">{activeServices.length}</p>
-            </CardContent>
+          <Card className="p-3 md:p-4">
+            <div className="text-center">
+              <p className="text-xl md:text-2xl font-bold text-green-500">{activeServices.length}</p>
+              <p className="text-xs md:text-sm text-muted-foreground">Activos</p>
+            </div>
           </Card>
         </AnimatedCard>
         <AnimatedCard delay={2}>
-          <Card className="border-border h-full">
-            <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-                Duración Prom.
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <p className="text-xl md:text-2xl font-bold">{avgDuration}m</p>
-            </CardContent>
-          </Card>
-        </AnimatedCard>
-        <AnimatedCard delay={3}>
-          <Card className="border-border h-full">
-            <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-                Precio Prom.
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <p className="text-xl md:text-2xl font-bold">€{avgPrice}</p>
-            </CardContent>
+          <Card className="p-3 md:p-4">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 md:gap-2 flex-wrap">
+                <span className="flex items-center text-sm md:text-base">
+                  <Clock className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                  {avgDuration}m
+                </span>
+                <span className="text-muted-foreground hidden sm:inline">/</span>
+                <span className="flex items-center text-sm md:text-base">
+                  <DollarSign className="h-3 w-3 md:h-4 md:w-4" />
+                  €{avgPrice}
+                </span>
+              </div>
+              <p className="text-xs md:text-sm text-muted-foreground">Media</p>
+            </div>
           </Card>
         </AnimatedCard>
       </div>
 
-      {/* Services Grid */}
-      {services.length === 0 ? (
-        <Card className="border-border p-8 text-center">
-          <p className="text-muted-foreground mb-4">No hay servicios configurados</p>
-          <Button onClick={() => { setEditingService(null); setIsModalOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" />
-            Crear primer servicio
-          </Button>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-          {services.map((service, index) => (
-            <AnimatedCard key={service.id} delay={index + 4}>
-              <Card className={`border-border relative overflow-hidden touch-manipulation h-full ${!service.isActive ? 'opacity-60' : ''}`}>
-                <div
-                  className="absolute top-0 left-0 w-1 h-full"
-                  style={{ backgroundColor: service.color }}
+      {/* Services Grid with Drag and Drop */}
+      {viewMode === 'grid' ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={services.map(s => s.id)} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+              {services.map((service) => (
+                <SortableServiceCard
+                  key={service.id}
+                  service={service}
+                  togglingId={togglingId}
+                  onEdit={handleEditService}
+                  onDelete={handleDeleteService}
+                  onToggleActive={handleToggleActive}
                 />
-                <CardHeader className="pb-2 p-4 md:p-6 md:pb-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <CardTitle className="text-base md:text-lg truncate">{service.name}</CardTitle>
-                      {service.description && (
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{service.description}</p>
-                      )}
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-10 w-10 min-h-[44px] min-w-[44px] shrink-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="min-h-[44px]" onClick={() => {
-                          setEditingService(service);
-                          setIsModalOpen(true);
-                        }}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive min-h-[44px]"
-                          onClick={() => handleDeleteService(service.id)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Desactivar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
-                  <div className="flex items-center justify-between mb-3 md:mb-4">
-                    <div className="flex items-center gap-3 md:gap-4">
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        {service.duration}m
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      ) : (
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-4 font-medium">Servicio</th>
+                  <th className="text-left p-4 font-medium">Duración</th>
+                  <th className="text-left p-4 font-medium">Precio</th>
+                  <th className="text-left p-4 font-medium">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {services.map((service) => (
+                  <tr 
+                    key={service.id} 
+                    className="border-b last:border-0 hover:bg-muted/50 cursor-pointer"
+                    onClick={() => handleEditService(service)}
+                  >
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: service.color }}
+                        />
+                        <div>
+                          <p className="font-medium">{service.name}</p>
+                          {service.description && (
+                            <p className="text-sm text-muted-foreground truncate max-w-xs">
+                              {service.description}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 text-sm font-medium">
-                        <DollarSign className="h-4 w-4" />
-                        €{service.price}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Badge variant={service.isActive ? 'default' : 'secondary'}>
-                      {service.isActive ? 'Activo' : 'Inactivo'}
-                    </Badge>
-                    <div className="flex items-center gap-2">
-                      {togglingId === service.id && (
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      )}
-                      <Switch
-                        checked={service.isActive}
-                        onCheckedChange={() => handleToggleActive(service)}
-                        disabled={togglingId === service.id}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </AnimatedCard>
-          ))}
-        </div>
+                    </td>
+                    <td className="p-4">{service.duration}m</td>
+                    <td className="p-4">€{service.price}</td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        service.isActive 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+                      }`}>
+                        {service.isActive ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
       {/* Service Modal */}
       <ServiceModal
         open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        service={editingService}
+        onOpenChange={(open) => {
+          setIsModalOpen(open);
+          if (!open) setEditingService(null);
+        }}
         onSave={handleSaveService}
+        service={editingService}
       />
-    </motion.div>
+    </div>
   );
 }

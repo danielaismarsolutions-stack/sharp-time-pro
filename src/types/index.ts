@@ -45,6 +45,7 @@ export interface Service {
   isActive: boolean;
   bufferBefore: number;
   bufferAfter: number;
+  sortOrder?: number;
 }
 
 export interface BusinessSettings {
