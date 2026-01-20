@@ -184,14 +184,36 @@ export default function Calendar() {
       .sort((a, b) => a.start_time.localeCompare(b.start_time));
   };
 
-  const getBookingPosition = (booking: ApiBooking) => {
+  // Check if two bookings overlap
+  const doBookingsOverlap = (a: ApiBooking, b: ApiBooking) => {
+    const aStart = parse(a.start_time, 'HH:mm:ss', new Date());
+    const aEnd = parse(a.end_time, 'HH:mm:ss', new Date());
+    const bStart = parse(b.start_time, 'HH:mm:ss', new Date());
+    const bEnd = parse(b.end_time, 'HH:mm:ss', new Date());
+    return aStart < bEnd && aEnd > bStart;
+  };
+
+  // Calculate horizontal position for overlapping bookings
+  const getOverlapInfo = (bookings: ApiBooking[], booking: ApiBooking) => {
+    // Find all bookings that overlap with the current one
+    const overlapping = bookings.filter(b => doBookingsOverlap(booking, b));
+    // Sort overlapping bookings by start time, then by id for consistency
+    overlapping.sort((a, b) => {
+      const timeComp = a.start_time.localeCompare(b.start_time);
+      return timeComp !== 0 ? timeComp : a.id.localeCompare(b.id);
+    });
+    const index = overlapping.findIndex(b => b.id === booking.id);
+    return { total: overlapping.length, index };
+  };
+
+  const getBookingPosition = (booking: ApiBooking, hourHeight: number = 64) => {
     const startTime = parse(booking.start_time, 'HH:mm:ss', new Date());
     const endTime = parse(booking.end_time, 'HH:mm:ss', new Date());
     const startHour = startTime.getHours();
     const startMinute = startTime.getMinutes();
     const duration = differenceInMinutes(endTime, startTime);
-    const top = ((startHour - 8) * 64) + ((startMinute / 60) * 64);
-    const height = Math.max((duration / 60) * 64, 32);
+    const top = ((startHour - 8) * hourHeight) + ((startMinute / 60) * hourHeight);
+    const height = Math.max((duration / 60) * hourHeight, 32);
     return { top, height };
   };
 
@@ -358,34 +380,45 @@ export default function Calendar() {
 
                 {/* Bookings overlay */}
                 {dayBookings.map((booking) => {
-                  const { top, height } = getBookingPosition(booking);
+                  const { top, height } = getBookingPosition(booking, 64);
+                  const { total, index } = getOverlapInfo(dayBookings, booking);
                   const colorClasses = getServicePastelColor(booking, services);
+                  
+                  // Calculate width and left position based on overlaps
+                  const widthPercent = 100 / total;
+                  const leftPercent = index * widthPercent;
+                  
                   return (
                     <div
                       key={booking.id}
                       className={cn(
-                        'absolute left-0.5 right-0.5 md:left-1 md:right-1 rounded-md px-2 py-1.5 cursor-pointer transition-colors shadow-sm overflow-hidden',
+                        'absolute rounded-md px-1 py-1 cursor-pointer transition-colors shadow-sm overflow-hidden',
                         colorClasses.bg,
                         colorClasses.hover,
                         colorClasses.text
                       )}
-                      style={{ top, height }}
+                      style={{ 
+                        top, 
+                        height,
+                        left: `calc(${leftPercent}% + 2px)`,
+                        width: `calc(${widthPercent}% - 4px)`,
+                      }}
                       onClick={(e) => {
                         e.stopPropagation();
                         openBookingDetail(booking);
                       }}
                     >
                       {/* Row 1: Time range + Price */}
-                      <div className="flex justify-between items-baseline gap-1 mb-0.5">
-                        <span className="text-[11px] font-semibold shrink-0">
+                      <div className="flex justify-between items-baseline gap-0.5 mb-0.5">
+                        <span className={cn("font-semibold shrink-0", total > 1 ? "text-[9px]" : "text-[11px]")}>
                           {booking.start_time.substring(0, 5)}-{booking.end_time.substring(0, 5)}
                         </span>
-                        <span className="text-[11px] font-bold shrink-0">
+                        <span className={cn("font-bold shrink-0", total > 1 ? "text-[9px]" : "text-[11px]")}>
                           €{booking.service_price}
                         </span>
                       </div>
                       {/* Row 2: Client name */}
-                      <p className="text-[11px] font-medium truncate">{booking.client_name}</p>
+                      <p className={cn("font-medium truncate", total > 1 ? "text-[9px]" : "text-[11px]")}>{booking.client_name}</p>
                     </div>
                   );
                 })}
@@ -430,25 +463,30 @@ export default function Calendar() {
 
             {/* Bookings overlay */}
             {dayBookings.map((booking) => {
-              const startTime = parse(booking.start_time, 'HH:mm:ss', new Date());
-              const endTime = parse(booking.end_time, 'HH:mm:ss', new Date());
-              const startHour = startTime.getHours();
-              const startMinute = startTime.getMinutes();
-              const duration = differenceInMinutes(endTime, startTime);
-              const top = ((startHour - 8) * 80) + ((startMinute / 60) * 80);
-              const height = Math.max((duration / 60) * 80, 60);
+              const { top, height } = getBookingPosition(booking, 80);
+              const { total, index } = getOverlapInfo(dayBookings, booking);
 
               const colorClasses = getServicePastelColor(booking, services);
+              
+              // Calculate width and left position based on overlaps
+              const widthPercent = 100 / total;
+              const leftPercent = index * widthPercent;
+              
               return (
                 <div
                   key={booking.id}
                   className={cn(
-                    'absolute left-2 right-4 rounded-lg border-l-4 px-3 py-2 cursor-pointer transition-all hover:shadow-lg hover:scale-[1.01]',
+                    'absolute rounded-lg border-l-4 px-3 py-2 cursor-pointer transition-all hover:shadow-lg',
                     colorClasses.bg,
                     colorClasses.hover,
                     colorClasses.text
                   )}
-                  style={{ top, height }}
+                  style={{ 
+                    top, 
+                    height,
+                    left: `calc(${leftPercent}% + 8px)`,
+                    width: `calc(${widthPercent}% - 16px)`,
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
                     openBookingDetail(booking);
@@ -456,19 +494,19 @@ export default function Calendar() {
                 >
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm">
+                      <span className={cn("font-semibold", total > 2 ? "text-xs" : "text-sm")}>
                         {booking.start_time.substring(0, 5)} - {booking.end_time.substring(0, 5)}
                       </span>
-                      <StatusBadge status={booking.status as BookingStatus} size="sm" />
+                      {total <= 2 && <StatusBadge status={booking.status as BookingStatus} size="sm" />}
                     </div>
-                    <span className="text-sm font-medium">€{booking.service_price}</span>
+                    <span className={cn("font-medium", total > 2 ? "text-xs" : "text-sm")}>€{booking.service_price}</span>
                   </div>
-                  <p className="font-medium">{booking.client_name}</p>
-                  {height > 60 && (
+                  <p className={cn("font-medium truncate", total > 2 ? "text-sm" : "")}>{booking.client_name}</p>
+                  {height > 60 && total <= 2 && (
                     <>
-                      <p className="text-sm opacity-75">{booking.service_name}</p>
+                      <p className="text-sm opacity-75 truncate">{booking.service_name}</p>
                       {booking.barber && (
-                        <p className="text-xs opacity-60 mt-1">Barbero: {booking.barber}</p>
+                        <p className="text-xs opacity-60 mt-1 truncate">Barbero: {booking.barber}</p>
                       )}
                     </>
                   )}
