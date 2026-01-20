@@ -388,7 +388,7 @@ export default function Calendar() {
                       const widthPercent = 100 / total;
                       const leftPercent = index * widthPercent;
                       
-                      // Adaptive text sizing based on overlap count
+                      // Adaptive text sizing based on overlap count - consistent format
                       const getTextSize = () => {
                         if (total >= 4) return { time: 'text-[7px]', price: 'text-[7px]', name: 'text-[7px]' };
                         if (total === 3) return { time: 'text-[8px]', price: 'text-[8px]', name: 'text-[8px]' };
