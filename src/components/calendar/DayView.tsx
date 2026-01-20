@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { StatusBadge, BookingStatus } from './StatusBadge';
 import { ApiBooking } from '@/types/api';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Phone, Scissors, Euro, User } from 'lucide-react';
+import { Clock, Phone, Scissors, User } from 'lucide-react';
 
 interface DayViewProps {
   currentDate: Date;
@@ -119,14 +119,17 @@ const statusColors: Record<BookingStatus, string> = {
 function DayBookingCard({ booking, style, onClick }: DayBookingCardProps) {
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
-  const isLarge = style.height >= 80;
-  const isMedium = style.height >= 60 && style.height < 80;
+  const isLarge = style.height >= 100;
+  const isMedium = style.height >= 70 && style.height < 100;
+  
+  // Get barber first name for compact display
+  const barberFirstName = booking.barber?.split(' ')[0] || '';
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        'absolute left-2 right-4 rounded-lg border border-border/30 border-l-4 p-3 overflow-hidden transition-all cursor-pointer hover:shadow-lg hover:scale-[1.005]',
+        'absolute left-2 right-4 rounded-md border border-border/30 border-l-4 p-2 overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-md hover:brightness-95',
         statusColors[booking.status as BookingStatus] || 'bg-secondary/50 border-l-secondary'
       )}
       style={{
@@ -134,40 +137,41 @@ function DayBookingCard({ booking, style, onClick }: DayBookingCardProps) {
         height: style.height,
       }}
     >
-      {/* Header - Always visible */}
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-sm text-foreground">
-            {startTime} - {endTime}
-          </span>
-          <StatusBadge status={booking.status as BookingStatus} size="sm" />
-        </div>
-        <span className="text-sm font-semibold text-primary">€{booking.service_price}</span>
-      </div>
-
-      {/* Main Info - Always visible */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-semibold text-foreground">{booking.client_name}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Scissors className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground">{booking.service_name}</span>
-        </div>
-      </div>
-
-      {/* Extra details for larger cards */}
-      {(isLarge || isMedium) && (
-        <div className="flex items-center gap-4 mt-1.5 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">{booking.client_phone}</span>
+      {/* Row 1: Time (left) + Barber (right) */}
+      <div className="flex justify-between items-center gap-1 mb-0.5">
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 text-xs font-medium text-foreground">
+            <Clock className="w-3 h-3 opacity-70" />
+            <span>{startTime}-{endTime}</span>
           </div>
-          {booking.barber && (
-            <span className="text-xs text-muted-foreground">
-              Barbero: <span className="font-medium">{booking.barber}</span>
-            </span>
+          {(isLarge || isMedium) && (
+            <StatusBadge status={booking.status as BookingStatus} size="sm" />
+          )}
+        </div>
+        {barberFirstName && (
+          <div className="flex items-center gap-1 text-xs font-medium text-foreground">
+            <Scissors className="w-3 h-3 opacity-70" />
+            <span className="truncate max-w-[80px]">{barberFirstName}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Row 2: Client Name */}
+      <div className="flex items-center gap-1">
+        <User className="w-3.5 h-3.5 opacity-70" />
+        <span className="text-sm font-semibold text-foreground truncate">{booking.client_name}</span>
+      </div>
+
+      {/* Row 3: Extra details for larger cards */}
+      {(isLarge || isMedium) && (
+        <div className="flex items-center gap-3 mt-1 flex-wrap text-xs text-muted-foreground">
+          <span className="font-medium">{booking.service_name}</span>
+          <span className="font-semibold text-primary">€{booking.service_price}</span>
+          {isLarge && booking.client_phone && (
+            <div className="flex items-center gap-1">
+              <Phone className="w-3 h-3" />
+              <span>{booking.client_phone}</span>
+            </div>
           )}
         </div>
       )}
