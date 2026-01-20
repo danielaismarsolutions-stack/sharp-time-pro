@@ -379,49 +379,68 @@ export default function Calendar() {
                 ))}
 
                 {/* Bookings overlay */}
-                {dayBookings.map((booking) => {
-                  const { top, height } = getBookingPosition(booking, 64);
-                  const { total, index } = getOverlapInfo(dayBookings, booking);
-                  const colorClasses = getServicePastelColor(booking, services);
-                  
-                  // Calculate width and left position based on overlaps
-                  const widthPercent = 100 / total;
-                  const leftPercent = index * widthPercent;
-                  
-                  return (
-                    <div
-                      key={booking.id}
-                      className={cn(
-                        'absolute rounded-md px-1 py-1 cursor-pointer transition-colors shadow-sm overflow-hidden',
-                        colorClasses.bg,
-                        colorClasses.hover,
-                        colorClasses.text
-                      )}
-                      style={{ 
-                        top, 
-                        height,
-                        left: `calc(${leftPercent}% + 2px)`,
-                        width: `calc(${widthPercent}% - 4px)`,
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openBookingDetail(booking);
-                      }}
-                    >
-                      {/* Row 1: Time range + Price */}
-                      <div className="flex justify-between items-baseline gap-0.5 mb-0.5">
-                        <span className={cn("font-semibold shrink-0", total > 1 ? "text-[9px]" : "text-[11px]")}>
-                          {booking.start_time.substring(0, 5)}-{booking.end_time.substring(0, 5)}
-                        </span>
-                        <span className={cn("font-bold shrink-0", total > 1 ? "text-[9px]" : "text-[11px]")}>
-                          €{booking.service_price}
-                        </span>
-                      </div>
-                      {/* Row 2: Client name */}
-                      <p className={cn("font-medium truncate", total > 1 ? "text-[9px]" : "text-[11px]")}>{booking.client_name}</p>
-                    </div>
-                  );
-                })}
+                    {dayBookings.map((booking) => {
+                      const { top, height } = getBookingPosition(booking, 64);
+                      const { total, index } = getOverlapInfo(dayBookings, booking);
+                      const colorClasses = getServicePastelColor(booking, services);
+                      
+                      // Calculate width and left position based on overlaps
+                      const widthPercent = 100 / total;
+                      const leftPercent = index * widthPercent;
+                      
+                      // Adaptive text sizing based on overlap count
+                      const getTextSize = () => {
+                        if (total >= 4) return { time: 'text-[7px]', price: 'text-[7px]', name: 'text-[7px]' };
+                        if (total === 3) return { time: 'text-[8px]', price: 'text-[8px]', name: 'text-[8px]' };
+                        if (total === 2) return { time: 'text-[9px]', price: 'text-[9px]', name: 'text-[9px]' };
+                        return { time: 'text-[11px]', price: 'text-[11px]', name: 'text-[11px]' };
+                      };
+                      const textSize = getTextSize();
+                      
+                      // Show shortened time format for very narrow cards
+                      const showShortTime = total >= 3;
+                      const timeDisplay = showShortTime 
+                        ? booking.start_time.substring(0, 5)
+                        : `${booking.start_time.substring(0, 5)}-${booking.end_time.substring(0, 5)}`;
+                      
+                      return (
+                        <div
+                          key={booking.id}
+                          className={cn(
+                            'absolute rounded-md px-1 py-0.5 cursor-pointer transition-colors shadow-sm overflow-hidden',
+                            colorClasses.bg,
+                            colorClasses.hover,
+                            colorClasses.text
+                          )}
+                          style={{ 
+                            top, 
+                            height,
+                            left: `calc(${leftPercent}% + 2px)`,
+                            width: `calc(${widthPercent}% - 4px)`,
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openBookingDetail(booking);
+                          }}
+                        >
+                          {/* Row 1: Time range + Price */}
+                          <div className={cn("flex justify-between items-baseline gap-0.5", height > 40 ? "mb-0.5" : "")}>
+                            <span className={cn("font-semibold shrink-0 leading-tight", textSize.time)}>
+                              {timeDisplay}
+                            </span>
+                            {total < 4 && (
+                              <span className={cn("font-bold shrink-0 leading-tight", textSize.price)}>
+                                €{booking.service_price}
+                              </span>
+                            )}
+                          </div>
+                          {/* Row 2: Client name - only show if card is tall enough */}
+                          {height > 35 && (
+                            <p className={cn("font-medium truncate leading-tight", textSize.name)}>{booking.client_name}</p>
+                          )}
+                        </div>
+                      );
+                    })}
               </div>
             </div>
           );
@@ -472,11 +491,27 @@ export default function Calendar() {
               const widthPercent = 100 / total;
               const leftPercent = index * widthPercent;
               
+              // Adaptive text sizing based on overlap count and height
+              const getTextSizes = () => {
+                if (total >= 4) return { header: 'text-[9px]', name: 'text-[10px]', detail: 'text-[8px]', gap: 'gap-1', padding: 'px-1.5 py-1' };
+                if (total === 3) return { header: 'text-[10px]', name: 'text-[11px]', detail: 'text-[9px]', gap: 'gap-1', padding: 'px-2 py-1.5' };
+                if (total === 2) return { header: 'text-xs', name: 'text-sm', detail: 'text-[10px]', gap: 'gap-1.5', padding: 'px-2 py-1.5' };
+                return { header: 'text-sm', name: 'text-base', detail: 'text-xs', gap: 'gap-2', padding: 'px-3 py-2' };
+              };
+              const sizes = getTextSizes();
+              
+              // Show shortened time format for very narrow cards
+              const showShortTime = total >= 3;
+              const timeDisplay = showShortTime 
+                ? booking.start_time.substring(0, 5)
+                : `${booking.start_time.substring(0, 5)} - ${booking.end_time.substring(0, 5)}`;
+              
               return (
                 <div
                   key={booking.id}
                   className={cn(
-                    'absolute rounded-lg border-l-4 px-3 py-2 cursor-pointer transition-all hover:shadow-lg',
+                    'absolute rounded-lg border-l-4 cursor-pointer transition-all hover:shadow-lg overflow-hidden',
+                    sizes.padding,
                     colorClasses.bg,
                     colorClasses.hover,
                     colorClasses.text
@@ -492,23 +527,28 @@ export default function Calendar() {
                     openBookingDetail(booking);
                   }}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className={cn("font-semibold", total > 2 ? "text-xs" : "text-sm")}>
-                        {booking.start_time.substring(0, 5)} - {booking.end_time.substring(0, 5)}
+                  <div className={cn("flex items-center justify-between", height > 50 ? "mb-1" : "mb-0.5")}>
+                    <div className={cn("flex items-center", sizes.gap)}>
+                      <span className={cn("font-semibold leading-tight", sizes.header)}>
+                        {timeDisplay}
                       </span>
-                      {total <= 2 && <StatusBadge status={booking.status as BookingStatus} size="sm" />}
+                      {total <= 2 && height > 50 && <StatusBadge status={booking.status as BookingStatus} size="sm" />}
                     </div>
-                    <span className={cn("font-medium", total > 2 ? "text-xs" : "text-sm")}>€{booking.service_price}</span>
+                    {total < 4 && (
+                      <span className={cn("font-medium leading-tight", sizes.header)}>€{booking.service_price}</span>
+                    )}
                   </div>
-                  <p className={cn("font-medium truncate", total > 2 ? "text-sm" : "")}>{booking.client_name}</p>
+                  <p className={cn("font-medium truncate leading-tight", sizes.name)}>{booking.client_name}</p>
                   {height > 60 && total <= 2 && (
                     <>
-                      <p className="text-sm opacity-75 truncate">{booking.service_name}</p>
-                      {booking.barber && (
-                        <p className="text-xs opacity-60 mt-1 truncate">Barbero: {booking.barber}</p>
+                      <p className={cn("opacity-75 truncate leading-tight", sizes.detail)}>{booking.service_name}</p>
+                      {booking.barber && height > 80 && (
+                        <p className={cn("opacity-60 mt-0.5 truncate leading-tight", sizes.detail)}>Barbero: {booking.barber}</p>
                       )}
                     </>
+                  )}
+                  {height > 60 && total > 2 && total < 4 && (
+                    <p className={cn("opacity-75 truncate leading-tight", sizes.detail)}>{booking.service_name}</p>
                   )}
                 </div>
               );
