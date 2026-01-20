@@ -391,39 +391,62 @@ export default function Calendar() {
                       const widthPercent = 100 / total;
                       const leftPercent = index * widthPercent;
                       
-                      // Adaptive styling based on overlap count
+                      // Adaptive styling based on card height and overlap count
                       const getCardStyles = () => {
+                        // For very short cards (15-20min services), prioritize time visibility
+                        if (height < 25) {
+                          return { 
+                            time: 'text-[9px]', barber: 'text-[8px]', client: 'text-[8px]',
+                            icon: 'w-2.5 h-2.5', clientIcon: 'w-2.5 h-2.5',
+                            padding: 'px-1 py-0.5', showBarber: false, showClient: false,
+                            showTimeRange: false
+                          };
+                        }
+                        if (height < 35) {
+                          return { 
+                            time: 'text-[9px]', barber: 'text-[8px]', client: 'text-[9px]',
+                            icon: 'w-2.5 h-2.5', clientIcon: 'w-2.5 h-2.5',
+                            padding: 'px-1.5 py-0.5', showBarber: false, showClient: true,
+                            showTimeRange: false
+                          };
+                        }
                         if (total >= 4) return { 
-                          time: 'text-[7px]', barber: 'text-[7px]', client: 'text-[8px]',
-                          icon: 'w-2 h-2', clientIcon: 'w-2.5 h-2.5',
-                          padding: 'p-1', showBarber: false
+                          time: 'text-[9px]', barber: 'text-[8px]', client: 'text-[10px]',
+                          icon: 'w-2.5 h-2.5', clientIcon: 'w-2.5 h-2.5',
+                          padding: 'px-1.5 py-1', showBarber: false, showClient: true,
+                          showTimeRange: false
                         };
                         if (total === 3) return { 
-                          time: 'text-[8px]', barber: 'text-[8px]', client: 'text-[9px]',
-                          icon: 'w-2 h-2', clientIcon: 'w-2.5 h-2.5',
-                          padding: 'p-1', showBarber: height > 35
+                          time: 'text-[10px]', barber: 'text-[9px]', client: 'text-[11px]',
+                          icon: 'w-2.5 h-2.5', clientIcon: 'w-3 h-3',
+                          padding: 'px-1.5 py-1', showBarber: height > 45, showClient: true,
+                          showTimeRange: true
                         };
                         if (total === 2) return { 
-                          time: 'text-[9px]', barber: 'text-[9px]', client: 'text-[10px]',
-                          icon: 'w-2.5 h-2.5', clientIcon: 'w-3 h-3',
-                          padding: 'p-1.5', showBarber: height > 40
+                          time: 'text-[11px]', barber: 'text-[10px]', client: 'text-xs',
+                          icon: 'w-3 h-3', clientIcon: 'w-3 h-3',
+                          padding: 'px-1.5 py-1', showBarber: height > 40, showClient: true,
+                          showTimeRange: true
                         };
                         return { 
-                          time: 'text-xs', barber: 'text-xs', client: 'text-sm',
+                          time: 'text-xs', barber: 'text-[11px]', client: 'text-sm',
                           icon: 'w-3 h-3', clientIcon: 'w-3.5 h-3.5',
-                          padding: 'p-1.5', showBarber: height >= 50
+                          padding: 'px-2 py-1', showBarber: height >= 45, showClient: true,
+                          showTimeRange: true
                         };
                       };
                       const styles = getCardStyles();
                       
-                      const timeDisplay = `${booking.start_time.substring(0, 5)}-${booking.end_time.substring(0, 5)}`;
+                      const timeDisplay = styles.showTimeRange 
+                        ? `${booking.start_time.substring(0, 5)}-${booking.end_time.substring(0, 5)}`
+                        : booking.start_time.substring(0, 5);
                       const barberFirstName = booking.barber?.split(' ')[0] || '';
                       
                       return (
                         <div
                           key={booking.id}
                           className={cn(
-                            'absolute rounded-md cursor-pointer transition-all duration-200 overflow-hidden flex flex-col',
+                            'absolute rounded-md cursor-pointer transition-all duration-200 overflow-hidden flex flex-col justify-center',
                             'hover:shadow-md hover:brightness-95',
                             styles.padding,
                             colorClasses.bg,
@@ -441,23 +464,23 @@ export default function Calendar() {
                           }}
                         >
                           {/* Row 1: Time (left) + Barber (right) */}
-                          <div className="flex justify-between items-center gap-0.5">
-                            <div className={cn("flex items-center gap-0.5 font-medium shrink-0", styles.time)}>
-                              <Clock className={cn(styles.icon, "shrink-0 opacity-80")} />
-                              <span className="leading-none">{timeDisplay}</span>
+                          <div className="flex justify-between items-center gap-1">
+                            <div className={cn("flex items-center gap-1 font-semibold shrink-0", styles.time)}>
+                              <Clock className={cn(styles.icon, "shrink-0")} />
+                              <span className="leading-tight">{timeDisplay}</span>
                             </div>
                             {styles.showBarber && barberFirstName && (
                               <div className={cn("flex items-center gap-0.5 font-medium truncate", styles.barber)}>
-                                <Scissors className={cn(styles.icon, "shrink-0 opacity-80")} />
-                                <span className="truncate leading-none">{barberFirstName}</span>
+                                <Scissors className={cn(styles.icon, "shrink-0")} />
+                                <span className="truncate leading-tight">{barberFirstName}</span>
                               </div>
                             )}
                           </div>
                           {/* Row 2: Client Name */}
-                          {height > 25 && (
-                            <div className={cn("flex items-center gap-0.5 mt-0.5", styles.client)}>
-                              <User className={cn(styles.clientIcon, "shrink-0 opacity-80")} />
-                              <span className="font-semibold truncate leading-none">{booking.client_name}</span>
+                          {styles.showClient && (
+                            <div className={cn("flex items-center gap-1 mt-0.5", styles.client)}>
+                              <User className={cn(styles.clientIcon, "shrink-0")} />
+                              <span className="font-semibold truncate leading-tight">{booking.client_name}</span>
                             </div>
                           )}
                         </div>
@@ -515,18 +538,50 @@ export default function Calendar() {
               
               // Adaptive text sizing based on overlap count and height
               const getTextSizes = () => {
-                if (total >= 4) return { header: 'text-[9px]', name: 'text-[10px]', detail: 'text-[8px]', gap: 'gap-1', padding: 'px-1.5 py-1' };
-                if (total === 3) return { header: 'text-[10px]', name: 'text-[11px]', detail: 'text-[9px]', gap: 'gap-1', padding: 'px-2 py-1.5' };
-                if (total === 2) return { header: 'text-xs', name: 'text-sm', detail: 'text-[10px]', gap: 'gap-1.5', padding: 'px-2 py-1.5' };
-                return { header: 'text-sm', name: 'text-base', detail: 'text-xs', gap: 'gap-2', padding: 'px-3 py-2' };
+                // Height-based adjustments first
+                if (height < 40) {
+                  return { 
+                    header: 'text-[10px]', name: 'text-[11px]', detail: 'text-[9px]', 
+                    gap: 'gap-1', padding: 'px-2 py-1',
+                    showStatus: false, showDetails: false, showBarber: true
+                  };
+                }
+                if (height < 60) {
+                  return { 
+                    header: 'text-[11px]', name: 'text-xs', detail: 'text-[10px]', 
+                    gap: 'gap-1', padding: 'px-2 py-1.5',
+                    showStatus: false, showDetails: false, showBarber: true
+                  };
+                }
+                // Then overlap-based adjustments
+                if (total >= 4) return { 
+                  header: 'text-[10px]', name: 'text-[11px]', detail: 'text-[9px]', 
+                  gap: 'gap-1', padding: 'px-2 py-1.5',
+                  showStatus: false, showDetails: false, showBarber: true
+                };
+                if (total === 3) return { 
+                  header: 'text-[11px]', name: 'text-xs', detail: 'text-[10px]', 
+                  gap: 'gap-1', padding: 'px-2 py-1.5',
+                  showStatus: height > 70, showDetails: height > 80, showBarber: true
+                };
+                if (total === 2) return { 
+                  header: 'text-xs', name: 'text-sm', detail: 'text-[11px]', 
+                  gap: 'gap-1.5', padding: 'px-2.5 py-2',
+                  showStatus: height > 60, showDetails: height > 70, showBarber: true
+                };
+                return { 
+                  header: 'text-sm', name: 'text-base', detail: 'text-xs', 
+                  gap: 'gap-2', padding: 'px-3 py-2',
+                  showStatus: true, showDetails: height > 70, showBarber: true
+                };
               };
               const sizes = getTextSizes();
               
               // Show shortened time format for very narrow cards
-              const showShortTime = total >= 3;
-              const timeDisplay = showShortTime 
-                ? booking.start_time.substring(0, 5)
-                : `${booking.start_time.substring(0, 5)} - ${booking.end_time.substring(0, 5)}`;
+              const showFullTime = total <= 2 && height >= 40;
+              const timeDisplay = showFullTime 
+                ? `${booking.start_time.substring(0, 5)} - ${booking.end_time.substring(0, 5)}`
+                : booking.start_time.substring(0, 5);
               
               // Get barber first name
               const barberFirstName = booking.barber?.split(' ')[0] || '';
@@ -535,7 +590,7 @@ export default function Calendar() {
                 <div
                   key={booking.id}
                   className={cn(
-                    'absolute rounded-md border-l-4 cursor-pointer transition-all duration-200 overflow-hidden flex flex-col',
+                    'absolute rounded-md border-l-4 cursor-pointer transition-all duration-200 overflow-hidden flex flex-col justify-center',
                     'hover:shadow-md hover:brightness-95',
                     sizes.padding,
                     colorClasses.bg,
@@ -553,33 +608,33 @@ export default function Calendar() {
                   }}
                 >
                   {/* Row 1: Time (left) + Barber (right) */}
-                  <div className="flex justify-between items-center gap-1 mb-0.5">
+                  <div className="flex justify-between items-center gap-1">
                     <div className="flex items-center gap-1.5">
-                      <div className={cn("flex items-center gap-1 font-medium", sizes.header)}>
-                        <Clock className="w-3 h-3 opacity-70" />
+                      <div className={cn("flex items-center gap-1 font-semibold", sizes.header)}>
+                        <Clock className="w-3.5 h-3.5" />
                         <span>{timeDisplay}</span>
                       </div>
-                      {total <= 2 && height > 60 && <StatusBadge status={booking.status as BookingStatus} size="sm" />}
+                      {sizes.showStatus && <StatusBadge status={booking.status as BookingStatus} size="sm" />}
                     </div>
-                    {barberFirstName && (
+                    {sizes.showBarber && barberFirstName && (
                       <div className={cn("flex items-center gap-1 font-medium", sizes.header)}>
-                        <Scissors className="w-3 h-3 opacity-70" />
-                        <span className="truncate max-w-[80px]">{barberFirstName}</span>
+                        <Scissors className="w-3.5 h-3.5" />
+                        <span className="truncate max-w-[100px]">{barberFirstName}</span>
                       </div>
                     )}
                   </div>
                   
                   {/* Row 2: Client Name */}
-                  <div className="flex items-center gap-1">
-                    <User className="w-3.5 h-3.5 opacity-70" />
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <User className="w-3.5 h-3.5" />
                     <span className={cn("font-semibold truncate", sizes.name)}>{booking.client_name}</span>
                   </div>
                   
                   {/* Row 3: Extra details for larger cards */}
-                  {height > 70 && total <= 2 && (
-                    <div className="flex items-center gap-3 mt-1 flex-wrap">
-                      <span className={cn("font-medium opacity-75", sizes.detail)}>{booking.service_name}</span>
-                      <span className={cn("font-semibold text-primary", sizes.detail)}>€{booking.service_price}</span>
+                  {sizes.showDetails && (
+                    <div className={cn("flex items-center gap-3 mt-1 flex-wrap", sizes.detail)}>
+                      <span className="font-medium opacity-80">{booking.service_name}</span>
+                      <span className="font-semibold">€{booking.service_price}</span>
                     </div>
                   )}
                 </div>
@@ -676,22 +731,22 @@ export default function Calendar() {
                               }}
                             >
                               {/* Row 1: Time (left) + Barber (right) */}
-                              <div className="flex justify-between items-center gap-0.5 mb-0.5">
-                                <div className="flex items-center gap-0.5 text-[10px] font-medium">
-                                  <Clock className="w-2.5 h-2.5 opacity-80" />
+                              <div className="flex justify-between items-center gap-1">
+                                <div className="flex items-center gap-1 text-[11px] font-semibold">
+                                  <Clock className="w-3 h-3" />
                                   <span>{booking.start_time.substring(0, 5)}</span>
                                 </div>
                                 {barberFirstName && (
                                   <div className="flex items-center gap-0.5 text-[10px] font-medium truncate">
-                                    <Scissors className="w-2.5 h-2.5 opacity-80" />
+                                    <Scissors className="w-2.5 h-2.5" />
                                     <span className="truncate">{barberFirstName}</span>
                                   </div>
                                 )}
                               </div>
                               {/* Row 2: Client name */}
-                              <div className="flex items-center gap-0.5">
-                                <User className="w-2.5 h-2.5 opacity-80" />
-                                <span className="text-[10px] font-semibold truncate">{booking.client_name}</span>
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <User className="w-3 h-3" />
+                                <span className="text-[11px] font-semibold truncate">{booking.client_name}</span>
                               </div>
                             </div>
                           );
