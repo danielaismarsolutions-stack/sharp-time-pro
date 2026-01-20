@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { ApiBooking } from '@/types/api';
 import { Service } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Clock, Scissors, User } from 'lucide-react';
 
 interface WeekViewProps {
   currentDate: Date;
@@ -193,89 +194,97 @@ interface WeekBookingCardProps {
   onClick: () => void;
 }
 
-// Adaptive text sizing based on card height - matching DayView format
+// Adaptive text sizing based on card height
 const getAdaptiveStyles = (height: number, total: number = 1) => {
-  // Match the DayView text sizes: text-[11px] for time, price, name when no overlaps
+  // For overlapping bookings, use more compact styling
   if (total >= 4) {
     return {
       timeSize: 'text-[7px]',
-      priceSize: 'text-[7px]',
-      clientSize: 'text-[6px]',
-      padding: 'px-0.5 py-0.5',
+      barberSize: 'text-[7px]',
+      clientSize: 'text-[8px]',
+      iconSize: 'w-2 h-2',
+      clientIconSize: 'w-2.5 h-2.5',
+      padding: 'p-1',
+      gap: 'gap-0.5',
+      showBarber: false,
       showClient: height > 25,
-      showPrice: false,
-      showFullTime: false,
-      compactLayout: true,
     };
   }
   if (total === 3) {
     return {
       timeSize: 'text-[8px]',
-      priceSize: 'text-[8px]',
-      clientSize: 'text-[6px]',
-      padding: 'px-1 py-0.5',
-      showClient: height > 30,
-      showPrice: true,
-      showFullTime: false,
-      compactLayout: true,
+      barberSize: 'text-[8px]',
+      clientSize: 'text-[9px]',
+      iconSize: 'w-2 h-2',
+      clientIconSize: 'w-2.5 h-2.5',
+      padding: 'p-1',
+      gap: 'gap-0.5',
+      showBarber: height > 35,
+      showClient: height > 25,
     };
   }
   if (total === 2) {
     return {
       timeSize: 'text-[9px]',
-      priceSize: 'text-[9px]',
-      clientSize: 'text-[7px]',
-      padding: 'px-1 py-0.5',
-      showClient: height > 30,
-      showPrice: true,
-      showFullTime: true,
-      compactLayout: true,
+      barberSize: 'text-[9px]',
+      clientSize: 'text-[10px]',
+      iconSize: 'w-2.5 h-2.5',
+      clientIconSize: 'w-3 h-3',
+      padding: 'p-1.5',
+      gap: 'gap-0.5',
+      showBarber: height > 40,
+      showClient: height > 25,
     };
   }
-  // Single booking - match the selected element format exactly
+  
+  // Single booking - full layout
   if (height >= 50) {
     return {
-      timeSize: 'text-[11px]',
-      priceSize: 'text-[11px]',
-      clientSize: 'text-[11px]',
-      padding: 'px-1 py-0.5',
+      timeSize: 'text-xs',
+      barberSize: 'text-xs',
+      clientSize: 'text-sm',
+      iconSize: 'w-3 h-3',
+      clientIconSize: 'w-3.5 h-3.5',
+      padding: 'p-1.5',
+      gap: 'gap-1',
+      showBarber: true,
       showClient: true,
-      showPrice: true,
-      showFullTime: true,
-      compactLayout: false,
     };
   } else if (height >= 40) {
     return {
       timeSize: 'text-[10px]',
-      priceSize: 'text-[10px]',
-      clientSize: 'text-[7px]',
-      padding: 'px-1 py-0.5',
+      barberSize: 'text-[10px]',
+      clientSize: 'text-[11px]',
+      iconSize: 'w-2.5 h-2.5',
+      clientIconSize: 'w-3 h-3',
+      padding: 'p-1',
+      gap: 'gap-0.5',
+      showBarber: true,
       showClient: true,
-      showPrice: true,
-      showFullTime: true,
-      compactLayout: true,
     };
   } else if (height >= 30) {
     return {
       timeSize: 'text-[9px]',
-      priceSize: 'text-[9px]',
-      clientSize: 'text-[6px]',
-      padding: 'px-1 py-0.5',
+      barberSize: 'text-[9px]',
+      clientSize: 'text-[10px]',
+      iconSize: 'w-2 h-2',
+      clientIconSize: 'w-2.5 h-2.5',
+      padding: 'p-1',
+      gap: 'gap-0.5',
+      showBarber: false,
       showClient: true,
-      showPrice: true,
-      showFullTime: true,
-      compactLayout: true,
     };
   } else {
     return {
       timeSize: 'text-[8px]',
-      priceSize: 'text-[8px]',
-      clientSize: 'text-[6px]',
-      padding: 'px-0.5 py-0',
+      barberSize: 'text-[8px]',
+      clientSize: 'text-[9px]',
+      iconSize: 'w-2 h-2',
+      clientIconSize: 'w-2.5 h-2.5',
+      padding: 'p-0.5',
+      gap: 'gap-0.5',
+      showBarber: false,
       showClient: height > 20,
-      showPrice: true,
-      showFullTime: false,
-      compactLayout: true,
     };
   }
 };
@@ -285,16 +294,17 @@ function WeekBookingCard({ booking, style, colorClasses, onClick }: WeekBookingC
   const endTime = booking.end_time.substring(0, 5);
   const styles = getAdaptiveStyles(style.height);
   
-  const timeDisplay = styles.showFullTime ? `${startTime}-${endTime}` : startTime;
+  // Get barber first name for compact display
+  const barberFirstName = booking.barber?.split(' ')[0] || '';
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        'absolute left-0.5 right-0.5 rounded-md overflow-hidden transition-colors cursor-pointer shadow-sm text-left',
+        'absolute left-0.5 right-0.5 rounded-md overflow-hidden transition-all duration-200 cursor-pointer text-left flex flex-col',
+        'hover:shadow-md hover:brightness-95',
         styles.padding,
         colorClasses.bg,
-        colorClasses.hover,
         colorClasses.text
       )}
       style={{
@@ -302,44 +312,26 @@ function WeekBookingCard({ booking, style, colorClasses, onClick }: WeekBookingC
         height: style.height,
       }}
     >
-      {styles.compactLayout ? (
-        <>
-          {/* Compact: Time + Price on row 1, client immediately below with minimal gap */}
-          <div className="flex justify-between items-baseline gap-0.5">
-            <span className={cn("font-semibold shrink-0 leading-none", styles.timeSize)}>
-              {timeDisplay}
-            </span>
-            {styles.showPrice && (
-              <span className={cn("font-bold shrink-0 leading-none", styles.priceSize)}>
-                €{booking.service_price}
-              </span>
-            )}
+      {/* Row 1: Time (left) + Barber (right) */}
+      <div className={cn("flex justify-between items-center", styles.gap)}>
+        <div className={cn("flex items-center gap-0.5 font-medium shrink-0", styles.timeSize)}>
+          <Clock className={cn(styles.iconSize, "shrink-0 opacity-80")} />
+          <span className="leading-none">{startTime}-{endTime}</span>
+        </div>
+        {styles.showBarber && barberFirstName && (
+          <div className={cn("flex items-center gap-0.5 font-medium truncate", styles.barberSize)}>
+            <Scissors className={cn(styles.iconSize, "shrink-0 opacity-80")} />
+            <span className="truncate leading-none">{barberFirstName}</span>
           </div>
-          {styles.showClient && (
-            <p className={cn("font-medium truncate leading-none mt-px", styles.clientSize)}>
-              {booking.client_name}
-            </p>
-          )}
-        </>
-      ) : (
-        <>
-          {/* Standard layout for taller cards */}
-          <div className={cn("flex justify-between items-baseline gap-0.5", "mb-0.5")}>
-            <span className={cn("font-semibold shrink-0 leading-tight", styles.timeSize)}>
-              {timeDisplay}
-            </span>
-            {styles.showPrice && (
-              <span className={cn("font-bold shrink-0 leading-tight", styles.priceSize)}>
-                €{booking.service_price}
-              </span>
-            )}
-          </div>
-          {styles.showClient && (
-            <p className={cn("font-medium truncate leading-tight", styles.clientSize)}>
-              {booking.client_name}
-            </p>
-          )}
-        </>
+        )}
+      </div>
+      
+      {/* Row 2: Client Name */}
+      {styles.showClient && (
+        <div className={cn("flex items-center gap-0.5 mt-0.5", styles.clientSize)}>
+          <User className={cn(styles.clientIconSize, "shrink-0 opacity-80")} />
+          <span className="font-semibold truncate leading-none">{booking.client_name}</span>
+        </div>
       )}
     </button>
   );
