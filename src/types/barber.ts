@@ -38,6 +38,8 @@ export interface Barber {
   schedule: BarberSchedule;
   time_off: TimeOff[];
   is_active: boolean;
+  booking_buffer_minutes?: number;  // Buffer time between appointments
+  timezone?: string;                 // Barber's timezone
   created_at: string;
   updated_at: string;
 }

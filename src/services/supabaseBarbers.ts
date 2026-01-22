@@ -13,7 +13,8 @@ const supabaseHeaders = () => ({
 interface DbUser {
   id: string;
   business_id: string;
-  name: string;
+  name?: string;
+  full_name?: string;
   email: string | null;
   phone: string | null;
   avatar_url: string | null;
@@ -22,6 +23,8 @@ interface DbUser {
   time_off: TimeOff[] | null;
   is_active: boolean;
   role: string;
+  booking_buffer_minutes?: number;
+  timezone?: string;
   created_at: string;
   updated_at: string;
 }
@@ -29,7 +32,7 @@ interface DbUser {
 const mapUserToBarber = (user: DbUser): Barber => ({
   id: user.id,
   business_id: user.business_id,
-  name: user.name,
+  name: user.full_name || user.name || '',
   email: user.email,
   phone: user.phone,
   avatar_url: user.avatar_url,
@@ -37,14 +40,31 @@ const mapUserToBarber = (user: DbUser): Barber => ({
   schedule: user.schedule || DEFAULT_SCHEDULE,
   time_off: user.time_off || [],
   is_active: user.is_active,
+  booking_buffer_minutes: user.booking_buffer_minutes,
+  timezone: user.timezone,
   created_at: user.created_at,
   updated_at: user.updated_at,
 });
 
+// Helper to parse error responses
+const parseErrorMessage = async (response: Response): Promise<string> => {
+  try {
+    const text = await response.text();
+    try {
+      const json = JSON.parse(text);
+      return json.message || json.error || text;
+    } catch {
+      return text;
+    }
+  } catch {
+    return 'Unknown error occurred';
+  }
+};
+
 export const supabaseBarbersApi = {
   async getAll(includeInactive = false): Promise<Barber[]> {
     // Fetch users with role 'barber' from the users table
-    let url = `${SUPABASE_CONFIG.url}/rest/v1/users?business_id=eq.${BUSINESS_ID}&role=eq.barber&order=name.asc`;
+    let url = `${SUPABASE_CONFIG.url}/rest/v1/users?business_id=eq.${BUSINESS_ID}&role=eq.barber&order=full_name.asc`;
     
     if (!includeInactive) {
       url += '&is_active=eq.true';
@@ -56,7 +76,7 @@ export const supabaseBarbersApi = {
     });
 
     if (!response.ok) {
-      const error = await response.text();
+      const error = await parseErrorMessage(response);
       throw new Error(`Failed to fetch barbers: ${error}`);
     }
 
@@ -74,7 +94,7 @@ export const supabaseBarbersApi = {
     );
 
     if (!response.ok) {
-      const error = await response.text();
+      const error = await parseErrorMessage(response);
       throw new Error(`Failed to fetch barber: ${error}`);
     }
 
@@ -85,7 +105,7 @@ export const supabaseBarbersApi = {
   async create(barberData: CreateBarberData): Promise<Barber> {
     const payload = {
       business_id: BUSINESS_ID,
-      name: barberData.name,
+      full_name: barberData.name,
       email: barberData.email || null,
       phone: barberData.phone || null,
       avatar_url: barberData.avatar_url || null,
@@ -106,7 +126,7 @@ export const supabaseBarbersApi = {
     );
 
     if (!response.ok) {
-      const error = await response.text();
+      const error = await parseErrorMessage(response);
       throw new Error(`Failed to create barber: ${error}`);
     }
 
@@ -115,10 +135,16 @@ export const supabaseBarbersApi = {
   },
 
   async update(barberId: string, updates: UpdateBarberData): Promise<Barber> {
-    const payload = {
-      ...updates,
+    // Map 'name' to 'full_name' if present in updates
+    const { name, ...restUpdates } = updates;
+    const payload: Record<string, unknown> = {
+      ...restUpdates,
       updated_at: new Date().toISOString(),
     };
+    
+    if (name !== undefined) {
+      payload.full_name = name;
+    }
 
     const response = await fetch(
       `${SUPABASE_CONFIG.url}/rest/v1/users?id=eq.${barberId}&business_id=eq.${BUSINESS_ID}`,
@@ -130,7 +156,7 @@ export const supabaseBarbersApi = {
     );
 
     if (!response.ok) {
-      const error = await response.text();
+      const error = await parseErrorMessage(response);
       throw new Error(`Failed to update barber: ${error}`);
     }
 
