@@ -5,7 +5,6 @@ import {
   Calendar,
   Users,
   Scissors,
-  UserCog,
   BarChart3,
   Settings,
   ChevronLeft,
@@ -26,7 +25,6 @@ const navItems = [
   { icon: Calendar, label: 'Calendar', path: '/calendar' },
   { icon: Users, label: 'Clients', path: '/clients' },
   { icon: Scissors, label: 'Services', path: '/services' },
-  { icon: UserCog, label: 'Barbers', path: '/barbers' },
   { icon: BarChart3, label: 'Reports', path: '/reports' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];

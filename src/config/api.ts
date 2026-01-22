@@ -4,7 +4,7 @@
 // Supabase Configuration
 export const SUPABASE_CONFIG = {
   url: 'https://omeeupvetsacxbgojifx.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tZWV1cHZldHNhY3hiZ29qaWZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY4NjYyMDEsImV4cCI6MjA1MjQ0MjIwMX0.pXXWf4lZ_CtCPwOWlOI69oqzqkx-9JVFc0wV4VJmg9E',
+  anonKey: 'sb_publishable_Fio9nb2ZT7xPsq22fmlJ5g_NxReiNEV',
 };
 
 // Business ID for the barbershop

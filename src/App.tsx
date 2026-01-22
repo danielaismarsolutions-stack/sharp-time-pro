@@ -13,7 +13,6 @@ import Calendar from "./pages/Calendar";
 import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
 import Services from "./pages/Services";
-import Barbers from "./pages/Barbers";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -43,7 +42,6 @@ const App = () => (
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/clients/:id" element={<ClientDetail />} />
                 <Route path="/services" element={<Services />} />
-                <Route path="/barbers" element={<Barbers />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>
