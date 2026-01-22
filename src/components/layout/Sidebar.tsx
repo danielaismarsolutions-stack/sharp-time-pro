@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  UserCog,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,6 +25,7 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: Calendar, label: 'Calendar', path: '/calendar' },
   { icon: Users, label: 'Clients', path: '/clients' },
+  { icon: UserCog, label: 'Barbers', path: '/barbers' },
   { icon: Scissors, label: 'Services', path: '/services' },
   { icon: BarChart3, label: 'Reports', path: '/reports' },
   { icon: Settings, label: 'Settings', path: '/settings' },
