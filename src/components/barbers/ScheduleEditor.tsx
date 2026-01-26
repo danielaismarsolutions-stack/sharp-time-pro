@@ -1,24 +1,67 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { BarberSchedule, BarberDaySchedule, BarberShift, DAY_NAMES } from '@/types/barber';
-import { Plus, Trash2, Loader2, Save } from 'lucide-react';
+import { Plus, Trash2, Loader2, Save, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface ScheduleEditorProps {
   schedule: BarberSchedule;
   onSave: (schedule: BarberSchedule) => Promise<void>;
 }
 
+// Generate time options in 15-minute intervals
+const generateTimeOptions = () => {
+  const times: string[] = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      const hour = h.toString().padStart(2, '0');
+      const minute = m.toString().padStart(2, '0');
+      times.push(`${hour}:${minute}`);
+    }
+  }
+  return times;
+};
+
+const TIME_OPTIONS = generateTimeOptions();
+
+// Format time for display (e.g., "09:00" -> "9:00 AM")
+const formatTimeDisplay = (time: string) => {
+  const [hours, minutes] = time.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  return `${displayHour}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
+
 export default function ScheduleEditor({ schedule, onSave }: ScheduleEditorProps) {
   const [editedSchedule, setEditedSchedule] = useState<BarberSchedule>(schedule);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
 
   const days = Object.keys(DAY_NAMES) as (keyof BarberSchedule)[];
+
+  const toggleDayExpand = (day: string) => {
+    setExpandedDays(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(day)) {
+        newSet.delete(day);
+      } else {
+        newSet.add(day);
+      }
+      return newSet;
+    });
+  };
 
   const updateDay = (day: keyof BarberSchedule, updates: Partial<BarberDaySchedule>) => {
     setEditedSchedule(prev => ({
@@ -65,89 +108,235 @@ export default function ScheduleEditor({ schedule, onSave }: ScheduleEditorProps
     return shift.start < shift.end;
   };
 
+  const getShiftSummary = (daySchedule: BarberDaySchedule): string => {
+    if (!daySchedule.enabled) return 'Cerrado';
+    if (daySchedule.shifts.length === 0) return 'Sin turnos';
+    return daySchedule.shifts.map(s => `${formatTimeDisplay(s.start)} - ${formatTimeDisplay(s.end)}`).join(', ');
+  };
+
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-4">
-        <CardTitle className="text-lg">Horario Semanal</CardTitle>
-        {hasChanges && (
-          <Button onClick={handleSave} disabled={saving} size="sm">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-            Guardar Horario
-          </Button>
-        )}
+      <CardHeader className="flex flex-row items-center justify-between pb-3 sm:pb-4 px-3 sm:px-6">
+        <CardTitle className="text-base sm:text-lg">Horario Semanal</CardTitle>
+        <AnimatePresence>
+          {hasChanges && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+            >
+              <Button 
+                onClick={handleSave} 
+                disabled={saving} 
+                size="sm"
+                className="h-9 sm:h-8 text-sm"
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                ) : (
+                  <Save className="h-4 w-4 mr-1.5" />
+                )}
+                Guardar
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-2 sm:space-y-3 px-3 sm:px-6">
         {days.map((day) => {
           const daySchedule = editedSchedule[day];
+          const isExpanded = expandedDays.has(day) || daySchedule.enabled;
+          
           return (
-            <div
+            <motion.div
               key={day}
+              layout
               className={cn(
-                'p-3 rounded-lg border transition-colors',
-                daySchedule.enabled ? 'bg-card' : 'bg-muted/50'
+                'rounded-lg border transition-colors overflow-hidden',
+                daySchedule.enabled ? 'bg-card border-border' : 'bg-muted/30 border-transparent'
               )}
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <Switch
-                    checked={daySchedule.enabled}
-                    onCheckedChange={(enabled) => updateDay(day, { enabled })}
-                  />
-                  <Label className="font-medium">{DAY_NAMES[day]}</Label>
+              {/* Day Header - Always visible, touch-friendly */}
+              <div 
+                className="flex items-center justify-between p-3 sm:p-4 cursor-pointer active:bg-muted/50 transition-colors"
+                onClick={() => toggleDayExpand(day)}
+              >
+                <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                  {/* Large touch-friendly switch */}
+                  <div 
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-shrink-0"
+                  >
+                    <Switch
+                      checked={daySchedule.enabled}
+                      onCheckedChange={(enabled) => {
+                        updateDay(day, { enabled });
+                        if (enabled) {
+                          setExpandedDays(prev => new Set([...prev, day]));
+                        }
+                      }}
+                      className="scale-110 sm:scale-100"
+                    />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <Label className="font-semibold text-sm sm:text-base block">
+                      {DAY_NAMES[day]}
+                    </Label>
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate mt-0.5">
+                      {getShiftSummary(daySchedule)}
+                    </p>
+                  </div>
                 </div>
+
                 {daySchedule.enabled && (
                   <Button
                     variant="ghost"
-                    size="sm"
-                    onClick={() => addShift(day)}
-                    className="text-primary"
+                    size="icon"
+                    className="h-8 w-8 flex-shrink-0"
                   >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Añadir turno
+                    {isExpanded ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
                   </Button>
                 )}
               </div>
 
-              {daySchedule.enabled && (
-                <div className="space-y-2 ml-10">
-                  {daySchedule.shifts.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Sin turnos configurados</p>
-                  ) : (
-                    daySchedule.shifts.map((shift, index) => {
-                      const isValid = validateShift(shift);
-                      return (
-                        <div key={index} className="flex items-center gap-2">
-                          <Input
-                            type="time"
-                            value={shift.start}
-                            onChange={(e) => updateShift(day, index, { start: e.target.value })}
-                            className={cn('w-28', !isValid && 'border-destructive')}
-                          />
-                          <span className="text-muted-foreground">-</span>
-                          <Input
-                            type="time"
-                            value={shift.end}
-                            onChange={(e) => updateShift(day, index, { end: e.target.value })}
-                            className={cn('w-28', !isValid && 'border-destructive')}
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeShift(day, index)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                          {!isValid && (
-                            <span className="text-xs text-destructive">Horario inválido</span>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-            </div>
+              {/* Expandable shifts section */}
+              <AnimatePresence>
+                {daySchedule.enabled && isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-1 space-y-3 border-t border-border/50">
+                      {daySchedule.shifts.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-2">
+                          Sin turnos configurados
+                        </p>
+                      ) : (
+                        daySchedule.shifts.map((shift, index) => {
+                          const isValid = validateShift(shift);
+                          return (
+                            <motion.div 
+                              key={index} 
+                              className="space-y-2"
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                            >
+                              {/* Shift label */}
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                                  <Clock className="h-3 w-3" />
+                                  Turno {index + 1}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeShift(day, index)}
+                                  className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  <span className="text-xs">Eliminar</span>
+                                </Button>
+                              </div>
+                              
+                              {/* Time selectors - Mobile-friendly dropdowns */}
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                <div className="flex-1">
+                                  <Label className="text-xs text-muted-foreground mb-1 block">Inicio</Label>
+                                  <Select
+                                    value={shift.start}
+                                    onValueChange={(value) => updateShift(day, index, { start: value })}
+                                  >
+                                    <SelectTrigger 
+                                      className={cn(
+                                        "h-11 sm:h-10 text-sm font-medium",
+                                        !isValid && 'border-destructive focus:ring-destructive'
+                                      )}
+                                    >
+                                      <SelectValue>
+                                        {formatTimeDisplay(shift.start)}
+                                      </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent className="max-h-[280px]">
+                                      {TIME_OPTIONS.map((time) => (
+                                        <SelectItem 
+                                          key={time} 
+                                          value={time}
+                                          className="h-10 text-sm"
+                                        >
+                                          {formatTimeDisplay(time)}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                
+                                <span className="text-muted-foreground mt-5 font-medium">—</span>
+                                
+                                <div className="flex-1">
+                                  <Label className="text-xs text-muted-foreground mb-1 block">Fin</Label>
+                                  <Select
+                                    value={shift.end}
+                                    onValueChange={(value) => updateShift(day, index, { end: value })}
+                                  >
+                                    <SelectTrigger 
+                                      className={cn(
+                                        "h-11 sm:h-10 text-sm font-medium",
+                                        !isValid && 'border-destructive focus:ring-destructive'
+                                      )}
+                                    >
+                                      <SelectValue>
+                                        {formatTimeDisplay(shift.end)}
+                                      </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent className="max-h-[280px]">
+                                      {TIME_OPTIONS.map((time) => (
+                                        <SelectItem 
+                                          key={time} 
+                                          value={time}
+                                          className="h-10 text-sm"
+                                        >
+                                          {formatTimeDisplay(time)}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              
+                              {!isValid && (
+                                <p className="text-xs text-destructive">
+                                  La hora de fin debe ser después de la hora de inicio
+                                </p>
+                              )}
+                            </motion.div>
+                          );
+                        })
+                      )}
+                      
+                      {/* Add shift button - Full width on mobile */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addShift(day)}
+                        className="w-full h-10 sm:h-9 text-sm font-medium border-dashed"
+                      >
+                        <Plus className="h-4 w-4 mr-1.5" />
+                        Añadir turno
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           );
         })}
       </CardContent>
