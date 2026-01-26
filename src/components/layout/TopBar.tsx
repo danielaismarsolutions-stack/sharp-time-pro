@@ -1,7 +1,8 @@
 import { format } from 'date-fns';
-import { Bell, Search, Command, Check, Trash2 } from 'lucide-react';
+import { Bell, Search, Command, Check, Trash2, Settings, HelpCircle, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +25,7 @@ interface TopBarProps {
 
 export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
 
   const initials = user?.name
@@ -158,7 +160,7 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium">{user?.name}</p>
@@ -166,10 +168,26 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="min-h-[44px]">Configuración del perfil</DropdownMenuItem>
-            <DropdownMenuItem className="min-h-[44px]">Ayuda y soporte</DropdownMenuItem>
+            <DropdownMenuItem 
+              className="min-h-[44px] cursor-pointer"
+              onClick={() => navigate('/settings')}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Ajustes
+            </DropdownMenuItem>
+            <DropdownMenuItem className="min-h-[44px] cursor-pointer">
+              <User className="h-4 w-4 mr-2" />
+              Mi perfil
+            </DropdownMenuItem>
+            <DropdownMenuItem className="min-h-[44px] cursor-pointer">
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Ayuda y soporte
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive min-h-[44px]">
+            <DropdownMenuItem 
+              onClick={logout} 
+              className="text-destructive focus:text-destructive min-h-[44px] cursor-pointer"
+            >
               Cerrar sesión
             </DropdownMenuItem>
           </DropdownMenuContent>
