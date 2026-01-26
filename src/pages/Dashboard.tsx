@@ -1,17 +1,23 @@
-import { useEffect, useState, useCallback } from 'react';
-import { format } from 'date-fns';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Users, DollarSign, TrendingUp, Plus, ArrowRight, RefreshCw, Loader2, AlertCircle, Scissors } from 'lucide-react';
+import { Calendar, Users, DollarSign, TrendingUp, Plus, ArrowRight, RefreshCw, Loader2, AlertCircle, Scissors, ArrowUpDown, Filter, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { apiClient } from '@/services/apiClient';
 import { ApiBooking } from '@/types/api';
 import { cn } from '@/lib/utils';
 import { AnimatedCard } from '@/components/ui/animated-card';
+
+type SortField = 'date' | 'client' | 'service' | 'barber' | 'price';
+type SortOrder = 'asc' | 'desc';
+type StatusFilter = 'all' | 'confirmed' | 'pending' | 'completed' | 'cancelled' | 'no_show';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -19,6 +25,13 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Filter and sort state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [barberFilter, setBarberFilter] = useState<string>('all');
+  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc'); // Newest first by default
 
   const loadBookings = useCallback(async () => {
     try {
@@ -43,6 +56,89 @@ export default function Dashboard() {
     setIsRefreshing(true);
     loadBookings();
   };
+
+  // Get unique barbers for filter dropdown
+  const uniqueBarbers = useMemo(() => {
+    const barbers = new Set(bookings.map(b => b.barber || 'Sin asignar'));
+    return Array.from(barbers).sort();
+  }, [bookings]);
+
+  // Filter and sort bookings
+  const filteredAndSortedBookings = useMemo(() => {
+    let result = [...bookings];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(b =>
+        b.client_name.toLowerCase().includes(query) ||
+        b.client_phone?.toLowerCase().includes(query) ||
+        b.service_name.toLowerCase().includes(query) ||
+        (b.barber?.toLowerCase().includes(query))
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      result = result.filter(b => b.status === statusFilter);
+    }
+
+    // Apply barber filter
+    if (barberFilter !== 'all') {
+      result = result.filter(b => (b.barber || 'Sin asignar') === barberFilter);
+    }
+
+    // Apply sorting
+    result.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortField) {
+        case 'date':
+          // Sort by date first, then by time
+          const dateA = `${a.booking_date}T${a.start_time}`;
+          const dateB = `${b.booking_date}T${b.start_time}`;
+          comparison = dateA.localeCompare(dateB);
+          break;
+        case 'client':
+          comparison = a.client_name.localeCompare(b.client_name);
+          break;
+        case 'service':
+          comparison = a.service_name.localeCompare(b.service_name);
+          break;
+        case 'barber':
+          comparison = (a.barber || '').localeCompare(b.barber || '');
+          break;
+        case 'price':
+          comparison = a.service_price - b.service_price;
+          break;
+      }
+      
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+
+    return result;
+  }, [bookings, searchQuery, statusFilter, barberFilter, sortField, sortOrder]);
+
+  // Toggle sort order or change field
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setBarberFilter('all');
+    setSortField('date');
+    setSortOrder('desc');
+  };
+
+  const hasActiveFilters = searchQuery || statusFilter !== 'all' || barberFilter !== 'all';
 
   // Calculate stats
   const stats = {
@@ -268,42 +364,149 @@ export default function Dashboard() {
       {/* Bookings Table */}
       <AnimatedCard delay={4}>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between p-4 md:p-6">
-            <CardTitle className="text-base md:text-lg">Listado de Citas</CardTitle>
-            <Button variant="ghost" size="sm" className="h-9 min-h-[44px] px-2 md:px-3" onClick={() => navigate('/calendar')}>
-              <span className="hidden sm:inline">Ver Calendario</span>
-              <span className="sm:hidden">Ver</span>
-              <ArrowRight className="ml-1 md:ml-2 h-4 w-4" />
-            </Button>
+          <CardHeader className="p-4 md:p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <CardTitle className="text-base md:text-lg">
+                Listado de Citas
+                {filteredAndSortedBookings.length !== bookings.length && (
+                  <span className="text-sm font-normal text-muted-foreground ml-2">
+                    ({filteredAndSortedBookings.length} de {bookings.length})
+                  </span>
+                )}
+              </CardTitle>
+              <Button variant="ghost" size="sm" className="h-9 min-h-[44px] px-2 md:px-3" onClick={() => navigate('/calendar')}>
+                <span className="hidden sm:inline">Ver Calendario</span>
+                <span className="sm:hidden">Ver</span>
+                <ArrowRight className="ml-1 md:ml-2 h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* Filter Controls */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Search */}
+              <div className="relative flex-1">
+                <Input
+                  placeholder="Buscar cliente, servicio..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-10 pr-8"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+                <SelectTrigger className="w-full sm:w-[160px] h-10">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border shadow-lg z-50">
+                  <SelectItem value="all">Todos los estados</SelectItem>
+                  <SelectItem value="confirmed">Confirmada</SelectItem>
+                  <SelectItem value="pending">Pendiente</SelectItem>
+                  <SelectItem value="completed">Completada</SelectItem>
+                  <SelectItem value="cancelled">Cancelada</SelectItem>
+                  <SelectItem value="no_show">No asistió</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* Barber Filter */}
+              <Select value={barberFilter} onValueChange={setBarberFilter}>
+                <SelectTrigger className="w-full sm:w-[160px] h-10">
+                  <SelectValue placeholder="Barbero" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border shadow-lg z-50">
+                  <SelectItem value="all">Todos los barberos</SelectItem>
+                  {uniqueBarbers.map((barber) => (
+                    <SelectItem key={barber} value={barber}>{barber}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* Clear Filters */}
+              {hasActiveFilters && (
+                <Button variant="outline" size="sm" onClick={clearFilters} className="h-10 min-h-[44px]">
+                  <X className="h-4 w-4 mr-1" />
+                  Limpiar
+                </Button>
+              )}
+            </div>
           </CardHeader>
+          
           <CardContent className="p-0 md:p-6 md:pt-0">
-            {bookings.length === 0 ? (
+            {filteredAndSortedBookings.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No hay citas registradas
+                {hasActiveFilters ? 'No se encontraron citas con los filtros aplicados' : 'No hay citas registradas'}
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead className="font-semibold">Cliente</TableHead>
-                      <TableHead className="font-semibold">Servicio</TableHead>
-                      <TableHead className="font-semibold">Barbero</TableHead>
-                      <TableHead className="font-semibold">Fecha y Hora</TableHead>
+                      <TableHead 
+                        className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                        onClick={() => handleSort('client')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Cliente
+                          <ArrowUpDown className={cn("h-3 w-3", sortField === 'client' && "text-primary")} />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                        onClick={() => handleSort('service')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Servicio
+                          <ArrowUpDown className={cn("h-3 w-3", sortField === 'service' && "text-primary")} />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                        onClick={() => handleSort('barber')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Barbero
+                          <ArrowUpDown className={cn("h-3 w-3", sortField === 'barber' && "text-primary")} />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                        onClick={() => handleSort('date')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Fecha y Hora
+                          <ArrowUpDown className={cn("h-3 w-3", sortField === 'date' && "text-primary")} />
+                        </div>
+                      </TableHead>
                       <TableHead className="font-semibold text-center">Duración</TableHead>
-                      <TableHead className="font-semibold text-right">Precio</TableHead>
+                      <TableHead 
+                        className="font-semibold text-right cursor-pointer hover:bg-muted/70 transition-colors"
+                        onClick={() => handleSort('price')}
+                      >
+                        <div className="flex items-center justify-end gap-1">
+                          Precio
+                          <ArrowUpDown className={cn("h-3 w-3", sortField === 'price' && "text-primary")} />
+                        </div>
+                      </TableHead>
                       <TableHead className="font-semibold text-center">Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <AnimatePresence>
-                      {bookings.map((booking, index) => (
+                      {filteredAndSortedBookings.map((booking, index) => (
                         <motion.tr
                           key={booking.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          transition={{ delay: index * 0.05 }}
+                          transition={{ delay: Math.min(index * 0.02, 0.3) }}
                           className="hover:bg-muted/30 transition-colors"
                         >
                           <TableCell>
