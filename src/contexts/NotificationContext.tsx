@@ -100,8 +100,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     console.log('🔔 Setting up real-time notification subscription for user:', userId);
 
+    const channelName = `notifications-${userId}-${Date.now()}`;
+    
     const channel = supabase
-      .channel(`notifications:${userId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -156,15 +158,32 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           });
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         console.log('🔔 Notification subscription status:', status);
+        if (err) {
+          console.error('🔔 Subscription error:', err);
+        }
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time notifications connected successfully');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Real-time channel error - falling back to polling');
+        } else if (status === 'TIMED_OUT') {
+          console.error('❌ Real-time connection timed out');
+        }
       });
+
+    // Fallback: Poll for new notifications every 30 seconds if realtime fails
+    const pollInterval = setInterval(() => {
+      console.log('🔔 Polling for notifications...');
+      loadNotifications();
+    }, 30000);
 
     return () => {
       console.log('🔔 Cleaning up notification subscription');
+      clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
-  }, [isAuthenticated, userId]);
+  }, [isAuthenticated, userId, loadNotifications]);
 
   const markAsRead = useCallback(async (id: string) => {
     try {
