@@ -3,7 +3,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { BUSINESS_ID } from '@/config/api';
 import {
   DbNotification,
   fetchNotifications,
@@ -13,9 +12,6 @@ import {
   deleteNotification,
 } from '@/services/supabaseNotifications';
 import { CalendarPlus, CalendarX, CalendarCog, Bell, User, Info } from 'lucide-react';
-
-// Use business ID as the default user for notifications until proper auth is implemented
-const NOTIFICATION_USER_ID = BUSINESS_ID;
 
 export interface Notification {
   id: string;
@@ -55,16 +51,21 @@ function mapDbToNotification(dbNotif: DbNotification): Notification {
 }
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Use business ID for notifications (all users in this business see same notifications)
-  const userId = NOTIFICATION_USER_ID;
+  // Use the actual logged-in user's ID from the users table
+  const userId = user?.id;
 
   const loadNotifications = useCallback(async () => {
+    if (!userId) {
+      console.log('🔔 No user ID available, skipping notification fetch');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -74,7 +75,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const mapped = data.map(mapDbToNotification);
       setNotifications(mapped);
       setUnreadCount(mapped.filter((n) => !n.read).length);
-      console.log('🔔 Notifications loaded:', mapped.length);
+      console.log('🔔 Notifications loaded:', mapped.length, 'for user:', userId);
     } catch (err) {
       console.error('Failed to load notifications:', err);
       setError('Error al cargar notificaciones');
@@ -83,19 +84,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [userId]);
 
-  // Initial load - always load when authenticated
+  // Initial load - load when authenticated and user ID is available
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && userId) {
       loadNotifications();
     } else {
       setNotifications([]);
       setUnreadCount(0);
     }
-  }, [isAuthenticated, loadNotifications]);
+  }, [isAuthenticated, userId, loadNotifications]);
 
   // Real-time subscription
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !userId) return;
 
     console.log('🔔 Setting up real-time notification subscription for user:', userId);
 
@@ -155,19 +156,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           });
         }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-        },
-        (payload) => {
-          // Fallback: reload all notifications on any change
-          console.log('🔔 Notification change detected, reloading...', payload);
-          loadNotifications();
-        }
-      )
       .subscribe((status) => {
         console.log('🔔 Notification subscription status:', status);
       });
@@ -176,7 +164,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       console.log('🔔 Cleaning up notification subscription');
       supabase.removeChannel(channel);
     };
-  }, [isAuthenticated, userId, loadNotifications]);
+  }, [isAuthenticated, userId]);
 
   const markAsRead = useCallback(async (id: string) => {
     try {
@@ -191,6 +179,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const markAllAsRead = useCallback(async () => {
+    if (!userId) return;
+    
     try {
       await markAllNotificationsAsRead(userId);
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
@@ -214,6 +204,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const clearAllHandler = useCallback(async () => {
+    if (!userId) return;
+    
     try {
       await clearAllNotifications(userId);
       setNotifications([]);
