@@ -3,6 +3,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { BUSINESS_ID } from '@/config/api';
 import {
   DbNotification,
   fetchNotifications,
@@ -12,6 +13,9 @@ import {
   deleteNotification,
 } from '@/services/supabaseNotifications';
 import { CalendarPlus, CalendarX, CalendarCog, Bell, User, Info } from 'lucide-react';
+
+// Use business ID as the default user for notifications until proper auth is implemented
+const NOTIFICATION_USER_ID = BUSINESS_ID;
 
 export interface Notification {
   id: string;
@@ -51,20 +55,22 @@ function mapDbToNotification(dbNotif: DbNotification): Notification {
 }
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadNotifications = useCallback(async () => {
-    if (!user?.id) return;
+  // Use business ID for notifications (all users in this business see same notifications)
+  const userId = NOTIFICATION_USER_ID;
 
+  const loadNotifications = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const data = await fetchNotifications(user.id, 20);
+      console.log('🔔 Fetching notifications for user:', userId);
+      const data = await fetchNotifications(userId, 20);
       const mapped = data.map(mapDbToNotification);
       setNotifications(mapped);
       setUnreadCount(mapped.filter((n) => !n.read).length);
@@ -75,33 +81,33 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, [userId]);
 
-  // Initial load
+  // Initial load - always load when authenticated
   useEffect(() => {
-    if (isAuthenticated && user?.id) {
+    if (isAuthenticated) {
       loadNotifications();
     } else {
       setNotifications([]);
       setUnreadCount(0);
     }
-  }, [isAuthenticated, user?.id, loadNotifications]);
+  }, [isAuthenticated, loadNotifications]);
 
   // Real-time subscription
   useEffect(() => {
-    if (!user?.id) return;
+    if (!isAuthenticated) return;
 
-    console.log('🔔 Setting up real-time notification subscription for user:', user.id);
+    console.log('🔔 Setting up real-time notification subscription for user:', userId);
 
     const channel = supabase
-      .channel(`notifications:${user.id}`)
+      .channel(`notifications:${userId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
           console.log('🔔 New notification received:', payload.new);
@@ -116,7 +122,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           event: 'UPDATE',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
           console.log('🔔 Notification updated:', payload.new);
@@ -137,7 +143,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           event: 'DELETE',
           schema: 'public',
           table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
           console.log('🔔 Notification deleted:', payload.old);
@@ -149,6 +155,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           });
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+        },
+        (payload) => {
+          // Fallback: reload all notifications on any change
+          console.log('🔔 Notification change detected, reloading...', payload);
+          loadNotifications();
+        }
+      )
       .subscribe((status) => {
         console.log('🔔 Notification subscription status:', status);
       });
@@ -157,7 +176,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       console.log('🔔 Cleaning up notification subscription');
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [isAuthenticated, userId, loadNotifications]);
 
   const markAsRead = useCallback(async (id: string) => {
     try {
@@ -172,16 +191,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const markAllAsRead = useCallback(async () => {
-    if (!user?.id) return;
-    
     try {
-      await markAllNotificationsAsRead(user.id);
+      await markAllNotificationsAsRead(userId);
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (err) {
       console.error('Failed to mark all notifications as read:', err);
     }
-  }, [user?.id]);
+  }, [userId]);
 
   const clearNotificationHandler = useCallback(async (id: string) => {
     try {
@@ -197,16 +214,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const clearAllHandler = useCallback(async () => {
-    if (!user?.id) return;
-    
     try {
-      await clearAllNotifications(user.id);
+      await clearAllNotifications(userId);
       setNotifications([]);
       setUnreadCount(0);
     } catch (err) {
       console.error('Failed to clear all notifications:', err);
     }
-  }, [user?.id]);
+  }, [userId]);
 
   return (
     <NotificationContext.Provider
