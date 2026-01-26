@@ -52,7 +52,6 @@ import { supabaseClientsApi } from '@/services/supabaseClients';
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBookingsApi } from '@/services/supabaseBookings';
 import { useToast } from '@/hooks/use-toast';
-import { useNotifications } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/bookings/BookingModal';
 import { BookingDetailModal, StatusBadge, StatusDot, BookingStatus } from '@/components/calendar';
@@ -100,7 +99,6 @@ const getServicePastelColor = (booking: ApiBooking, services: Service[]) => {
 
 export default function Calendar() {
   const { toast } = useToast();
-  const { addNotification } = useNotifications();
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState<ApiBooking[]>([]);
@@ -250,19 +248,7 @@ export default function Calendar() {
       };
       toast({ title: `Cita marcada como ${statusLabels[status]}` });
       
-      // Add notification for cancelled bookings
-      if (status === 'cancelled' && bookingToUpdate) {
-        addNotification({
-          type: 'booking_cancelled',
-          title: 'Cita cancelada',
-          message: `${bookingToUpdate.client_name || 'Cliente'} - ${bookingToUpdate.service_name || 'Servicio'}`,
-          data: {
-            bookingId,
-            clientName: bookingToUpdate.client_name,
-            serviceName: bookingToUpdate.service_name,
-          },
-        });
-      }
+      // Notifications are now handled by Supabase backend triggers
     } catch (error) {
       // Rollback on error
       setBookings(previousBookings);
@@ -283,19 +269,7 @@ export default function Calendar() {
       await supabaseBookingsApi.delete(bookingId);
       toast({ title: 'Cita eliminada correctamente' });
       
-      // Add notification for deleted booking
-      if (bookingToDelete) {
-        addNotification({
-          type: 'booking_cancelled',
-          title: 'Cita eliminada',
-          message: `${bookingToDelete.client_name || 'Cliente'} - ${bookingToDelete.service_name || 'Servicio'}`,
-          data: {
-            bookingId,
-            clientName: bookingToDelete.client_name,
-            serviceName: bookingToDelete.service_name,
-          },
-        });
-      }
+      // Notifications are now handled by Supabase backend triggers
     } catch (error) {
       // Rollback on error
       setBookings(previousBookings);

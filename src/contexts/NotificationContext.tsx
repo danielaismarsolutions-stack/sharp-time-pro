@@ -1,113 +1,225 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import {
+  DbNotification,
+  fetchNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  clearAllNotifications,
+  deleteNotification,
+} from '@/services/supabaseNotifications';
+import { CalendarPlus, CalendarX, CalendarCog, Bell, User, Info } from 'lucide-react';
 
 export interface Notification {
   id: string;
-  type: 'booking_created' | 'booking_cancelled' | 'booking_reminder' | 'booking_updated' | 'client_created' | 'info';
+  type: 'booking_created' | 'booking_cancelled' | 'booking_modified' | 'booking_reminder' | 'client_created' | 'info';
   title: string;
   message: string;
   createdAt: Date;
   read: boolean;
-  data?: {
-    bookingId?: string;
-    clientId?: string;
-    clientName?: string;
-    serviceName?: string;
-  };
+  data?: Record<string, any>;
 }
 
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
-  addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => void;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  clearNotification: (id: string) => void;
-  clearAll: () => void;
+  isLoading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  clearNotification: (id: string) => Promise<void>;
+  clearAll: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'barberpro_notifications';
-const MAX_NOTIFICATIONS = 50;
+// Map DB notification to frontend notification
+function mapDbToNotification(dbNotif: DbNotification): Notification {
+  return {
+    id: dbNotif.id,
+    type: dbNotif.type,
+    title: dbNotif.title,
+    message: dbNotif.message,
+    createdAt: new Date(dbNotif.created_at),
+    read: dbNotif.is_read,
+    data: dbNotif.data || undefined,
+  };
+}
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return parsed.map((n: any) => ({
-          ...n,
-          createdAt: new Date(n.createdAt),
-        }));
-      }
-    } catch (e) {
-      console.error('Failed to load notifications from storage:', e);
-    }
-    return [];
-  });
+  const { user, isAuthenticated } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Persist to localStorage
+  const loadNotifications = useCallback(async () => {
+    if (!user?.id) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const data = await fetchNotifications(user.id, 20);
+      const mapped = data.map(mapDbToNotification);
+      setNotifications(mapped);
+      setUnreadCount(mapped.filter((n) => !n.read).length);
+      console.log('🔔 Notifications loaded:', mapped.length);
+    } catch (err) {
+      console.error('Failed to load notifications:', err);
+      setError('Error al cargar notificaciones');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id]);
+
+  // Initial load
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
-    } catch (e) {
-      console.error('Failed to save notifications:', e);
+    if (isAuthenticated && user?.id) {
+      loadNotifications();
+    } else {
+      setNotifications([]);
+      setUnreadCount(0);
     }
-  }, [notifications]);
+  }, [isAuthenticated, user?.id, loadNotifications]);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  // Real-time subscription
+  useEffect(() => {
+    if (!user?.id) return;
 
-  const addNotification = useCallback(
-    (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
-      const newNotification: Notification = {
-        ...notification,
-        id: crypto.randomUUID(),
-        createdAt: new Date(),
-        read: false,
-      };
+    console.log('🔔 Setting up real-time notification subscription for user:', user.id);
 
-      setNotifications((prev) => {
-        const updated = [newNotification, ...prev];
-        // Keep only the last MAX_NOTIFICATIONS
-        return updated.slice(0, MAX_NOTIFICATIONS);
+    const channel = supabase
+      .channel(`notifications:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('🔔 New notification received:', payload.new);
+          const newNotif = mapDbToNotification(payload.new as DbNotification);
+          setNotifications((prev) => [newNotif, ...prev].slice(0, 20));
+          setUnreadCount((prev) => prev + 1);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('🔔 Notification updated:', payload.new);
+          const updatedNotif = mapDbToNotification(payload.new as DbNotification);
+          setNotifications((prev) =>
+            prev.map((n) => (n.id === updatedNotif.id ? updatedNotif : n))
+          );
+          // Recalculate unread count
+          setNotifications((prev) => {
+            setUnreadCount(prev.filter((n) => !n.read).length);
+            return prev;
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('🔔 Notification deleted:', payload.old);
+          const deletedId = (payload.old as { id: string }).id;
+          setNotifications((prev) => {
+            const updated = prev.filter((n) => n.id !== deletedId);
+            setUnreadCount(updated.filter((n) => !n.read).length);
+            return updated;
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log('🔔 Notification subscription status:', status);
       });
 
-      console.log('🔔 Notification added:', newNotification);
-    },
-    []
-  );
+    return () => {
+      console.log('🔔 Cleaning up notification subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
-  const markAsRead = useCallback((id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+  const markAsRead = useCallback(async (id: string) => {
+    try {
+      await markNotificationAsRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+    }
   }, []);
 
-  const markAllAsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const markAllAsRead = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      await markAllNotificationsAsRead(user.id);
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error('Failed to mark all notifications as read:', err);
+    }
+  }, [user?.id]);
+
+  const clearNotificationHandler = useCallback(async (id: string) => {
+    try {
+      await deleteNotification(id);
+      setNotifications((prev) => {
+        const updated = prev.filter((n) => n.id !== id);
+        setUnreadCount(updated.filter((n) => !n.read).length);
+        return updated;
+      });
+    } catch (err) {
+      console.error('Failed to delete notification:', err);
+    }
   }, []);
 
-  const clearNotification = useCallback((id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  }, []);
-
-  const clearAll = useCallback(() => {
-    setNotifications([]);
-  }, []);
+  const clearAllHandler = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      await clearAllNotifications(user.id);
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (err) {
+      console.error('Failed to clear all notifications:', err);
+    }
+  }, [user?.id]);
 
   return (
     <NotificationContext.Provider
       value={{
         notifications,
         unreadCount,
-        addNotification,
+        isLoading,
+        error,
+        refetch: loadNotifications,
         markAsRead,
         markAllAsRead,
-        clearNotification,
-        clearAll,
+        clearNotification: clearNotificationHandler,
+        clearAll: clearAllHandler,
       }}
     >
       {children}
@@ -128,20 +240,38 @@ export function formatNotificationTime(date: Date): string {
   return formatDistanceToNow(date, { addSuffix: true, locale: es });
 }
 
-// Helper to get notification icon based on type
-export function getNotificationIcon(type: Notification['type']): string {
+// Helper to get notification icon component based on type
+export function getNotificationIcon(type: Notification['type']) {
   switch (type) {
     case 'booking_created':
-      return '📅';
+      return CalendarPlus;
     case 'booking_cancelled':
-      return '❌';
+      return CalendarX;
+    case 'booking_modified':
+      return CalendarCog;
     case 'booking_reminder':
-      return '⏰';
-    case 'booking_updated':
-      return '✏️';
+      return Bell;
     case 'client_created':
-      return '👤';
+      return User;
     default:
-      return 'ℹ️';
+      return Info;
+  }
+}
+
+// Helper to get notification icon color based on type
+export function getNotificationIconColor(type: Notification['type']): string {
+  switch (type) {
+    case 'booking_created':
+      return 'text-green-500';
+    case 'booking_cancelled':
+      return 'text-destructive';
+    case 'booking_modified':
+      return 'text-orange-500';
+    case 'booking_reminder':
+      return 'text-blue-500';
+    case 'client_created':
+      return 'text-primary';
+    default:
+      return 'text-muted-foreground';
   }
 }
