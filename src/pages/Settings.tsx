@@ -7,6 +7,8 @@ import {
   User,
   Save,
   Loader2,
+  BellRing,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   BusinessSettings,
   BusinessHours,
@@ -32,6 +35,9 @@ import {
 import { settingsApi } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+
+const TEST_BUSINESS_ID = '11111111-1111-1111-1111-111111111111';
 
 const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const dayLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -39,6 +45,13 @@ const dayLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satu
 export default function Settings() {
   const { toast } = useToast();
   const { user, logout } = useAuth();
+  const { 
+    permission, 
+    isSubscribed, 
+    isLoading: isPushLoading, 
+    isSupported: isPushSupported,
+    toggle: togglePush 
+  } = usePushNotifications(user?.id || null, TEST_BUSINESS_ID);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -384,6 +397,53 @@ export default function Settings() {
               <CardDescription>Configure email and SMS notifications</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Push Notifications Section */}
+              <div className="space-y-4">
+                <h3 className="font-medium flex items-center gap-2">
+                  <BellRing className="h-4 w-4" />
+                  Notificaciones Push
+                </h3>
+                {isPushSupported ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Activar notificaciones push</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Recibe alertas instantáneas en tu dispositivo
+                        </p>
+                      </div>
+                      <Switch
+                        checked={isSubscribed}
+                        onCheckedChange={togglePush}
+                        disabled={isPushLoading || permission === 'denied'}
+                      />
+                    </div>
+                    {permission === 'denied' && (
+                      <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                          Las notificaciones están bloqueadas. Habilítalas en la configuración de tu navegador.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    {isSubscribed && (
+                      <p className="text-sm text-green-600 dark:text-green-400">
+                        ✓ Notificaciones push activadas
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      Tu navegador no soporta notificaciones push.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+              <Separator />
+              
+              {/* Email Notifications Section */}
               <div className="space-y-4">
                 <h3 className="font-medium">Email Notifications</h3>
                 <div className="space-y-4">
