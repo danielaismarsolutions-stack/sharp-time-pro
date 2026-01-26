@@ -3,8 +3,8 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Users, DollarSign, TrendingUp, Plus, ArrowRight, RefreshCw, Loader2, AlertCircle, Scissors, ArrowUpDown, Filter, X } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar, Users, DollarSign, TrendingUp, Plus, ArrowRight, RefreshCw, Loader2, AlertCircle, Scissors, ArrowUpDown, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -32,6 +32,10 @@ export default function Dashboard() {
   const [barberFilter, setBarberFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc'); // Newest first by default
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const loadBookings = useCallback(async () => {
     try {
@@ -119,6 +123,18 @@ export default function Dashboard() {
     return result;
   }, [bookings, searchQuery, statusFilter, barberFilter, sortField, sortOrder]);
 
+  // Pagination calculations
+  const totalItems = filteredAndSortedBookings.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const paginatedBookings = filteredAndSortedBookings.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, barberFilter, sortField, sortOrder, pageSize]);
+
   // Toggle sort order or change field
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -129,6 +145,11 @@ export default function Dashboard() {
     }
   };
 
+  // Pagination handlers
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
   // Clear all filters
   const clearFilters = () => {
     setSearchQuery('');
@@ -136,6 +157,7 @@ export default function Dashboard() {
     setBarberFilter('all');
     setSortField('date');
     setSortOrder('desc');
+    setCurrentPage(1);
   };
 
   const hasActiveFilters = searchQuery || statusFilter !== 'all' || barberFilter !== 'all';
@@ -499,14 +521,14 @@ export default function Dashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    <AnimatePresence>
-                      {filteredAndSortedBookings.map((booking, index) => (
+                    <AnimatePresence mode="wait">
+                      {paginatedBookings.map((booking, index) => (
                         <motion.tr
                           key={booking.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          transition={{ delay: Math.min(index * 0.02, 0.3) }}
+                          transition={{ delay: Math.min(index * 0.02, 0.2) }}
                           className="hover:bg-muted/30 transition-colors"
                         >
                           <TableCell>
@@ -549,6 +571,83 @@ export default function Dashboard() {
               </div>
             )}
           </CardContent>
+          
+          {/* Pagination Controls */}
+          {totalItems > 0 && (
+            <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t">
+              {/* Results info */}
+              <div className="text-sm text-muted-foreground order-2 sm:order-1">
+                Mostrando {startIndex + 1}-{endIndex} de {totalItems} citas
+              </div>
+              
+              <div className="flex items-center gap-2 order-1 sm:order-2">
+                {/* Page size selector */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground hidden sm:inline">Por página:</span>
+                  <Select value={pageSize.toString()} onValueChange={(v) => setPageSize(Number(v))}>
+                    <SelectTrigger className="w-[70px] h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border shadow-lg z-50">
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="15">15</SelectItem>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Navigation buttons */}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => goToPage(1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  {/* Page indicator */}
+                  <div className="flex items-center gap-1 px-2">
+                    <span className="text-sm font-medium">{currentPage}</span>
+                    <span className="text-sm text-muted-foreground">/</span>
+                    <span className="text-sm text-muted-foreground">{totalPages || 1}</span>
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => goToPage(totalPages)}
+                    disabled={currentPage >= totalPages}
+                  >
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardFooter>
+          )}
         </Card>
       </AnimatedCard>
     </motion.div>
