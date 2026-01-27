@@ -11,11 +11,21 @@ import {
   clearAllNotifications,
   deleteNotification,
 } from '@/services/supabaseNotifications';
-import { CalendarPlus, CalendarX, CalendarCog, Bell, User, Info } from 'lucide-react';
+import { CalendarPlus, CalendarX, CalendarCog, Bell, User, Info, MessageSquare, MessageSquareText } from 'lucide-react';
+
+export type NotificationType = 
+  | 'booking_created' 
+  | 'booking_cancelled' 
+  | 'booking_modified' 
+  | 'booking_reminder' 
+  | 'client_created' 
+  | 'consultation_created'
+  | 'consultation_updated'
+  | 'info';
 
 export interface Notification {
   id: string;
-  type: 'booking_created' | 'booking_cancelled' | 'booking_modified' | 'booking_reminder' | 'client_created' | 'info';
+  type: NotificationType;
   title: string;
   message: string;
   createdAt: Date;
@@ -267,7 +277,7 @@ export function formatNotificationTime(date: Date): string {
 }
 
 // Helper to get notification icon component based on type
-export function getNotificationIcon(type: Notification['type']) {
+export function getNotificationIcon(type: NotificationType) {
   switch (type) {
     case 'booking_created':
       return CalendarPlus;
@@ -279,13 +289,17 @@ export function getNotificationIcon(type: Notification['type']) {
       return Bell;
     case 'client_created':
       return User;
+    case 'consultation_created':
+      return MessageSquare;
+    case 'consultation_updated':
+      return MessageSquareText;
     default:
       return Info;
   }
 }
 
 // Helper to get notification icon color based on type
-export function getNotificationIconColor(type: Notification['type']): string {
+export function getNotificationIconColor(type: NotificationType): string {
   switch (type) {
     case 'booking_created':
       return 'text-green-500';
@@ -297,7 +311,29 @@ export function getNotificationIconColor(type: Notification['type']): string {
       return 'text-blue-500';
     case 'client_created':
       return 'text-primary';
+    case 'consultation_created':
+      return 'text-violet-500';
+    case 'consultation_updated':
+      return 'text-blue-500';
     default:
       return 'text-muted-foreground';
+  }
+}
+
+// Helper to get navigation path for a notification
+export function getNotificationPath(notification: Notification): string | null {
+  switch (notification.type) {
+    case 'booking_created':
+    case 'booking_cancelled':
+    case 'booking_modified':
+    case 'booking_reminder':
+      return '/calendar';
+    case 'client_created':
+      return notification.data?.client_id ? `/clients/${notification.data.client_id}` : '/clients';
+    case 'consultation_created':
+    case 'consultation_updated':
+      return '/consultations';
+    default:
+      return null;
   }
 }
