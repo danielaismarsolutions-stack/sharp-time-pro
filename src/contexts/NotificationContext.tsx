@@ -1,3 +1,4 @@
+// NotificationContext - handles in-app notifications
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
