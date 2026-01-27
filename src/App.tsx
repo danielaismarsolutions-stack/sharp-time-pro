@@ -10,6 +10,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Calendar from "./pages/Calendar";
+import Consultations from "./pages/Consultations";
 import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
 import Barbers from "./pages/Barbers";
@@ -40,6 +41,7 @@ const App = () => (
               >
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/calendar" element={<Calendar />} />
+                <Route path="/consultations" element={<Consultations />} />
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/clients/:id" element={<ClientDetail />} />
                 <Route path="/barbers" element={<Barbers />} />
