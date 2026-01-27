@@ -58,7 +58,7 @@ export function ConsultationDetailModal({
     return format(new Date(date), "dd/MM/yyyy HH:mm", { locale: es });
   };
 
-  const canConvertToBooking = consultation.status === 'contacted' || consultation.status === 'scheduled';
+  const canConvertToBooking = consultation.status === 'new' || consultation.status === 'contacted' || consultation.status === 'scheduled';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
