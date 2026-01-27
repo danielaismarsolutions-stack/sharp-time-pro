@@ -40,7 +40,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 const TEST_BUSINESS_ID = '11111111-1111-1111-1111-111111111111';
 
 const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-const dayLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const dayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 export default function Settings() {
   const { toast } = useToast();
@@ -97,7 +97,7 @@ export default function Settings() {
       setBookingSettings(booking);
       setNotificationSettings(notifications);
     } catch (error) {
-      toast({ title: 'Error loading settings', variant: 'destructive' });
+      toast({ title: 'Error al cargar configuración', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -107,9 +107,9 @@ export default function Settings() {
     setIsSaving(true);
     try {
       await settingsApi.updateBusinessSettings(businessSettings);
-      toast({ title: 'Business settings saved' });
+      toast({ title: 'Configuración guardada' });
     } catch (error) {
-      toast({ title: 'Error saving settings', variant: 'destructive' });
+      toast({ title: 'Error al guardar configuración', variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
@@ -119,9 +119,9 @@ export default function Settings() {
     setIsSaving(true);
     try {
       await settingsApi.updateBusinessHours(businessHours);
-      toast({ title: 'Business hours saved' });
+      toast({ title: 'Horario guardado' });
     } catch (error) {
-      toast({ title: 'Error saving settings', variant: 'destructive' });
+      toast({ title: 'Error al guardar configuración', variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
@@ -131,9 +131,9 @@ export default function Settings() {
     setIsSaving(true);
     try {
       await settingsApi.updateBookingSettings(bookingSettings);
-      toast({ title: 'Booking settings saved' });
+      toast({ title: 'Configuración de reservas guardada' });
     } catch (error) {
-      toast({ title: 'Error saving settings', variant: 'destructive' });
+      toast({ title: 'Error al guardar configuración', variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
@@ -143,9 +143,9 @@ export default function Settings() {
     setIsSaving(true);
     try {
       await settingsApi.updateNotificationSettings(notificationSettings);
-      toast({ title: 'Notification settings saved' });
+      toast({ title: 'Configuración de notificaciones guardada' });
     } catch (error) {
-      toast({ title: 'Error saving settings', variant: 'destructive' });
+      toast({ title: 'Error al guardar configuración', variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
@@ -169,31 +169,31 @@ export default function Settings() {
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-xl md:text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground text-sm">Manage your business configuration</p>
+        <h1 className="text-xl md:text-2xl font-bold">Ajustes</h1>
+        <p className="text-muted-foreground text-sm">Gestiona la configuración de tu negocio</p>
       </div>
 
       <Tabs defaultValue="business" className="space-y-4 md:space-y-6">
         <TabsList className="w-full overflow-x-auto flex justify-start h-auto p-1">
           <TabsTrigger value="business" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <Building2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Business</span>
+            <span className="hidden sm:inline">Negocio</span>
           </TabsTrigger>
           <TabsTrigger value="hours" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <Clock className="h-4 w-4" />
-            <span className="hidden sm:inline">Hours</span>
+            <span className="hidden sm:inline">Horario</span>
           </TabsTrigger>
           <TabsTrigger value="booking" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Booking</span>
+            <span className="hidden sm:inline">Reservas</span>
           </TabsTrigger>
           <TabsTrigger value="notifications" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">Notifs</span>
+            <span className="hidden sm:inline">Notif.</span>
           </TabsTrigger>
           <TabsTrigger value="account" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <User className="h-4 w-4" />
-            <span className="hidden sm:inline">Account</span>
+            <span className="hidden sm:inline">Cuenta</span>
           </TabsTrigger>
         </TabsList>
 
@@ -201,29 +201,29 @@ export default function Settings() {
         <TabsContent value="business">
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Business Profile</CardTitle>
+              <CardTitle>Perfil del Negocio</CardTitle>
               <CardDescription>
-                Your business information displayed to customers
+                Información de tu negocio visible para los clientes
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Business Name</Label>
+                  <Label>Nombre del Negocio</Label>
                   <Input
                     value={businessSettings.businessName}
                     onChange={(e) => setBusinessSettings({ ...businessSettings, businessName: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Phone Number</Label>
+                  <Label>Teléfono</Label>
                   <Input
                     value={businessSettings.phone}
                     onChange={(e) => setBusinessSettings({ ...businessSettings, phone: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Email</Label>
+                  <Label>Correo electrónico</Label>
                   <Input
                     type="email"
                     value={businessSettings.email}
@@ -231,7 +231,7 @@ export default function Settings() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Address</Label>
+                  <Label>Dirección</Label>
                   <Input
                     value={businessSettings.address}
                     onChange={(e) => setBusinessSettings({ ...businessSettings, address: e.target.value })}
@@ -239,7 +239,7 @@ export default function Settings() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
+                <Label>Descripción</Label>
                 <Textarea
                   value={businessSettings.description}
                   onChange={(e) => setBusinessSettings({ ...businessSettings, description: e.target.value })}
@@ -248,7 +248,7 @@ export default function Settings() {
               </div>
               <Button onClick={saveBusinessSettings} disabled={isSaving}>
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Save Changes
+                Guardar Cambios
               </Button>
             </CardContent>
           </Card>
@@ -258,8 +258,8 @@ export default function Settings() {
         <TabsContent value="hours">
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Business Hours</CardTitle>
-              <CardDescription>Set your operating hours for each day</CardDescription>
+              <CardTitle>Horario del Negocio</CardTitle>
+              <CardDescription>Configura el horario de apertura para cada día</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {dayNames.map((day, index) => {
@@ -281,7 +281,7 @@ export default function Settings() {
                           onChange={(e) => updateHours(day, 'openTime', e.target.value)}
                           className="w-32"
                         />
-                        <span className="text-muted-foreground">to</span>
+                        <span className="text-muted-foreground">a</span>
                         <Input
                           type="time"
                           value={hours.closeTime}
@@ -291,14 +291,14 @@ export default function Settings() {
                       </>
                     )}
                     {!hours.isOpen && (
-                      <span className="text-muted-foreground">Closed</span>
+                      <span className="text-muted-foreground">Cerrado</span>
                     )}
                   </div>
                 );
               })}
               <Button onClick={saveHoursSettings} disabled={isSaving} className="mt-4">
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Save Hours
+                Guardar Horario
               </Button>
             </CardContent>
           </Card>
@@ -308,15 +308,15 @@ export default function Settings() {
         <TabsContent value="booking">
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Booking Settings</CardTitle>
-              <CardDescription>Configure how customers can book appointments</CardDescription>
+              <CardTitle>Configuración de Reservas</CardTitle>
+              <CardDescription>Configura cómo los clientes pueden reservar citas</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Enable Online Booking</Label>
+                  <Label>Habilitar Reservas Online</Label>
                   <p className="text-sm text-muted-foreground">
-                    Allow customers to book appointments online
+                    Permitir que los clientes reserven citas online
                   </p>
                 </div>
                 <Switch
@@ -329,7 +329,7 @@ export default function Settings() {
               <Separator />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Minimum Advance Booking</Label>
+                  <Label>Antelación Mínima</Label>
                   <Select
                     value={bookingSettings.minAdvanceBooking.toString()}
                     onValueChange={(value) =>
@@ -340,17 +340,17 @@ export default function Settings() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">No minimum</SelectItem>
-                      <SelectItem value="1">1 hour</SelectItem>
-                      <SelectItem value="2">2 hours</SelectItem>
-                      <SelectItem value="4">4 hours</SelectItem>
-                      <SelectItem value="24">24 hours</SelectItem>
-                      <SelectItem value="48">48 hours</SelectItem>
+                      <SelectItem value="0">Sin mínimo</SelectItem>
+                      <SelectItem value="1">1 hora</SelectItem>
+                      <SelectItem value="2">2 horas</SelectItem>
+                      <SelectItem value="4">4 horas</SelectItem>
+                      <SelectItem value="24">24 horas</SelectItem>
+                      <SelectItem value="48">48 horas</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Maximum Advance Booking</Label>
+                  <Label>Antelación Máxima</Label>
                   <Select
                     value={bookingSettings.maxAdvanceBooking.toString()}
                     onValueChange={(value) =>
@@ -361,29 +361,29 @@ export default function Settings() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="7">7 days</SelectItem>
-                      <SelectItem value="14">14 days</SelectItem>
-                      <SelectItem value="30">30 days</SelectItem>
-                      <SelectItem value="60">60 days</SelectItem>
-                      <SelectItem value="90">90 days</SelectItem>
+                      <SelectItem value="7">7 días</SelectItem>
+                      <SelectItem value="14">14 días</SelectItem>
+                      <SelectItem value="30">30 días</SelectItem>
+                      <SelectItem value="60">60 días</SelectItem>
+                      <SelectItem value="90">90 días</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Cancellation Policy</Label>
+                <Label>Política de Cancelación</Label>
                 <Textarea
                   value={bookingSettings.cancellationPolicy}
                   onChange={(e) =>
                     setBookingSettings({ ...bookingSettings, cancellationPolicy: e.target.value })
                   }
                   rows={3}
-                  placeholder="Enter your cancellation policy text..."
+                  placeholder="Introduce el texto de tu política de cancelación..."
                 />
               </div>
               <Button onClick={saveBookingSettings} disabled={isSaving}>
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Save Settings
+                Guardar Configuración
               </Button>
             </CardContent>
           </Card>
@@ -393,8 +393,8 @@ export default function Settings() {
         <TabsContent value="notifications">
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Notification Settings</CardTitle>
-              <CardDescription>Configure email and SMS notifications</CardDescription>
+              <CardTitle>Configuración de Notificaciones</CardTitle>
+              <CardDescription>Configura las notificaciones por email y SMS</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Push Notifications Section */}
@@ -445,13 +445,13 @@ export default function Settings() {
               
               {/* Email Notifications Section */}
               <div className="space-y-4">
-                <h3 className="font-medium">Email Notifications</h3>
+                <h3 className="font-medium">Notificaciones por Email</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label>New Booking Notifications</Label>
+                      <Label>Notificaciones de Nueva Reserva</Label>
                       <p className="text-sm text-muted-foreground">
-                        Receive email when a new booking is made
+                        Recibe un email cuando se realice una nueva reserva
                       </p>
                     </div>
                     <Switch
@@ -463,9 +463,9 @@ export default function Settings() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label>Cancellation Notifications</Label>
+                      <Label>Notificaciones de Cancelación</Label>
                       <p className="text-sm text-muted-foreground">
-                        Receive email when a booking is cancelled
+                        Recibe un email cuando se cancele una reserva
                       </p>
                     </div>
                     <Switch
@@ -477,9 +477,9 @@ export default function Settings() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label>Reminder Notifications</Label>
+                      <Label>Notificaciones de Recordatorio</Label>
                       <p className="text-sm text-muted-foreground">
-                        Send reminders to customers before appointments
+                        Enviar recordatorios a los clientes antes de sus citas
                       </p>
                     </div>
                     <Switch
@@ -491,7 +491,7 @@ export default function Settings() {
                   </div>
                   {notificationSettings.emailReminder && (
                     <div className="space-y-2 pl-4">
-                      <Label>Send reminder before</Label>
+                      <Label>Enviar recordatorio antes de</Label>
                       <Select
                         value={notificationSettings.reminderTiming.toString()}
                         onValueChange={(value) =>
@@ -502,11 +502,11 @@ export default function Settings() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="2">2 hours</SelectItem>
-                          <SelectItem value="4">4 hours</SelectItem>
-                          <SelectItem value="12">12 hours</SelectItem>
-                          <SelectItem value="24">24 hours</SelectItem>
-                          <SelectItem value="48">48 hours</SelectItem>
+                          <SelectItem value="2">2 horas</SelectItem>
+                          <SelectItem value="4">4 horas</SelectItem>
+                          <SelectItem value="12">12 horas</SelectItem>
+                          <SelectItem value="24">24 horas</SelectItem>
+                          <SelectItem value="48">48 horas</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -515,12 +515,12 @@ export default function Settings() {
               </div>
               <Separator />
               <div className="space-y-4">
-                <h3 className="font-medium">SMS Notifications</h3>
+                <h3 className="font-medium">Notificaciones SMS</h3>
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Enable SMS</Label>
+                    <Label>Habilitar SMS</Label>
                     <p className="text-sm text-muted-foreground">
-                      Send SMS notifications to customers (requires integration)
+                      Enviar notificaciones SMS a los clientes (requiere integración)
                     </p>
                   </div>
                   <Switch
@@ -533,7 +533,7 @@ export default function Settings() {
               </div>
               <Button onClick={saveNotificationSettings} disabled={isSaving}>
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Save Settings
+                Guardar Configuración
               </Button>
             </CardContent>
           </Card>
@@ -543,8 +543,8 @@ export default function Settings() {
         <TabsContent value="account">
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Account Settings</CardTitle>
-              <CardDescription>Manage your account and security</CardDescription>
+              <CardTitle>Configuración de Cuenta</CardTitle>
+              <CardDescription>Gestiona tu cuenta y seguridad</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/30">
@@ -562,30 +562,30 @@ export default function Settings() {
               <Separator />
 
               <div className="space-y-4">
-                <h3 className="font-medium">Change Password</h3>
+                <h3 className="font-medium">Cambiar Contraseña</h3>
                 <div className="grid gap-4 max-w-sm">
                   <div className="space-y-2">
-                    <Label>Current Password</Label>
+                    <Label>Contraseña Actual</Label>
                     <Input type="password" />
                   </div>
                   <div className="space-y-2">
-                    <Label>New Password</Label>
+                    <Label>Nueva Contraseña</Label>
                     <Input type="password" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Confirm New Password</Label>
+                    <Label>Confirmar Nueva Contraseña</Label>
                     <Input type="password" />
                   </div>
-                  <Button variant="outline">Update Password</Button>
+                  <Button variant="outline">Actualizar Contraseña</Button>
                 </div>
               </div>
 
               <Separator />
 
               <div className="space-y-4">
-                <h3 className="font-medium">Danger Zone</h3>
+                <h3 className="font-medium">Zona de Peligro</h3>
                 <Button variant="destructive" onClick={logout}>
-                  Logout from all devices
+                  Cerrar sesión en todos los dispositivos
                 </Button>
               </div>
             </CardContent>
