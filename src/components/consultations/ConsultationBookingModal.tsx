@@ -277,14 +277,14 @@ export function ConsultationBookingModal({
                 Barbero
               </Label>
               <Select
-                value={formData.barberId}
-                onValueChange={(value) => setFormData({ ...formData, barberId: value })}
+                value={formData.barberId || 'none'}
+                onValueChange={(value) => setFormData({ ...formData, barberId: value === 'none' ? '' : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona un barbero (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin asignar</SelectItem>
+                  <SelectItem value="none">Sin asignar</SelectItem>
                   {barbers.map((barber) => (
                     <SelectItem key={barber.id} value={barber.id}>
                       {barber.name}
