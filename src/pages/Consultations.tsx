@@ -9,6 +9,7 @@ import { Consultation, ConsultationStatus, STATUS_CONFIG } from '@/types/consult
 import { ConsultationTable } from '@/components/consultations/ConsultationTable';
 import { ConsultationCard } from '@/components/consultations/ConsultationCard';
 import { ConsultationDetailModal } from '@/components/consultations/ConsultationDetailModal';
+import { ConsultationBookingModal } from '@/components/consultations/ConsultationBookingModal';
 import { PhotoModal } from '@/components/consultations/PhotoModal';
 import { NotesModal } from '@/components/consultations/NotesModal';
 import { cn } from '@/lib/utils';
@@ -34,6 +35,8 @@ export default function Consultations() {
   
   // Modal states
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [bookingConsultation, setBookingConsultation] = useState<Consultation | null>(null);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [photoConsultation, setPhotoConsultation] = useState<Consultation | null>(null);
   const [notesModalOpen, setNotesModalOpen] = useState(false);
@@ -150,6 +153,25 @@ export default function Consultations() {
     setNotesModalOpen(true);
   };
 
+  const openBookingModal = (consultation: Consultation) => {
+    setBookingConsultation(consultation);
+    setBookingModalOpen(true);
+    setSelectedConsultation(null); // Close detail modal
+  };
+
+  const handleBookingCreated = async () => {
+    if (bookingConsultation) {
+      // Mark consultation as scheduled
+      await supabaseConsultationsApi.markAsScheduled(bookingConsultation.id);
+      // Refresh consultations
+      fetchConsultations();
+      toast({
+        title: 'Consulta actualizada',
+        description: 'La consulta se ha marcado como programada',
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -259,6 +281,17 @@ export default function Consultations() {
           consultation={selectedConsultation}
           onStatusChange={(status) => handleStatusChange(selectedConsultation.id, status)}
           onNotesChange={(notes) => handleNotesChange(selectedConsultation.id, notes)}
+          onConvertToBooking={() => openBookingModal(selectedConsultation)}
+        />
+      )}
+
+      {/* Booking Modal */}
+      {bookingConsultation && (
+        <ConsultationBookingModal
+          open={bookingModalOpen}
+          onOpenChange={setBookingModalOpen}
+          consultation={bookingConsultation}
+          onBooked={handleBookingCreated}
         />
       )}
 
