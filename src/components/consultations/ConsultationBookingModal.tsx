@@ -69,6 +69,7 @@ export function ConsultationBookingModal({
     barberId: '',
     time: '09:00',
     notes: '',
+    customDuration: 60, // Default for variable duration services
   });
 
   // Load services and barbers
@@ -109,6 +110,17 @@ export function ConsultationBookingModal({
   const selectedService = services.find((s) => s.id === formData.serviceId);
   const selectedBarber = barbers.find((b) => b.id === formData.barberId);
 
+  // Services with variable duration
+  const variableDurationServices = ['mechas / color', 'tattoo & piercing'];
+  const isVariableDuration = selectedService && 
+    variableDurationServices.includes(selectedService.name.toLowerCase());
+  
+  // Get effective duration (custom for variable services, default otherwise)
+  const effectiveDuration = isVariableDuration ? formData.customDuration : (selectedService?.duration || 30);
+
+  // Duration options for variable services
+  const durationOptions = [30, 45, 60, 90, 120, 150, 180];
+
   // Calculate end time based on service duration
   const calculateEndTime = (startTime: string, durationMinutes: number): string => {
     const [hours, minutes] = startTime.split(':').map(Number);
@@ -145,7 +157,7 @@ export function ConsultationBookingModal({
       let clientId = await findOrCreateClient();
       
       const startTime = formData.time + ':00';
-      const endTime = calculateEndTime(formData.time, selectedService.duration) + ':00';
+      const endTime = calculateEndTime(formData.time, effectiveDuration) + ':00';
 
       const bookingData: CreateBookingData = {
         client_id: clientId,
@@ -159,7 +171,7 @@ export function ConsultationBookingModal({
         client_phone: consultation.client_phone.replace(/^\+34/, ''),
         client_email: consultation.client_email,
         service_name: selectedService.name,
-        service_duration: selectedService.duration,
+        service_duration: effectiveDuration,
         service_price: selectedService.price,
         barber: selectedBarber?.name || null,
         notes: formData.notes || `Reserva desde consulta: ${consultation.client_notes || ''}`.trim(),
@@ -270,7 +282,34 @@ export function ConsultationBookingModal({
               </Select>
             </div>
 
-            {/* Barber Selection */}
+            {/* Duration Selection (for variable duration services) */}
+            {isVariableDuration && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Duración
+                </Label>
+                <Select
+                  value={formData.customDuration.toString()}
+                  onValueChange={(value) => setFormData({ ...formData, customDuration: parseInt(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {durationOptions.map((duration) => (
+                      <SelectItem key={duration} value={duration.toString()}>
+                        {duration} minutos ({Math.floor(duration / 60)}h {duration % 60 > 0 ? `${duration % 60}min` : ''})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Este servicio tiene duración variable. Selecciona el tiempo estimado.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <User className="h-4 w-4" />
@@ -380,7 +419,7 @@ export function ConsultationBookingModal({
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Duración</span>
-                  <span>{selectedService.duration} minutos</span>
+                  <span>{effectiveDuration} minutos</span>
                 </div>
                 {selectedBarber && (
                   <div className="flex justify-between text-sm text-muted-foreground">
