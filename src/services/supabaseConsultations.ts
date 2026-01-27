@@ -21,14 +21,13 @@ export const supabaseConsultationsApi = {
   async updateStatus(id: string, status: ConsultationStatus): Promise<void> {
     const updateData: Record<string, unknown> = { status };
     
-    // Set timestamp based on status
+    // Set timestamp based on status (only for columns that exist)
     if (status === 'contacted') {
       updateData.contacted_at = new Date().toISOString();
-    } else if (status === 'scheduled') {
-      updateData.scheduled_at = new Date().toISOString();
     } else if (status === 'completed') {
       updateData.completed_at = new Date().toISOString();
     }
+    // Note: scheduled_at column doesn't exist in the table
 
     const { error } = await supabase
       .from('consultations')
@@ -37,6 +36,26 @@ export const supabaseConsultationsApi = {
 
     if (error) {
       console.error('Error updating consultation status:', error);
+      throw error;
+    }
+  },
+
+  async markAsScheduled(id: string, bookingId?: string): Promise<void> {
+    const updateData: Record<string, unknown> = { 
+      status: 'scheduled' as ConsultationStatus,
+    };
+    
+    if (bookingId) {
+      updateData.booking_id = bookingId;
+    }
+
+    const { error } = await supabase
+      .from('consultations')
+      .update(updateData)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error marking consultation as scheduled:', error);
       throw error;
     }
   },
