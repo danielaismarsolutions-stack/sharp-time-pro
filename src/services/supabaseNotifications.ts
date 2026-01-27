@@ -137,3 +137,42 @@ export async function deleteNotification(notificationId: string): Promise<void> 
     throw new Error(`Failed to delete notification: ${response.status}`);
   }
 }
+
+export interface CreateNotificationData {
+  user_id: string;
+  business_id: string;
+  type: DbNotificationType;
+  title: string;
+  message: string;
+  metadata?: Record<string, any>;
+}
+
+export async function createNotification(data: CreateNotificationData): Promise<DbNotification> {
+  const url = `${SUPABASE_CONFIG.url}/rest/v1/notifications`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      ...supabaseHeaders,
+      'Prefer': 'return=representation',
+    },
+    body: JSON.stringify({
+      user_id: data.user_id,
+      business_id: data.business_id,
+      type: data.type,
+      title: data.title,
+      message: data.message,
+      metadata: data.metadata || null,
+      is_read: false,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('❌ Failed to create notification:', errorText);
+    throw new Error(`Failed to create notification: ${response.status}`);
+  }
+
+  const notifications = await response.json();
+  return notifications[0];
+}

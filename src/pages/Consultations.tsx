@@ -4,7 +4,10 @@ import { MessageSquare, Inbox } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
+import { BUSINESS_ID } from '@/config/api';
 import { supabaseConsultationsApi } from '@/services/supabaseConsultations';
+import { createNotification } from '@/services/supabaseNotifications';
 import { Consultation, ConsultationStatus, STATUS_CONFIG } from '@/types/consultation';
 import { ConsultationTable } from '@/components/consultations/ConsultationTable';
 import { ConsultationCard } from '@/components/consultations/ConsultationCard';
@@ -27,6 +30,7 @@ const filterOptions: { value: FilterStatus; label: string }[] = [
 
 export default function Consultations() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const isMobile = useIsMobile();
   
   const [consultations, setConsultations] = useState<Consultation[]>([]);
@@ -62,15 +66,38 @@ export default function Consultations() {
   useEffect(() => {
     fetchConsultations();
 
-    // Set up real-time subscription
-    const channel = supabaseConsultationsApi.subscribeToChanges(() => {
+    // Set up real-time subscription with notification support
+    const channel = supabaseConsultationsApi.subscribeToChanges(async (payload) => {
+      // Refresh the list
       fetchConsultations();
+      
+      // Create notification for new consultations
+      if (payload.eventType === 'INSERT' && payload.new && user?.id) {
+        try {
+          await createNotification({
+            user_id: user.id,
+            business_id: BUSINESS_ID,
+            type: 'consultation_created',
+            title: 'Nueva consulta recibida',
+            message: `${payload.new.client_name} ha enviado una consulta para ${payload.new.service_name}`,
+            metadata: {
+              consultation_id: payload.new.id,
+              client_name: payload.new.client_name,
+              client_phone: payload.new.client_phone,
+              service_name: payload.new.service_name,
+            },
+          });
+          console.log('🔔 New consultation notification created');
+        } catch (error) {
+          console.error('Failed to create consultation notification:', error);
+        }
+      }
     });
 
     return () => {
       channel.unsubscribe();
     };
-  }, []);
+  }, [user?.id]);
 
   // Filter counts
   const statusCounts = useMemo(() => {
@@ -163,6 +190,28 @@ export default function Consultations() {
     if (bookingConsultation) {
       // Mark consultation as scheduled
       await supabaseConsultationsApi.markAsScheduled(bookingConsultation.id);
+      
+      // Create notification for consultation scheduled
+      if (user?.id) {
+        try {
+          await createNotification({
+            user_id: user.id,
+            business_id: BUSINESS_ID,
+            type: 'consultation_updated',
+            title: 'Consulta programada',
+            message: `La consulta de ${bookingConsultation.client_name} para ${bookingConsultation.service_name} ha sido convertida a reserva`,
+            metadata: {
+              consultation_id: bookingConsultation.id,
+              client_name: bookingConsultation.client_name,
+              service_name: bookingConsultation.service_name,
+            },
+          });
+          console.log('🔔 Consultation notification created');
+        } catch (error) {
+          console.error('Failed to create notification:', error);
+        }
+      }
+      
       // Refresh consultations
       fetchConsultations();
       toast({

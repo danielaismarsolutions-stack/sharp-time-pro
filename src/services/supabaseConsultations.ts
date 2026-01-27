@@ -72,7 +72,7 @@ export const supabaseConsultationsApi = {
     }
   },
 
-  subscribeToChanges(callback: () => void) {
+  subscribeToChanges(callback: (payload: { eventType: string; new?: Consultation; old?: Partial<Consultation> }) => void) {
     return supabase
       .channel('consultations')
       .on(
@@ -83,8 +83,12 @@ export const supabaseConsultationsApi = {
           table: 'consultations',
           filter: `business_id=eq.${BUSINESS_ID}`,
         },
-        () => {
-          callback();
+        (payload) => {
+          callback({
+            eventType: payload.eventType,
+            new: payload.new as Consultation | undefined,
+            old: payload.old as Partial<Consultation> | undefined,
+          });
         }
       )
       .subscribe();
