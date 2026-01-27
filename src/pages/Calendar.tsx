@@ -145,10 +145,11 @@ export default function Calendar() {
     return Array.from(barberSet).sort();
   }, [bookings]);
 
-  // Filter bookings by barber
+  // Filter bookings by barber and exclude cancelled
   const filteredBookings = useMemo(() => {
-    if (!selectedBarber) return bookings;
-    return bookings.filter((b) => b.barber === selectedBarber);
+    return bookings
+      .filter((b) => b.status !== 'cancelled')
+      .filter((b) => !selectedBarber || b.barber === selectedBarber);
   }, [bookings, selectedBarber]);
 
   const navigateDate = (direction: 'prev' | 'next') => {
