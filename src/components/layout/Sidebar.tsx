@@ -11,6 +11,7 @@ import {
   ChevronRight,
   LogOut,
   UserCog,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,6 +25,7 @@ interface SidebarProps {
 const navItems = [
   { icon: LayoutDashboard, label: 'Inicio', path: '/dashboard' },
   { icon: Calendar, label: 'Agenda', path: '/calendar' },
+  { icon: MessageSquare, label: 'Consultas', path: '/consultations' },
   { icon: Users, label: 'Clientes', path: '/clients' },
   { icon: UserCog, label: 'Barberos', path: '/barbers' },
   { icon: Scissors, label: 'Servicios', path: '/services' },
