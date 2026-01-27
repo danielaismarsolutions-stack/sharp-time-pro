@@ -69,7 +69,8 @@ export function ConsultationBookingModal({
     barberId: '',
     time: '09:00',
     notes: '',
-    customDuration: 60, // Default for variable duration services
+    customDuration: 60,
+    customPrice: 0,
   });
 
   // Load services and barbers
@@ -115,8 +116,9 @@ export function ConsultationBookingModal({
   const isVariableDuration = selectedService && 
     variableDurationServices.includes(selectedService.name.toLowerCase());
   
-  // Get effective duration (custom for variable services, default otherwise)
+  // Get effective duration and price (custom for variable services, default otherwise)
   const effectiveDuration = isVariableDuration ? formData.customDuration : (selectedService?.duration || 30);
+  const effectivePrice = isVariableDuration ? formData.customPrice : (selectedService?.price || 0);
 
   // Duration options for variable services
   const durationOptions = [30, 45, 60, 90, 120, 150, 180];
@@ -172,7 +174,7 @@ export function ConsultationBookingModal({
         client_email: consultation.client_email,
         service_name: selectedService.name,
         service_duration: effectiveDuration,
-        service_price: selectedService.price,
+        service_price: effectivePrice,
         barber: selectedBarber?.name || null,
         notes: formData.notes || `Reserva desde consulta: ${consultation.client_notes || ''}`.trim(),
       };
@@ -282,31 +284,41 @@ export function ConsultationBookingModal({
               </Select>
             </div>
 
-            {/* Duration Selection (for variable duration services) */}
+            {/* Duration & Price Selection (for variable duration services) */}
             {isVariableDuration && (
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Duración
-                </Label>
-                <Select
-                  value={formData.customDuration.toString()}
-                  onValueChange={(value) => setFormData({ ...formData, customDuration: parseInt(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {durationOptions.map((duration) => (
-                      <SelectItem key={duration} value={duration.toString()}>
-                        {duration} minutos ({Math.floor(duration / 60)}h {duration % 60 > 0 ? `${duration % 60}min` : ''})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Este servicio tiene duración variable. Selecciona el tiempo estimado.
-                </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Duración
+                  </Label>
+                  <Select
+                    value={formData.customDuration.toString()}
+                    onValueChange={(value) => setFormData({ ...formData, customDuration: parseInt(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {durationOptions.map((duration) => (
+                        <SelectItem key={duration} value={duration.toString()}>
+                          {duration} min
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Precio (€)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.customPrice}
+                    onChange={(e) => setFormData({ ...formData, customPrice: parseFloat(e.target.value) || 0 })}
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
             )}
 
@@ -411,7 +423,7 @@ export function ConsultationBookingModal({
                 <p className="text-sm font-medium">Resumen de la cita</p>
                 <div className="flex justify-between text-sm">
                   <span>{selectedService.name}</span>
-                  <span className="font-medium">€{selectedService.price}</span>
+                  <span className="font-medium">€{effectivePrice}</span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Fecha y hora</span>
