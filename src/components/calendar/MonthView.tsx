@@ -76,13 +76,15 @@ export function MonthView({ currentDate, bookings, services, onDateClick, onBook
   // Group bookings by date
   const bookingsByDate = useMemo(() => {
     const grouped: Record<string, ApiBooking[]> = {};
-    bookings.forEach((booking) => {
-      const dateKey = booking.booking_date;
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(booking);
-    });
+    bookings
+      .filter((booking) => booking.status !== 'cancelled')
+      .forEach((booking) => {
+        const dateKey = booking.booking_date;
+        if (!grouped[dateKey]) {
+          grouped[dateKey] = [];
+        }
+        grouped[dateKey].push(booking);
+      });
     // Sort bookings within each day by start_time
     Object.values(grouped).forEach((dayBookings) => {
       dayBookings.sort((a, b) => a.start_time.localeCompare(b.start_time));

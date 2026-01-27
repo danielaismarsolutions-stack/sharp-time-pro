@@ -73,13 +73,15 @@ export function WeekView({ currentDate, bookings, services, onBookingClick }: We
   // Group bookings by date
   const bookingsByDate = useMemo(() => {
     const grouped: Record<string, ApiBooking[]> = {};
-    bookings.forEach((booking) => {
-      const dateKey = booking.booking_date;
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(booking);
-    });
+    bookings
+      .filter((booking) => booking.status !== 'cancelled')
+      .forEach((booking) => {
+        const dateKey = booking.booking_date;
+        if (!grouped[dateKey]) {
+          grouped[dateKey] = [];
+        }
+        grouped[dateKey].push(booking);
+      });
     return grouped;
   }, [bookings]);
 

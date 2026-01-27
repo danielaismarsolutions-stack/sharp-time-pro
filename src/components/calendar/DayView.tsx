@@ -21,7 +21,7 @@ export function DayView({ currentDate, bookings, onBookingClick }: DayViewProps)
   const dayBookings = useMemo(() => {
     const dateKey = format(currentDate, 'yyyy-MM-dd');
     return bookings
-      .filter((b) => b.booking_date === dateKey)
+      .filter((b) => b.booking_date === dateKey && b.status !== 'cancelled')
       .sort((a, b) => a.start_time.localeCompare(b.start_time));
   }, [currentDate, bookings]);
 
