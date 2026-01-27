@@ -1,9 +1,19 @@
 import { SUPABASE_CONFIG } from '@/config/api';
 
+export type DbNotificationType = 
+  | 'booking_created' 
+  | 'booking_cancelled' 
+  | 'booking_modified' 
+  | 'booking_reminder' 
+  | 'client_created' 
+  | 'consultation_created'
+  | 'consultation_updated'
+  | 'info';
+
 export interface DbNotification {
   id: string;
   user_id: string;
-  type: 'booking_created' | 'booking_cancelled' | 'booking_modified' | 'booking_reminder' | 'client_created' | 'info';
+  type: DbNotificationType;
   title: string;
   message: string;
   data: Record<string, any> | null;

@@ -17,7 +17,8 @@ import {
   useNotifications, 
   formatNotificationTime, 
   getNotificationIcon,
-  getNotificationIconColor 
+  getNotificationIconColor,
+  getNotificationPath
 } from '@/contexts/NotificationContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -147,7 +148,13 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
                         "flex items-start gap-3 py-3 min-h-[44px] cursor-pointer",
                         !notif.read && "bg-primary/5"
                       )}
-                      onClick={() => markAsRead(notif.id)}
+                      onClick={() => {
+                        markAsRead(notif.id);
+                        const path = getNotificationPath(notif);
+                        if (path) {
+                          navigate(path);
+                        }
+                      }}
                     >
                       <div className={cn("flex-shrink-0 mt-0.5", iconColor)}>
                         <IconComponent className="h-5 w-5" />
