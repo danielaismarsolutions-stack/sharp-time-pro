@@ -150,6 +150,21 @@ export function ConsultationBookingModal({
     }
   }, [date, formData.barberId, barbers]);
 
+  const selectedService = services.find((s) => s.id === formData.serviceId);
+  const selectedBarber = barbers.find((b) => b.id === formData.barberId);
+
+  // Services with variable duration
+  const variableDurationServices = ['mechas / color', 'tattoo & piercing'];
+  const isVariableDuration = selectedService && 
+    variableDurationServices.includes(selectedService.name.toLowerCase());
+  
+  // Get effective duration and price (custom for variable services, default otherwise)
+  const effectiveDuration = isVariableDuration ? formData.customDuration : (selectedService?.duration || 30);
+  const effectivePrice = isVariableDuration ? formData.customPrice : (selectedService?.price || 0);
+
+  // Duration options for variable services
+  const durationOptions = [30, 45, 60, 90, 120, 150, 180];
+
   // Check if a time slot overlaps with booked slots
   const isTimeSlotBooked = (time: string, slots: { start: string; end: string }[] = bookedSlots): boolean => {
     const [hours, minutes] = time.split(':').map(Number);
@@ -169,21 +184,6 @@ export function ConsultationBookingModal({
 
   // Get available time slots
   const availableTimeSlots = timeSlots.filter(time => !isTimeSlotBooked(time));
-
-  const selectedService = services.find((s) => s.id === formData.serviceId);
-  const selectedBarber = barbers.find((b) => b.id === formData.barberId);
-
-  // Services with variable duration
-  const variableDurationServices = ['mechas / color', 'tattoo & piercing'];
-  const isVariableDuration = selectedService && 
-    variableDurationServices.includes(selectedService.name.toLowerCase());
-  
-  // Get effective duration and price (custom for variable services, default otherwise)
-  const effectiveDuration = isVariableDuration ? formData.customDuration : (selectedService?.duration || 30);
-  const effectivePrice = isVariableDuration ? formData.customPrice : (selectedService?.price || 0);
-
-  // Duration options for variable services
-  const durationOptions = [30, 45, 60, 90, 120, 150, 180];
 
   // Calculate end time based on service duration
   const calculateEndTime = (startTime: string, durationMinutes: number): string => {
