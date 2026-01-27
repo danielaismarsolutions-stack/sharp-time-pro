@@ -22,13 +22,13 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: Calendar, label: 'Calendar', path: '/calendar' },
-  { icon: Users, label: 'Clients', path: '/clients' },
-  { icon: UserCog, label: 'Barbers', path: '/barbers' },
-  { icon: Scissors, label: 'Services', path: '/services' },
-  { icon: BarChart3, label: 'Reports', path: '/reports' },
-  { icon: Settings, label: 'Settings', path: '/settings' },
+  { icon: LayoutDashboard, label: 'Inicio', path: '/dashboard' },
+  { icon: Calendar, label: 'Agenda', path: '/calendar' },
+  { icon: Users, label: 'Clientes', path: '/clients' },
+  { icon: UserCog, label: 'Barberos', path: '/barbers' },
+  { icon: Scissors, label: 'Servicios', path: '/services' },
+  { icon: BarChart3, label: 'Informes', path: '/reports' },
+  { icon: Settings, label: 'Ajustes', path: '/settings' },
 ];
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
@@ -122,7 +122,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               onClick={logout}
             >
               <LogOut className="h-5 w-5" />
-              {!collapsed && <span className="ml-3">Logout</span>}
+              {!collapsed && <span className="ml-3">Cerrar sesión</span>}
             </Button>
           </TooltipTrigger>
           {collapsed && (

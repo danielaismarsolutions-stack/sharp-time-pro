@@ -24,8 +24,8 @@ export default function LoginPage() {
     
     if (!email || !password) {
       toast({
-        title: 'Missing credentials',
-        description: 'Please enter your email and password.',
+        title: 'Credenciales incompletas',
+        description: 'Por favor, introduce tu email y contraseña.',
         variant: 'destructive',
       });
       return;
@@ -36,14 +36,14 @@ export default function LoginPage() {
     try {
       await login(email, password, rememberMe);
       toast({
-        title: 'Welcome back!',
-        description: 'Successfully logged in.',
+        title: '¡Bienvenido de nuevo!',
+        description: 'Has iniciado sesión correctamente.',
       });
       navigate('/dashboard');
     } catch (error) {
       toast({
-        title: 'Login failed',
-        description: 'Please check your credentials and try again.',
+        title: 'Error de inicio de sesión',
+        description: 'Por favor, verifica tus credenciales e inténtalo de nuevo.',
         variant: 'destructive',
       });
     } finally {
@@ -65,9 +65,9 @@ export default function LoginPage() {
             <Scissors className="w-8 h-8 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
+            <CardTitle className="text-2xl font-bold">Bienvenido de nuevo</CardTitle>
             <CardDescription className="mt-2">
-              Sign in to manage your barbershop
+              Inicia sesión para gestionar tu barbería
             </CardDescription>
           </div>
         </CardHeader>
@@ -75,7 +75,7 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Correo electrónico</Label>
               <Input
                 id="email"
                 type="email"
@@ -89,13 +89,13 @@ export default function LoginPage() {
             
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Contraseña</Label>
                 <button
                   type="button"
                   className="text-sm text-primary hover:underline"
-                  onClick={() => toast({ title: 'Password reset', description: 'Feature coming soon!' })}
+                  onClick={() => toast({ title: 'Restablecer contraseña', description: '¡Función próximamente!' })}
                 >
-                  Forgot password?
+                  ¿Olvidaste tu contraseña?
                 </button>
               </div>
               <Input
@@ -116,7 +116,7 @@ export default function LoginPage() {
                 onCheckedChange={(checked) => setRememberMe(checked as boolean)}
               />
               <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
-                Remember me for 30 days
+                Recuérdame durante 30 días
               </Label>
             </div>
             
@@ -128,17 +128,17 @@ export default function LoginPage() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  Iniciando sesión...
                 </>
               ) : (
-                'Sign in'
+                'Iniciar sesión'
               )}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Demo mode: Use any email and password to login
+              Modo demo: Usa cualquier email y contraseña para acceder
             </p>
           </div>
         </CardContent>

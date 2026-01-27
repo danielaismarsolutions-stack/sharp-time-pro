@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Clock, User, Scissors } from 'lucide-react';
+import { es } from 'date-fns/locale';
 import {
   Dialog,
   DialogContent,
@@ -98,8 +99,8 @@ export default function BookingModal({
     e.preventDefault();
     if (!date || !formData.clientId || !formData.serviceId) {
       toast({
-        title: 'Missing fields',
-        description: 'Please fill in all required fields',
+        title: 'Campos incompletos',
+        description: 'Por favor, completa todos los campos obligatorios',
         variant: 'destructive',
       });
       return;
@@ -128,13 +129,13 @@ export default function BookingModal({
       
       onOpenChange(false);
       toast({
-        title: booking ? 'Booking updated' : 'Booking created',
-        description: `Appointment ${booking ? 'updated' : 'scheduled'} successfully`,
+        title: booking ? 'Cita actualizada' : 'Cita creada',
+        description: `La cita se ha ${booking ? 'actualizado' : 'programado'} correctamente`,
       });
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to save booking',
+        description: 'No se pudo guardar la cita',
         variant: 'destructive',
       });
     } finally {
@@ -148,7 +149,7 @@ export default function BookingModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5 text-primary" />
-            {booking ? 'Edit Appointment' : 'New Appointment'}
+            {booking ? 'Editar Cita' : 'Nueva Cita'}
           </DialogTitle>
         </DialogHeader>
 
@@ -157,14 +158,14 @@ export default function BookingModal({
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              Client
+              Cliente
             </Label>
             <Select
               value={formData.clientId}
               onValueChange={(value) => setFormData({ ...formData, clientId: value })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select a client" />
+                <SelectValue placeholder="Selecciona un cliente" />
               </SelectTrigger>
               <SelectContent>
                 {clients.map((client) => (
@@ -180,14 +181,14 @@ export default function BookingModal({
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Scissors className="h-4 w-4" />
-              Service
+              Servicio
             </Label>
             <Select
               value={formData.serviceId}
               onValueChange={(value) => setFormData({ ...formData, serviceId: value })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select a service" />
+                <SelectValue placeholder="Selecciona un servicio" />
               </SelectTrigger>
               <SelectContent>
                 {services.filter((s) => s.isActive).map((service) => (
@@ -207,7 +208,7 @@ export default function BookingModal({
           {/* Date & Time */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Date</Label>
+              <Label>Fecha</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -218,7 +219,7 @@ export default function BookingModal({
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, 'PPP') : 'Pick a date'}
+                    {date ? format(date, 'PPP', { locale: es }) : 'Selecciona fecha'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -236,7 +237,7 @@ export default function BookingModal({
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Time
+                Hora
               </Label>
               <Select
                 value={formData.time}
@@ -259,7 +260,7 @@ export default function BookingModal({
           {/* Status & Source */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Status</Label>
+              <Label>Estado</Label>
               <Select
                 value={formData.status}
                 onValueChange={(value) => setFormData({ ...formData, status: value as Booking['status'] })}
@@ -268,17 +269,17 @@ export default function BookingModal({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="no-show">No-show</SelectItem>
+                  <SelectItem value="pending">Pendiente</SelectItem>
+                  <SelectItem value="confirmed">Confirmada</SelectItem>
+                  <SelectItem value="completed">Completada</SelectItem>
+                  <SelectItem value="cancelled">Cancelada</SelectItem>
+                  <SelectItem value="no-show">No asistió</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Source</Label>
+              <Label>Origen</Label>
               <Select
                 value={formData.source}
                 onValueChange={(value) => setFormData({ ...formData, source: value as Booking['source'] })}
@@ -288,8 +289,8 @@ export default function BookingModal({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="online">Online</SelectItem>
-                  <SelectItem value="phone">Phone</SelectItem>
-                  <SelectItem value="walk-in">Walk-in</SelectItem>
+                  <SelectItem value="phone">Teléfono</SelectItem>
+                  <SelectItem value="walk-in">Sin cita</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -297,11 +298,11 @@ export default function BookingModal({
 
           {/* Notes */}
           <div className="space-y-2">
-            <Label>Notes</Label>
+            <Label>Notas</Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Any special requests or notes..."
+              placeholder="Solicitudes especiales o notas..."
               rows={3}
             />
           </div>
@@ -309,14 +310,14 @@ export default function BookingModal({
           {/* Summary */}
           {selectedService && (
             <div className="bg-muted/50 rounded-lg p-3 space-y-1">
-              <p className="text-sm text-muted-foreground">Appointment Summary</p>
+              <p className="text-sm text-muted-foreground">Resumen de la cita</p>
               <div className="flex justify-between text-sm">
                 <span>{selectedService.name}</span>
                 <span className="font-medium">€{selectedService.price}</span>
               </div>
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Duration</span>
-                <span>{selectedService.duration} minutes</span>
+                <span>Duración</span>
+                <span>{selectedService.duration} minutos</span>
               </div>
             </div>
           )}
@@ -324,10 +325,10 @@ export default function BookingModal({
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              Cancelar
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Saving...' : booking ? 'Update' : 'Create Booking'}
+              {isLoading ? 'Guardando...' : booking ? 'Actualizar' : 'Crear Cita'}
             </Button>
           </div>
         </form>

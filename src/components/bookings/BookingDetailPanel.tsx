@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import {
   X,
   User,
@@ -30,17 +31,17 @@ interface BookingDetailPanelProps {
 }
 
 const statusConfig = {
-  pending: { label: 'Pending', class: 'status-badge-pending', icon: AlertCircle },
-  confirmed: { label: 'Confirmed', class: 'status-badge-success', icon: CheckCircle },
-  completed: { label: 'Completed', class: 'status-badge-success', icon: CheckCircle },
-  cancelled: { label: 'Cancelled', class: 'status-badge-cancelled', icon: XCircle },
-  'no-show': { label: 'No-show', class: 'status-badge-cancelled', icon: XCircle },
+  pending: { label: 'Pendiente', class: 'status-badge-pending', icon: AlertCircle },
+  confirmed: { label: 'Confirmada', class: 'status-badge-success', icon: CheckCircle },
+  completed: { label: 'Completada', class: 'status-badge-success', icon: CheckCircle },
+  cancelled: { label: 'Cancelada', class: 'status-badge-cancelled', icon: XCircle },
+  'no-show': { label: 'No asistió', class: 'status-badge-cancelled', icon: XCircle },
 };
 
 const sourceConfig = {
-  online: { label: 'Online Booking', color: 'bg-blue-500/20 text-blue-400' },
-  phone: { label: 'Phone Call', color: 'bg-emerald-500/20 text-emerald-400' },
-  'walk-in': { label: 'Walk-in', color: 'bg-amber-500/20 text-amber-400' },
+  online: { label: 'Reserva online', color: 'bg-blue-500/20 text-blue-400' },
+  phone: { label: 'Llamada', color: 'bg-emerald-500/20 text-emerald-400' },
+  'walk-in': { label: 'Sin cita', color: 'bg-amber-500/20 text-amber-400' },
 };
 
 export default function BookingDetailPanel({
@@ -58,7 +59,7 @@ export default function BookingDetailPanel({
     <div className="h-full flex flex-col bg-card border-l border-border">
       {/* Header */}
       <div className="p-4 border-b border-border flex items-center justify-between">
-        <h3 className="font-semibold">Appointment Details</h3>
+        <h3 className="font-semibold">Detalles de la cita</h3>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
@@ -80,7 +81,7 @@ export default function BookingDetailPanel({
         {/* Client Info */}
         <div className="space-y-3">
           <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            Client Information
+            Información del cliente
           </h4>
           <div className="bg-muted/30 rounded-lg p-4 space-y-3">
             <div className="flex items-center gap-3">
@@ -89,7 +90,7 @@ export default function BookingDetailPanel({
               </div>
               <div>
                 <p className="font-medium">{booking.clientName}</p>
-                <p className="text-sm text-muted-foreground">Client</p>
+                <p className="text-sm text-muted-foreground">Cliente</p>
               </div>
             </div>
             <div className="space-y-2">
@@ -112,7 +113,7 @@ export default function BookingDetailPanel({
         {/* Appointment Info */}
         <div className="space-y-3">
           <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            Appointment Details
+            Detalles de la cita
           </h4>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
@@ -122,7 +123,7 @@ export default function BookingDetailPanel({
               <div>
                 <p className="font-medium">{booking.serviceName}</p>
                 <p className="text-sm text-muted-foreground">
-                  {booking.serviceDuration} minutes • €{booking.servicePrice}
+                  {booking.serviceDuration} minutos • €{booking.servicePrice}
                 </p>
               </div>
             </div>
@@ -131,8 +132,8 @@ export default function BookingDetailPanel({
                 <Calendar className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <p className="font-medium">{format(new Date(booking.date), 'EEEE, MMMM d, yyyy')}</p>
-                <p className="text-sm text-muted-foreground">Date</p>
+                <p className="font-medium">{format(new Date(booking.date), "EEEE, d 'de' MMMM yyyy", { locale: es })}</p>
+                <p className="text-sm text-muted-foreground">Fecha</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -141,7 +142,7 @@ export default function BookingDetailPanel({
               </div>
               <div>
                 <p className="font-medium">{booking.time}</p>
-                <p className="text-sm text-muted-foreground">Time</p>
+                <p className="text-sm text-muted-foreground">Hora</p>
               </div>
             </div>
           </div>
@@ -154,7 +155,7 @@ export default function BookingDetailPanel({
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
-                Notes
+                Notas
               </h4>
               <p className="text-sm bg-muted/30 rounded-lg p-3">{booking.notes}</p>
             </div>
@@ -166,7 +167,7 @@ export default function BookingDetailPanel({
         {/* Quick Status Actions */}
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            Quick Actions
+            Acciones rápidas
           </h4>
           <div className="grid grid-cols-2 gap-2">
             {booking.status !== 'completed' && (
@@ -177,7 +178,7 @@ export default function BookingDetailPanel({
                 onClick={() => onStatusChange('completed')}
               >
                 <CheckCircle className="h-4 w-4 mr-2 text-status-success" />
-                Complete
+                Completar
               </Button>
             )}
             {booking.status !== 'no-show' && (
@@ -188,7 +189,7 @@ export default function BookingDetailPanel({
                 onClick={() => onStatusChange('no-show')}
               >
                 <XCircle className="h-4 w-4 mr-2 text-status-cancelled" />
-                No-show
+                No asistió
               </Button>
             )}
             {booking.status !== 'cancelled' && (
@@ -199,12 +200,12 @@ export default function BookingDetailPanel({
                 onClick={() => onStatusChange('cancelled')}
               >
                 <XCircle className="h-4 w-4 mr-2 text-status-cancelled" />
-                Cancel
+                Cancelar
               </Button>
             )}
             <Button variant="outline" size="sm" className="justify-start">
               <Send className="h-4 w-4 mr-2" />
-              Remind
+              Recordar
             </Button>
           </div>
         </div>
@@ -214,7 +215,7 @@ export default function BookingDetailPanel({
       <div className="p-4 border-t border-border flex gap-2">
         <Button variant="outline" className="flex-1" onClick={onEdit}>
           <Edit className="h-4 w-4 mr-2" />
-          Edit
+          Editar
         </Button>
         <Button variant="destructive" size="icon" onClick={onDelete}>
           <Trash2 className="h-4 w-4" />

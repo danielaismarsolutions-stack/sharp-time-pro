@@ -57,8 +57,8 @@ export default function ClientModal({
     e.preventDefault();
     if (!formData.name || !formData.phone) {
       toast({
-        title: 'Missing fields',
-        description: 'Name and phone are required',
+        title: 'Campos incompletos',
+        description: 'El nombre y teléfono son obligatorios',
         variant: 'destructive',
       });
       return;
@@ -77,7 +77,7 @@ export default function ClientModal({
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to save client',
+        description: 'No se pudo guardar el cliente',
         variant: 'destructive',
       });
     } finally {
@@ -91,7 +91,7 @@ export default function ClientModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5 text-primary" />
-            {client ? 'Edit Client' : 'New Client'}
+            {client ? 'Editar Cliente' : 'Nuevo Cliente'}
           </DialogTitle>
         </DialogHeader>
 
@@ -99,19 +99,19 @@ export default function ClientModal({
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              Full Name *
+              Nombre completo *
             </Label>
             <Input
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="John Smith"
+              placeholder="Juan García"
             />
           </div>
 
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Phone className="h-4 w-4" />
-              Phone Number *
+              Teléfono *
             </Label>
             <Input
               value={formData.phone}
@@ -123,35 +123,35 @@ export default function ClientModal({
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
-              Email
+              Correo electrónico
             </Label>
             <Input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="john@example.com"
+              placeholder="juan@ejemplo.com"
             />
           </div>
 
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              Notes
+              Notas
             </Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Preferences, allergies, special requests..."
+              placeholder="Preferencias, alergias, solicitudes especiales..."
               rows={3}
             />
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              Cancelar
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Saving...' : client ? 'Update' : 'Create Client'}
+              {isLoading ? 'Guardando...' : client ? 'Actualizar' : 'Crear Cliente'}
             </Button>
           </div>
         </form>
