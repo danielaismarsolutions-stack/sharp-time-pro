@@ -60,14 +60,16 @@ export function ConsultationBookingModal({
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [services, setServices] = useState<Service[]>([]);
   const [barbers, setBarbers] = useState<Barber[]>([]);
+  const [bookedSlots, setBookedSlots] = useState<{ start: string; end: string }[]>([]);
   
   const [formData, setFormData] = useState({
     serviceId: '',
     barberId: '',
-    time: '09:00',
+    time: '',
     notes: '',
     customDuration: 60,
     customPrice: 0,
@@ -108,6 +110,66 @@ export function ConsultationBookingModal({
     }
   }, [open, consultation.service_name, toast]);
 
+  // Fetch booked slots when date or barber changes
+  useEffect(() => {
+    if (date && formData.barberId && formData.barberId !== '') {
+      const fetchBookedSlots = async () => {
+        setIsLoadingSlots(true);
+        try {
+          const selectedBarberObj = barbers.find((b) => b.id === formData.barberId);
+          if (!selectedBarberObj) return;
+          
+          const bookings = await supabaseBookingsApi.getAll({
+            date: format(date, 'yyyy-MM-dd'),
+            barber: selectedBarberObj.name,
+          });
+          
+          // Filter out cancelled bookings and extract time slots
+          const slots = bookings
+            .filter(b => b.status !== 'cancelled')
+            .map(b => ({
+              start: b.start_time.slice(0, 5),
+              end: b.end_time.slice(0, 5),
+            }));
+          
+          setBookedSlots(slots);
+          
+          // Reset time if currently selected time is no longer available
+          if (formData.time && isTimeSlotBooked(formData.time, slots)) {
+            setFormData(prev => ({ ...prev, time: '' }));
+          }
+        } catch (error) {
+          console.error('Error fetching booked slots:', error);
+        } finally {
+          setIsLoadingSlots(false);
+        }
+      };
+      fetchBookedSlots();
+    } else {
+      setBookedSlots([]);
+    }
+  }, [date, formData.barberId, barbers]);
+
+  // Check if a time slot overlaps with booked slots
+  const isTimeSlotBooked = (time: string, slots: { start: string; end: string }[] = bookedSlots): boolean => {
+    const [hours, minutes] = time.split(':').map(Number);
+    const slotStart = hours * 60 + minutes;
+    const slotEnd = slotStart + effectiveDuration;
+    
+    return slots.some(booking => {
+      const [bStartH, bStartM] = booking.start.split(':').map(Number);
+      const [bEndH, bEndM] = booking.end.split(':').map(Number);
+      const bookingStart = bStartH * 60 + bStartM;
+      const bookingEnd = bEndH * 60 + bEndM;
+      
+      // Check for overlap
+      return slotStart < bookingEnd && slotEnd > bookingStart;
+    });
+  };
+
+  // Get available time slots
+  const availableTimeSlots = timeSlots.filter(time => !isTimeSlotBooked(time));
+
   const selectedService = services.find((s) => s.id === formData.serviceId);
   const selectedBarber = barbers.find((b) => b.id === formData.barberId);
 
@@ -135,10 +197,10 @@ export function ConsultationBookingModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!date || !formData.serviceId) {
+    if (!date || !formData.serviceId || !formData.time) {
       toast({
         title: 'Campos incompletos',
-        description: 'Por favor, selecciona fecha y servicio',
+        description: 'Por favor, selecciona fecha, servicio y hora',
         variant: 'destructive',
       });
       return;
@@ -309,7 +371,10 @@ export function ConsultationBookingModal({
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Precio (€)</Label>
+                  <Label className="flex items-center gap-2">
+                    <span>€</span>
+                    Precio
+                  </Label>
                   <Input
                     type="number"
                     min="0"
@@ -379,22 +444,43 @@ export function ConsultationBookingModal({
                 <Label className="flex items-center gap-2">
                   <Clock className="h-4 w-4" />
                   Hora
+                  {isLoadingSlots && <Loader2 className="h-3 w-3 animate-spin" />}
                 </Label>
                 <Select
                   value={formData.time}
                   onValueChange={(value) => setFormData({ ...formData, time: value })}
+                  disabled={isLoadingSlots}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
+                  <SelectTrigger className={cn(!formData.time && 'text-muted-foreground')}>
+                    <SelectValue placeholder="Selecciona hora" />
                   </SelectTrigger>
                   <SelectContent>
-                    {timeSlots.map((time) => (
-                      <SelectItem key={time} value={time}>
-                        {time}
-                      </SelectItem>
-                    ))}
+                    {formData.barberId ? (
+                      availableTimeSlots.length > 0 ? (
+                        availableTimeSlots.map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {time}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                          No hay horarios disponibles
+                        </div>
+                      )
+                    ) : (
+                      timeSlots.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+                {formData.barberId && bookedSlots.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {bookedSlots.length} cita(s) ocupada(s) este día
+                  </p>
+                )}
               </div>
             </div>
 
@@ -447,7 +533,7 @@ export function ConsultationBookingModal({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isLoading || !formData.serviceId}>
+              <Button type="submit" disabled={isLoading || !formData.serviceId || !formData.time}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
