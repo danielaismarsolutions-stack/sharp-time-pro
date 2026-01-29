@@ -198,7 +198,7 @@ function MonthBookingCard({ booking, colorClasses, onClick }: MonthBookingCardPr
           <button
             onClick={onClick}
             className={cn(
-              // New design: rounded corners, left border, shadow
+              // Consistent design: rounded corners, left border, shadow
               'w-full text-left px-1.5 py-1 rounded-lg border-l-4 transition-all',
               'shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:shadow-md',
               'hover:brightness-95',
@@ -208,17 +208,17 @@ function MonthBookingCard({ booking, colorClasses, onClick }: MonthBookingCardPr
               colorClasses.border
             )}
           >
-            {/* Row 1: Time (bold) */}
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-[9px] font-bold flex items-center gap-0.5">
-                <Clock className="w-2 h-2 opacity-70" />
-                {startTime}
+            {/* Row 1: Time range (bold) - consistent with other views */}
+            <div className="flex items-center gap-0.5">
+              <Clock className="w-2.5 h-2.5 opacity-70 shrink-0" />
+              <span className="text-[10px] font-bold leading-none">
+                {startTime} - {endTime}
               </span>
             </div>
-            {/* Row 2: Client name */}
-            <div className="flex items-center gap-0.5 text-[9px] font-medium truncate">
-              <User className="w-2 h-2 opacity-70 shrink-0" />
-              <span className="truncate">{booking.client_name}</span>
+            {/* Row 2: Client name - consistent with other views */}
+            <div className="flex items-center gap-0.5 mt-0.5">
+              <User className="w-2.5 h-2.5 opacity-70 shrink-0" />
+              <span className="text-[10px] font-medium truncate leading-none">{booking.client_name}</span>
             </div>
           </button>
         </TooltipTrigger>
