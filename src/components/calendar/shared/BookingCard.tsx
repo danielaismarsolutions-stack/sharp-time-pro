@@ -24,36 +24,52 @@ interface BookingCardProps {
   isMobile?: boolean;
 }
 
-// Adaptive styles based on card height
+// Adaptive styles based on card height - ALWAYS show client name
 const getAdaptiveStyles = (height: number, total: number, viewMode: string) => {
-  // Very small cards (< 35px) - minimal display
-  if (height < 35 || total >= 5) {
+  // Very small cards (< 30px) - ultra compact but still show client
+  if (height < 30 || total >= 6) {
     return {
-      textSize: 'text-[8px]',
-      iconSize: 'w-2 h-2',
-      padding: 'px-1 py-0.5',
+      textSize: 'text-[7px]',
+      iconSize: 'w-1.5 h-1.5',
+      padding: 'px-0.5 py-0.5',
       gap: 'gap-0.5',
-      showClient: false,
+      showClient: true,
       showTimeRange: false,
-      lineHeight: 'leading-tight',
+      lineHeight: 'leading-none',
+      marginTop: 'mt-0',
     };
   }
   
-  // Small cards (35-50px) - compact display
-  if (height < 50 || total >= 4) {
+  // Small cards (30-45px) - compact display
+  if (height < 45 || total >= 5) {
     return {
-      textSize: 'text-[9px]',
+      textSize: 'text-[8px]',
       iconSize: 'w-2 h-2',
       padding: 'px-1 py-0.5',
       gap: 'gap-0.5',
       showClient: true,
       showTimeRange: false,
       lineHeight: 'leading-tight',
+      marginTop: 'mt-0',
     };
   }
   
-  // Medium cards (50-70px) - standard compact
-  if (height < 70 || total >= 3 || viewMode === 'week') {
+  // Medium-small cards (45-60px) - standard compact
+  if (height < 60 || total >= 4) {
+    return {
+      textSize: 'text-[9px]',
+      iconSize: 'w-2 h-2',
+      padding: 'px-1 py-0.5',
+      gap: 'gap-0.5',
+      showClient: true,
+      showTimeRange: true,
+      lineHeight: 'leading-tight',
+      marginTop: 'mt-0.5',
+    };
+  }
+  
+  // Medium cards (60-80px) - comfortable compact
+  if (height < 80 || total >= 3 || viewMode === 'week') {
     return {
       textSize: 'text-[10px]',
       iconSize: 'w-2.5 h-2.5',
@@ -62,10 +78,11 @@ const getAdaptiveStyles = (height: number, total: number, viewMode: string) => {
       showClient: true,
       showTimeRange: true,
       lineHeight: 'leading-normal',
+      marginTop: 'mt-0.5',
     };
   }
   
-  // Large cards (70-100px) - comfortable display
+  // Large cards (80-100px) - comfortable display
   if (height < 100) {
     return {
       textSize: 'text-xs',
@@ -75,6 +92,7 @@ const getAdaptiveStyles = (height: number, total: number, viewMode: string) => {
       showClient: true,
       showTimeRange: true,
       lineHeight: 'leading-normal',
+      marginTop: 'mt-0.5',
     };
   }
   
@@ -87,6 +105,7 @@ const getAdaptiveStyles = (height: number, total: number, viewMode: string) => {
     showClient: true,
     showTimeRange: true,
     lineHeight: 'leading-relaxed',
+    marginTop: 'mt-1',
   };
 };
 
@@ -164,9 +183,9 @@ const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
           </span>
         </div>
         
-        {/* Row 2: Client Name (if there's space) */}
+        {/* Row 2: Client Name - ALWAYS visible */}
         {adaptiveStyles.showClient && (
-          <div className={cn('flex items-center w-full mt-0.5', adaptiveStyles.gap)}>
+          <div className={cn('flex items-center w-full', adaptiveStyles.marginTop, adaptiveStyles.gap)}>
             <User className={cn(adaptiveStyles.iconSize, 'shrink-0 opacity-70')} />
             <span className={cn('font-medium truncate', adaptiveStyles.textSize)}>
               {widthPercent < 40 ? getInitials(booking.client_name) : booking.client_name}
