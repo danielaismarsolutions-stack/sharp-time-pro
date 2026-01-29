@@ -342,7 +342,7 @@ export default function Calendar() {
                   colorClasses={colorClasses}
                   overlapInfo={overlapInfo}
                   onClick={() => openBookingDetail(booking)}
-                  isDraggable={!isMobile}
+                  isDraggable={true}
                   viewMode="day"
                   isMobile={isMobile}
                 />
