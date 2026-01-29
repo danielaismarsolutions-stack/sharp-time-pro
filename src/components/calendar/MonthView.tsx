@@ -225,15 +225,15 @@ function MonthBookingCard({ booking, colorClasses, isMobile, onClick }: MonthBoo
               colorClasses.border
             )}
           >
-            {/* Row 1: Time range - smaller on mobile */}
+            {/* Row 1: Time range - much smaller on mobile */}
             <div className="flex items-center gap-0.5">
               <Clock className={cn(
                 'opacity-70 shrink-0',
-                isMobile ? 'w-2 h-2' : 'w-2.5 h-2.5'
+                isMobile ? 'w-1.5 h-1.5' : 'w-2.5 h-2.5'
               )} />
               <span className={cn(
                 'font-bold leading-none whitespace-nowrap',
-                isMobile ? 'text-[7px]' : 'text-[10px]'
+                isMobile ? 'text-[5px]' : 'text-[10px]'
               )}>
                 {startTime} - {endTime}
               </span>
@@ -242,11 +242,11 @@ function MonthBookingCard({ booking, colorClasses, isMobile, onClick }: MonthBoo
             <div className="flex items-center gap-0.5 mt-0.5">
               <User className={cn(
                 'opacity-70 shrink-0',
-                isMobile ? 'w-2 h-2' : 'w-2.5 h-2.5'
+                isMobile ? 'w-1.5 h-1.5' : 'w-2.5 h-2.5'
               )} />
               <span className={cn(
                 'font-medium truncate leading-none',
-                isMobile ? 'text-[7px]' : 'text-[10px]'
+                isMobile ? 'text-[5px]' : 'text-[10px]'
               )}>
                 {isMobile ? getInitials(booking.client_name) : booking.client_name}
               </span>
