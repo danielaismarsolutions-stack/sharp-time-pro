@@ -193,7 +193,6 @@ export function BookingCard({
       {viewMode === 'day' && style.height >= 70 && total === 1 && (
         <div className="flex items-center gap-2 mt-1 text-[10px] opacity-75 flex-wrap">
           <span className="truncate">{booking.service_name}</span>
-          <span className="font-semibold">€{booking.service_price}</span>
         </div>
       )}
     </button>
@@ -215,7 +214,6 @@ export function BookingCard({
               {booking.barber && (
                 <p className="text-sm opacity-70">Barbero: {booking.barber}</p>
               )}
-              <p className="text-sm font-semibold">€{booking.service_price}</p>
             </div>
           </TooltipContent>
         </Tooltip>

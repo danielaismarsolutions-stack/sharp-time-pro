@@ -536,9 +536,8 @@ export default function Calendar() {
                                 openBookingDetail(booking);
                               }}
                             >
-                              <div className="flex items-baseline justify-between gap-1">
+                              <div className="flex items-baseline gap-1">
                                 <span className="text-[10px] font-bold">{booking.start_time.substring(0, 5)}</span>
-                                <span className="text-[9px] font-semibold">€{booking.service_price}</span>
                               </div>
                               <div className="text-[9px] font-medium truncate">{booking.client_name}</div>
                             </div>

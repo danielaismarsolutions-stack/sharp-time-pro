@@ -208,14 +208,11 @@ function MonthBookingCard({ booking, colorClasses, onClick }: MonthBookingCardPr
               colorClasses.border
             )}
           >
-            {/* Row 1: Time (bold) + Price */}
-            <div className="flex justify-between items-baseline gap-0.5">
+            {/* Row 1: Time (bold) */}
+            <div className="flex items-baseline gap-0.5">
               <span className="text-[9px] font-bold flex items-center gap-0.5">
                 <Clock className="w-2 h-2 opacity-70" />
                 {startTime}
-              </span>
-              <span className="text-[9px] font-bold shrink-0">
-                €{booking.service_price}
               </span>
             </div>
             {/* Row 2: Client name */}
@@ -233,7 +230,6 @@ function MonthBookingCard({ booking, colorClasses, onClick }: MonthBookingCardPr
             {booking.barber && (
               <p className="text-sm opacity-70">Barbero: {booking.barber}</p>
             )}
-            <p className="text-sm font-semibold">€{booking.service_price}</p>
           </div>
         </TooltipContent>
       </Tooltip>
