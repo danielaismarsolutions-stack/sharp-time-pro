@@ -1,4 +1,4 @@
-// Shared BookingCard component with consistent design across all views
+// Shared BookingCard component with adaptive sizing based on card dimensions
 import React, { forwardRef } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
@@ -24,6 +24,72 @@ interface BookingCardProps {
   isMobile?: boolean;
 }
 
+// Adaptive styles based on card height
+const getAdaptiveStyles = (height: number, total: number, viewMode: string) => {
+  // Very small cards (< 35px) - minimal display
+  if (height < 35 || total >= 5) {
+    return {
+      textSize: 'text-[8px]',
+      iconSize: 'w-2 h-2',
+      padding: 'px-1 py-0.5',
+      gap: 'gap-0.5',
+      showClient: false,
+      showTimeRange: false,
+      lineHeight: 'leading-tight',
+    };
+  }
+  
+  // Small cards (35-50px) - compact display
+  if (height < 50 || total >= 4) {
+    return {
+      textSize: 'text-[9px]',
+      iconSize: 'w-2 h-2',
+      padding: 'px-1 py-0.5',
+      gap: 'gap-0.5',
+      showClient: true,
+      showTimeRange: false,
+      lineHeight: 'leading-tight',
+    };
+  }
+  
+  // Medium cards (50-70px) - standard compact
+  if (height < 70 || total >= 3 || viewMode === 'week') {
+    return {
+      textSize: 'text-[10px]',
+      iconSize: 'w-2.5 h-2.5',
+      padding: 'px-1.5 py-1',
+      gap: 'gap-1',
+      showClient: true,
+      showTimeRange: true,
+      lineHeight: 'leading-normal',
+    };
+  }
+  
+  // Large cards (70-100px) - comfortable display
+  if (height < 100) {
+    return {
+      textSize: 'text-xs',
+      iconSize: 'w-3 h-3',
+      padding: 'px-2 py-1.5',
+      gap: 'gap-1',
+      showClient: true,
+      showTimeRange: true,
+      lineHeight: 'leading-normal',
+    };
+  }
+  
+  // Extra large cards (>= 100px) - full display
+  return {
+    textSize: 'text-sm',
+    iconSize: 'w-3.5 h-3.5',
+    padding: 'px-2.5 py-2',
+    gap: 'gap-1.5',
+    showClient: true,
+    showTimeRange: true,
+    lineHeight: 'leading-relaxed',
+  };
+};
+
 // Get client initials for compact display
 const getInitials = (name: string): string => {
   return name
@@ -39,6 +105,7 @@ interface CardButtonProps {
   booking: ApiBooking;
   style: { top: number; height: number; left?: string; width?: string };
   colorClasses: ColorClasses;
+  adaptiveStyles: ReturnType<typeof getAdaptiveStyles>;
   widthPercent: number;
   leftPercent: number;
   gap: number;
@@ -48,13 +115,13 @@ interface CardButtonProps {
   dragAttributes: Record<string, any>;
   dragListeners: Record<string, any> | undefined;
   onClick: () => void;
-  isCompact: boolean;
 }
 
 const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
-  ({ booking, style, colorClasses, widthPercent, leftPercent, gap, isDragging, isDraggable, dragStyle, dragAttributes, dragListeners, onClick, isCompact }, ref) => {
+  ({ booking, style, colorClasses, adaptiveStyles, widthPercent, leftPercent, gap, isDragging, isDraggable, dragStyle, dragAttributes, dragListeners, onClick }, ref) => {
     const startTime = booking.start_time.substring(0, 5);
     const endTime = booking.end_time.substring(0, 5);
+    const timeDisplay = adaptiveStyles.showTimeRange ? `${startTime} - ${endTime}` : startTime;
 
     return (
       <button
@@ -70,8 +137,10 @@ const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
           'hover:brightness-95 hover:scale-[1.01]',
           // Dragging state
           isDragging && 'opacity-60 scale-105 shadow-lg z-50',
-          // Padding
-          isCompact ? 'px-1.5 py-1' : 'px-2 py-1.5',
+          // Adaptive padding
+          adaptiveStyles.padding,
+          // Line height
+          adaptiveStyles.lineHeight,
           // Colors
           colorClasses.bg,
           colorClasses.text,
@@ -82,26 +151,28 @@ const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
           height: style.height,
           left: style.left || `calc(${leftPercent}% + ${gap}px)`,
           width: style.width || `calc(${widthPercent}% - ${gap * 2}px)`,
-          minHeight: 24,
+          minHeight: 20,
           ...dragStyle,
         }}
         {...(isDraggable ? { ...dragAttributes, ...dragListeners } : {})}
       >
-        {/* Row 1: Time range (bold) */}
-        <div className="flex items-center gap-1 w-full">
-          <Clock className={cn(isCompact ? 'w-2.5 h-2.5' : 'w-3 h-3', 'shrink-0 opacity-70')} />
-          <span className={cn('font-bold leading-none whitespace-nowrap', isCompact ? 'text-[10px]' : 'text-xs')}>
-            {startTime} - {endTime}
+        {/* Row 1: Time (bold) */}
+        <div className={cn('flex items-center w-full', adaptiveStyles.gap)}>
+          <Clock className={cn(adaptiveStyles.iconSize, 'shrink-0 opacity-70')} />
+          <span className={cn('font-bold whitespace-nowrap', adaptiveStyles.textSize)}>
+            {timeDisplay}
           </span>
         </div>
         
-        {/* Row 2: Client Name */}
-        <div className={cn('flex items-center gap-1 mt-0.5 w-full', isCompact ? 'text-[10px]' : 'text-xs')}>
-          <User className={cn(isCompact ? 'w-2.5 h-2.5' : 'w-3 h-3', 'shrink-0 opacity-70')} />
-          <span className="font-medium truncate leading-none">
-            {widthPercent < 40 ? getInitials(booking.client_name) : booking.client_name}
-          </span>
-        </div>
+        {/* Row 2: Client Name (if there's space) */}
+        {adaptiveStyles.showClient && (
+          <div className={cn('flex items-center w-full mt-0.5', adaptiveStyles.gap)}>
+            <User className={cn(adaptiveStyles.iconSize, 'shrink-0 opacity-70')} />
+            <span className={cn('font-medium truncate', adaptiveStyles.textSize)}>
+              {widthPercent < 40 ? getInitials(booking.client_name) : booking.client_name}
+            </span>
+          </div>
+        )}
       </button>
     );
   }
@@ -139,11 +210,11 @@ export function BookingCard({
   const leftPercent = isMobile ? 0 : index * widthPercent;
   const gap = 2; // 2px gap between overlapping cards
   
-  // Compact mode for week view or when there are overlaps
-  const isCompact = viewMode === 'week' || total >= 2;
+  // Get adaptive styles based on card height and context
+  const adaptiveStyles = getAdaptiveStyles(style.height, total, viewMode);
   
-  // Show tooltip for narrow cards
-  const showTooltip = widthPercent < 50 || total >= 3;
+  // Show tooltip for narrow cards or when content is hidden
+  const showTooltip = widthPercent < 50 || total >= 3 || !adaptiveStyles.showClient;
   
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
@@ -152,6 +223,7 @@ export function BookingCard({
     booking,
     style,
     colorClasses,
+    adaptiveStyles,
     widthPercent,
     leftPercent,
     gap,
@@ -161,10 +233,9 @@ export function BookingCard({
     dragAttributes: attributes,
     dragListeners: listeners,
     onClick,
-    isCompact,
   };
   
-  // Wrap with tooltip for narrow cards
+  // Wrap with tooltip for compact cards
   if (showTooltip && !isDragging) {
     return (
       <TooltipProvider delayDuration={200}>
