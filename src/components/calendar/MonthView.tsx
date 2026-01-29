@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { ApiBooking } from '@/types/api';
 import { Service } from '@/types';
 import { Clock, User } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Tooltip,
   TooltipContent,
@@ -69,6 +70,8 @@ const getServicePastelColor = (booking: ApiBooking, services: Service[]) => {
 };
 
 export function MonthView({ currentDate, bookings, services, onDateClick, onBookingClick }: MonthViewProps) {
+  const isMobile = useIsMobile();
+  
   // Generate calendar days grid
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
@@ -154,6 +157,7 @@ export function MonthView({ currentDate, bookings, services, onDateClick, onBook
                       key={booking.id}
                       booking={booking}
                       colorClasses={colorClasses}
+                      isMobile={isMobile}
                       onClick={(e) => {
                         e.stopPropagation();
                         onBookingClick(booking);
@@ -184,10 +188,21 @@ export function MonthView({ currentDate, bookings, services, onDateClick, onBook
 interface MonthBookingCardProps {
   booking: ApiBooking;
   colorClasses: { bg: string; hover: string; text: string; border: string };
+  isMobile: boolean;
   onClick: (e: React.MouseEvent) => void;
 }
 
-function MonthBookingCard({ booking, colorClasses, onClick }: MonthBookingCardProps) {
+// Get initials for mobile view
+const getInitials = (name: string): string => {
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+function MonthBookingCard({ booking, colorClasses, isMobile, onClick }: MonthBookingCardProps) {
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
 
@@ -199,26 +214,42 @@ function MonthBookingCard({ booking, colorClasses, onClick }: MonthBookingCardPr
             onClick={onClick}
             className={cn(
               // Consistent design: rounded corners, left border, shadow
-              'w-full text-left px-1.5 py-1 rounded-lg border-l-4 transition-all',
+              'w-full text-left rounded-lg border-l-4 transition-all',
               'shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:shadow-md',
               'hover:brightness-95',
+              // Smaller padding on mobile
+              isMobile ? 'px-0.5 py-0.5 border-l-2' : 'px-1.5 py-1',
               colorClasses.bg,
               colorClasses.hover,
               colorClasses.text,
               colorClasses.border
             )}
           >
-            {/* Row 1: Time range (bold) - consistent with other views */}
+            {/* Row 1: Time range - smaller on mobile */}
             <div className="flex items-center gap-0.5">
-              <Clock className="w-2.5 h-2.5 opacity-70 shrink-0" />
-              <span className="text-[10px] font-bold leading-none">
+              <Clock className={cn(
+                'opacity-70 shrink-0',
+                isMobile ? 'w-2 h-2' : 'w-2.5 h-2.5'
+              )} />
+              <span className={cn(
+                'font-bold leading-none whitespace-nowrap',
+                isMobile ? 'text-[7px]' : 'text-[10px]'
+              )}>
                 {startTime} - {endTime}
               </span>
             </div>
-            {/* Row 2: Client name - consistent with other views */}
+            {/* Row 2: Client name - initials only on mobile */}
             <div className="flex items-center gap-0.5 mt-0.5">
-              <User className="w-2.5 h-2.5 opacity-70 shrink-0" />
-              <span className="text-[10px] font-medium truncate leading-none">{booking.client_name}</span>
+              <User className={cn(
+                'opacity-70 shrink-0',
+                isMobile ? 'w-2 h-2' : 'w-2.5 h-2.5'
+              )} />
+              <span className={cn(
+                'font-medium truncate leading-none',
+                isMobile ? 'text-[7px]' : 'text-[10px]'
+              )}>
+                {isMobile ? getInitials(booking.client_name) : booking.client_name}
+              </span>
             </div>
           </button>
         </TooltipTrigger>
