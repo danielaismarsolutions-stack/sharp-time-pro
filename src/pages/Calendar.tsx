@@ -37,6 +37,8 @@ import {
   Filter,
   Loader2,
   RefreshCw,
+  Clock,
+  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -536,10 +538,18 @@ export default function Calendar() {
                                 openBookingDetail(booking);
                               }}
                             >
-                              <div className="flex items-baseline gap-1">
-                                <span className="text-[10px] font-bold">{booking.start_time.substring(0, 5)}</span>
+                              {/* Row 1: Time range (bold) - consistent design */}
+                              <div className="flex items-center gap-0.5">
+                                <Clock className="w-2.5 h-2.5 opacity-70 shrink-0" />
+                                <span className="text-[10px] font-bold leading-none">
+                                  {booking.start_time.substring(0, 5)} - {booking.end_time.substring(0, 5)}
+                                </span>
                               </div>
-                              <div className="text-[9px] font-medium truncate">{booking.client_name}</div>
+                              {/* Row 2: Client name - consistent design */}
+                              <div className="flex items-center gap-0.5 mt-0.5">
+                                <User className="w-2.5 h-2.5 opacity-70 shrink-0" />
+                                <span className="text-[10px] font-medium truncate leading-none">{booking.client_name}</span>
+                              </div>
                             </div>
                           );
                         })}

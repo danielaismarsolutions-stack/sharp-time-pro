@@ -1,8 +1,8 @@
-// Shared BookingCard component with new design
+// Shared BookingCard component with consistent design across all views
 import React, { forwardRef } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Clock, Scissors, User } from 'lucide-react';
+import { Clock, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ApiBooking } from '@/types/api';
 import { ColorClasses, OverlapInfo } from './types';
@@ -24,65 +24,6 @@ interface BookingCardProps {
   isMobile?: boolean;
 }
 
-// Adaptive styles based on card dimensions and overlap
-const getAdaptiveStyles = (height: number, total: number, viewMode: string, isMobile: boolean) => {
-  const isWeek = viewMode === 'week';
-  const isCompact = total >= 3 || height < 50 || isWeek;
-  const isVeryCompact = total >= 4 || height < 35 || (isWeek && total >= 2);
-  const showOnlyTime = height < 25 || total >= 5;
-  
-  if (showOnlyTime) {
-    return {
-      timeSize: 'text-[8px]',
-      clientSize: 'text-[8px]',
-      iconSize: 'w-2 h-2',
-      padding: 'px-1 py-0.5',
-      showBarber: false,
-      showClient: false,
-      showTime: true,
-      showTimeRange: false,
-    };
-  }
-  
-  if (isVeryCompact) {
-    return {
-      timeSize: 'text-[9px]',
-      clientSize: 'text-[9px]',
-      iconSize: 'w-2.5 h-2.5',
-      padding: 'px-1.5 py-1',
-      showBarber: false,
-      showClient: height > 30,
-      showTime: true,
-      showTimeRange: false,
-    };
-  }
-  
-  if (isCompact) {
-    return {
-      timeSize: 'text-[10px]',
-      clientSize: 'text-[10px]',
-      iconSize: 'w-2.5 h-2.5',
-      padding: 'px-1.5 py-1',
-      showBarber: height > 45 && total <= 2,
-      showClient: true,
-      showTime: true,
-      showTimeRange: height > 35,
-    };
-  }
-  
-  // Full layout
-  return {
-    timeSize: 'text-xs',
-    clientSize: 'text-sm',
-    iconSize: 'w-3 h-3',
-    padding: 'px-2 py-1.5',
-    showBarber: true,
-    showClient: true,
-    showTime: true,
-    showTimeRange: true,
-  };
-};
-
 // Get client initials for compact display
 const getInitials = (name: string): string => {
   return name
@@ -98,7 +39,6 @@ interface CardButtonProps {
   booking: ApiBooking;
   style: { top: number; height: number; left?: string; width?: string };
   colorClasses: ColorClasses;
-  adaptiveStyles: ReturnType<typeof getAdaptiveStyles>;
   widthPercent: number;
   leftPercent: number;
   gap: number;
@@ -108,15 +48,13 @@ interface CardButtonProps {
   dragAttributes: Record<string, any>;
   dragListeners: Record<string, any> | undefined;
   onClick: () => void;
-  viewMode: string;
+  isCompact: boolean;
 }
 
 const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
-  ({ booking, style, colorClasses, adaptiveStyles, widthPercent, leftPercent, gap, isDragging, isDraggable, dragStyle, dragAttributes, dragListeners, onClick, viewMode }, ref) => {
+  ({ booking, style, colorClasses, widthPercent, leftPercent, gap, isDragging, isDraggable, dragStyle, dragAttributes, dragListeners, onClick, isCompact }, ref) => {
     const startTime = booking.start_time.substring(0, 5);
     const endTime = booking.end_time.substring(0, 5);
-    const timeDisplay = adaptiveStyles.showTimeRange ? `${startTime}-${endTime}` : startTime;
-    const barberFirstName = booking.barber?.split(' ')[0] || '';
 
     return (
       <button
@@ -132,8 +70,9 @@ const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
           'hover:brightness-95 hover:scale-[1.01]',
           // Dragging state
           isDragging && 'opacity-60 scale-105 shadow-lg z-50',
+          // Padding
+          isCompact ? 'px-1.5 py-1' : 'px-2 py-1.5',
           // Colors
-          adaptiveStyles.padding,
           colorClasses.bg,
           colorClasses.text,
           colorClasses.border
@@ -148,36 +87,21 @@ const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
         }}
         {...(isDraggable ? { ...dragAttributes, ...dragListeners } : {})}
       >
-        {/* Row 1: Time (bold) + Barber */}
-        <div className="flex justify-between items-center gap-1 w-full">
-          <div className={cn('flex items-center gap-1 font-bold', adaptiveStyles.timeSize)}>
-            <Clock className={cn(adaptiveStyles.iconSize, 'shrink-0 opacity-70')} />
-            <span className="leading-none whitespace-nowrap">{timeDisplay}</span>
-          </div>
-          {adaptiveStyles.showBarber && barberFirstName && (
-            <div className={cn('flex items-center gap-0.5 font-medium truncate', adaptiveStyles.timeSize)}>
-              <Scissors className={cn(adaptiveStyles.iconSize, 'shrink-0 opacity-70')} />
-              <span className="truncate leading-none">{barberFirstName}</span>
-            </div>
-          )}
+        {/* Row 1: Time range (bold) */}
+        <div className="flex items-center gap-1 w-full">
+          <Clock className={cn(isCompact ? 'w-2.5 h-2.5' : 'w-3 h-3', 'shrink-0 opacity-70')} />
+          <span className={cn('font-bold leading-none whitespace-nowrap', isCompact ? 'text-[10px]' : 'text-xs')}>
+            {startTime} - {endTime}
+          </span>
         </div>
         
         {/* Row 2: Client Name */}
-        {adaptiveStyles.showClient && (
-          <div className={cn('flex items-center gap-1 mt-0.5 w-full', adaptiveStyles.clientSize)}>
-            <User className={cn(adaptiveStyles.iconSize, 'shrink-0 opacity-70')} />
-            <span className="font-semibold truncate leading-none">
-              {widthPercent < 40 ? getInitials(booking.client_name) : booking.client_name}
-            </span>
-          </div>
-        )}
-        
-        {/* Row 3: Service indicator (for larger cards) */}
-        {viewMode === 'day' && style.height >= 70 && (widthPercent === 100 || widthPercent > 90) && (
-          <div className="flex items-center gap-2 mt-1 text-[10px] opacity-75 flex-wrap">
-            <span className="truncate">{booking.service_name}</span>
-          </div>
-        )}
+        <div className={cn('flex items-center gap-1 mt-0.5 w-full', isCompact ? 'text-[10px]' : 'text-xs')}>
+          <User className={cn(isCompact ? 'w-2.5 h-2.5' : 'w-3 h-3', 'shrink-0 opacity-70')} />
+          <span className="font-medium truncate leading-none">
+            {widthPercent < 40 ? getInitials(booking.client_name) : booking.client_name}
+          </span>
+        </div>
       </button>
     );
   }
@@ -210,12 +134,13 @@ export function BookingCard({
     opacity: 0.8,
   } : undefined;
   
-  const adaptiveStyles = getAdaptiveStyles(style.height, total, viewMode, isMobile);
-  
   // Calculate width based on overlaps (side-by-side for desktop)
   const widthPercent = isMobile ? 100 : 100 / total;
   const leftPercent = isMobile ? 0 : index * widthPercent;
   const gap = 2; // 2px gap between overlapping cards
+  
+  // Compact mode for week view or when there are overlaps
+  const isCompact = viewMode === 'week' || total >= 2;
   
   // Show tooltip for narrow cards
   const showTooltip = widthPercent < 50 || total >= 3;
@@ -223,12 +148,10 @@ export function BookingCard({
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
 
-  // Combine refs for drag and tooltip
   const cardProps = {
     booking,
     style,
     colorClasses,
-    adaptiveStyles,
     widthPercent,
     leftPercent,
     gap,
@@ -238,7 +161,7 @@ export function BookingCard({
     dragAttributes: attributes,
     dragListeners: listeners,
     onClick,
-    viewMode,
+    isCompact,
   };
   
   // Wrap with tooltip for narrow cards
