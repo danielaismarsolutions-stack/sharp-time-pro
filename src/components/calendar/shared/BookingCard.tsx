@@ -182,10 +182,10 @@ export function BookingCard({
     opacity: 0.8,
   } : undefined;
   
-  // Calculate width based on overlaps (side-by-side for desktop)
-  const widthPercent = isMobile ? 100 : 100 / total;
-  const leftPercent = isMobile ? 0 : index * widthPercent;
-  const gap = 2; // 2px gap between overlapping cards
+  // Calculate width based on overlaps (side-by-side for all devices)
+  const widthPercent = 100 / total;
+  const leftPercent = index * widthPercent;
+  const gap = isMobile ? 1 : 2; // Smaller gap on mobile
   
   // Get spacing based on card height only
   const spacingStyles = getSpacingStyles(style.height);
