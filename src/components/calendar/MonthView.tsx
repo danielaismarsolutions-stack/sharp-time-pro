@@ -206,6 +206,47 @@ function MonthBookingCard({ booking, colorClasses, isMobile, onClick }: MonthBoo
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
 
+  // Ultra compact mobile version
+  if (isMobile) {
+    return (
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onClick}
+              className={cn(
+                'w-full text-left rounded border-l-2 transition-all',
+                'shadow-[0_1px_2px_rgba(0,0,0,0.1)] hover:shadow-md',
+                'hover:brightness-95 px-0.5 py-px',
+                colorClasses.bg,
+                colorClasses.hover,
+                colorClasses.text,
+                colorClasses.border
+              )}
+            >
+              {/* Single line: time + initials */}
+              <div className="flex items-center justify-between gap-0.5">
+                <span className="text-[6px] font-bold leading-none">{startTime}</span>
+                <span className="text-[6px] font-medium leading-none">{getInitials(booking.client_name)}</span>
+              </div>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="max-w-xs">
+            <div className="space-y-1">
+              <p className="font-bold">{startTime} - {endTime}</p>
+              <p className="font-semibold">{booking.client_name}</p>
+              <p className="text-sm opacity-80">{booking.service_name}</p>
+              {booking.barber && (
+                <p className="text-sm opacity-70">Barbero: {booking.barber}</p>
+              )}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  // Desktop version with full details
   return (
     <TooltipProvider delayDuration={200}>
       <Tooltip>
@@ -213,42 +254,27 @@ function MonthBookingCard({ booking, colorClasses, isMobile, onClick }: MonthBoo
           <button
             onClick={onClick}
             className={cn(
-              // Consistent design: rounded corners, left border, shadow
               'w-full text-left rounded-lg border-l-4 transition-all',
               'shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:shadow-md',
-              'hover:brightness-95',
-              // Smaller padding on mobile
-              isMobile ? 'px-0.5 py-0.5 border-l-2' : 'px-1.5 py-1',
+              'hover:brightness-95 px-1.5 py-1',
               colorClasses.bg,
               colorClasses.hover,
               colorClasses.text,
               colorClasses.border
             )}
           >
-            {/* Row 1: Time range - much smaller on mobile */}
+            {/* Row 1: Time range */}
             <div className="flex items-center gap-0.5">
-              <Clock className={cn(
-                'opacity-70 shrink-0',
-                isMobile ? 'w-1.5 h-1.5' : 'w-2.5 h-2.5'
-              )} />
-              <span className={cn(
-                'font-bold leading-none whitespace-nowrap',
-                isMobile ? 'text-[5px]' : 'text-[10px]'
-              )}>
+              <Clock className="w-2.5 h-2.5 opacity-70 shrink-0" />
+              <span className="text-[10px] font-bold leading-none">
                 {startTime} - {endTime}
               </span>
             </div>
-            {/* Row 2: Client name - initials only on mobile */}
+            {/* Row 2: Client name */}
             <div className="flex items-center gap-0.5 mt-0.5">
-              <User className={cn(
-                'opacity-70 shrink-0',
-                isMobile ? 'w-1.5 h-1.5' : 'w-2.5 h-2.5'
-              )} />
-              <span className={cn(
-                'font-medium truncate leading-none',
-                isMobile ? 'text-[5px]' : 'text-[10px]'
-              )}>
-                {isMobile ? getInitials(booking.client_name) : booking.client_name}
+              <User className="w-2.5 h-2.5 opacity-70 shrink-0" />
+              <span className="text-[10px] font-medium truncate leading-none">
+                {booking.client_name}
               </span>
             </div>
           </button>
