@@ -2,10 +2,16 @@ import { useMemo } from 'react';
 import { format, differenceInMinutes, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { StatusBadge, BookingStatus } from './StatusBadge';
 import { ApiBooking } from '@/types/api';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Clock, Phone, Scissors, User } from 'lucide-react';
+import { StatusBadge, BookingStatus } from './StatusBadge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface DayViewProps {
   currentDate: Date;
@@ -14,7 +20,36 @@ interface DayViewProps {
 }
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8:00 - 20:00
-const HOUR_HEIGHT = 80; // pixels per hour - larger for day view
+const HOUR_HEIGHT = 80; // pixels per hour
+
+// Status-based colors with left border
+const statusColors: Record<BookingStatus, { bg: string; border: string; text: string }> = {
+  pending: { bg: 'bg-amber-50', border: 'border-l-amber-400', text: 'text-amber-900' },
+  confirmed: { bg: 'bg-blue-50', border: 'border-l-blue-400', text: 'text-blue-900' },
+  completed: { bg: 'bg-emerald-50', border: 'border-l-emerald-400', text: 'text-emerald-900' },
+  cancelled: { bg: 'bg-rose-50', border: 'border-l-rose-400', text: 'text-rose-900' },
+  no_show: { bg: 'bg-purple-50', border: 'border-l-purple-400', text: 'text-purple-900' },
+};
+
+// Check if two bookings overlap
+const doBookingsOverlap = (a: ApiBooking, b: ApiBooking) => {
+  const aStart = parse(a.start_time, 'HH:mm:ss', new Date());
+  const aEnd = parse(a.end_time, 'HH:mm:ss', new Date());
+  const bStart = parse(b.start_time, 'HH:mm:ss', new Date());
+  const bEnd = parse(b.end_time, 'HH:mm:ss', new Date());
+  return aStart < bEnd && aEnd > bStart;
+};
+
+// Calculate overlap info
+const getOverlapInfo = (bookings: ApiBooking[], booking: ApiBooking) => {
+  const overlapping = bookings.filter(b => doBookingsOverlap(booking, b));
+  overlapping.sort((a, b) => {
+    const timeComp = a.start_time.localeCompare(b.start_time);
+    return timeComp !== 0 ? timeComp : a.id.localeCompare(b.id);
+  });
+  const index = overlapping.findIndex(b => b.id === booking.id);
+  return { total: overlapping.length, index };
+};
 
 export function DayView({ currentDate, bookings, onBookingClick }: DayViewProps) {
   // Filter bookings for this day
@@ -75,11 +110,13 @@ export function DayView({ currentDate, bookings, onBookingClick }: DayViewProps)
             {/* Bookings */}
             {dayBookings.map((booking) => {
               const style = getBookingStyle(booking);
+              const overlapInfo = getOverlapInfo(dayBookings, booking);
               return (
                 <DayBookingCard
                   key={booking.id}
                   booking={booking}
                   style={style}
+                  overlapInfo={overlapInfo}
                   onClick={() => onBookingClick(booking)}
                 />
               );
@@ -104,43 +141,50 @@ export function DayView({ currentDate, bookings, onBookingClick }: DayViewProps)
 interface DayBookingCardProps {
   booking: ApiBooking;
   style: { top: number; height: number };
+  overlapInfo: { total: number; index: number };
   onClick: () => void;
 }
 
-// Status-based colors for consistency
-const statusColors: Record<BookingStatus, string> = {
-  pending: 'bg-amber-500/15 border-l-amber-400 hover:bg-amber-500/25',
-  confirmed: 'bg-blue-500/15 border-l-blue-400 hover:bg-blue-500/25',
-  completed: 'bg-emerald-500/15 border-l-emerald-400 hover:bg-emerald-500/25',
-  cancelled: 'bg-rose-500/15 border-l-rose-400 hover:bg-rose-500/25',
-  no_show: 'bg-purple-500/15 border-l-purple-400 hover:bg-purple-500/25',
-};
-
-function DayBookingCard({ booking, style, onClick }: DayBookingCardProps) {
+function DayBookingCard({ booking, style, overlapInfo, onClick }: DayBookingCardProps) {
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
   const isLarge = style.height >= 100;
   const isMedium = style.height >= 70 && style.height < 100;
-  
-  // Get barber first name for compact display
   const barberFirstName = booking.barber?.split(' ')[0] || '';
+  
+  const { total, index } = overlapInfo;
+  const widthPercent = 100 / total;
+  const leftPercent = index * widthPercent;
+  const showTooltip = total >= 3 || widthPercent < 50;
+  
+  const colors = statusColors[booking.status as BookingStatus] || statusColors.pending;
 
-  return (
+  const cardContent = (
     <button
       onClick={onClick}
       className={cn(
-        'absolute left-2 right-4 rounded-md border border-border/30 border-l-4 p-2 overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-md hover:brightness-95',
-        statusColors[booking.status as BookingStatus] || 'bg-secondary/50 border-l-secondary'
+        // New design: rounded corners, left border, shadow
+        'absolute rounded-lg border border-border/40 border-l-4 p-2 overflow-hidden',
+        'transition-all duration-200 cursor-pointer text-left flex flex-col justify-start',
+        // Shadow for depth
+        'shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:shadow-md',
+        'hover:brightness-95 hover:scale-[1.01]',
+        colors.bg,
+        colors.border,
+        colors.text
       )}
       style={{
         top: style.top,
         height: style.height,
+        left: `calc(${leftPercent}% + 8px)`,
+        width: `calc(${widthPercent}% - 16px)`,
+        minWidth: 80,
       }}
     >
-      {/* Row 1: Time (left) + Barber (right) */}
+      {/* Row 1: Time (bold) + Barber */}
       <div className="flex justify-between items-center gap-1 mb-0.5">
         <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-1 text-xs font-medium text-foreground">
+          <div className="flex items-center gap-1 text-xs font-bold">
             <Clock className="w-3 h-3 opacity-70" />
             <span>{startTime}-{endTime}</span>
           </div>
@@ -148,8 +192,8 @@ function DayBookingCard({ booking, style, onClick }: DayBookingCardProps) {
             <StatusBadge status={booking.status as BookingStatus} size="sm" />
           )}
         </div>
-        {barberFirstName && (
-          <div className="flex items-center gap-1 text-xs font-medium text-foreground">
+        {barberFirstName && total <= 2 && (
+          <div className="flex items-center gap-1 text-xs font-medium">
             <Scissors className="w-3 h-3 opacity-70" />
             <span className="truncate max-w-[80px]">{barberFirstName}</span>
           </div>
@@ -159,14 +203,16 @@ function DayBookingCard({ booking, style, onClick }: DayBookingCardProps) {
       {/* Row 2: Client Name */}
       <div className="flex items-center gap-1">
         <User className="w-3.5 h-3.5 opacity-70" />
-        <span className="text-sm font-semibold text-foreground truncate">{booking.client_name}</span>
+        <span className="text-sm font-semibold truncate">
+          {widthPercent < 40 ? booking.client_name.split(' ').map(n => n[0]).join('').slice(0, 2) : booking.client_name}
+        </span>
       </div>
 
       {/* Row 3: Extra details for larger cards */}
-      {(isLarge || isMedium) && (
-        <div className="flex items-center gap-3 mt-1 flex-wrap text-xs text-muted-foreground">
+      {(isLarge || isMedium) && total === 1 && (
+        <div className="flex items-center gap-3 mt-1 flex-wrap text-xs opacity-75">
           <span className="font-medium">{booking.service_name}</span>
-          <span className="font-semibold text-primary">€{booking.service_price}</span>
+          <span className="font-semibold">€{booking.service_price}</span>
           {isLarge && booking.client_phone && (
             <div className="flex items-center gap-1">
               <Phone className="w-3 h-3" />
@@ -177,4 +223,30 @@ function DayBookingCard({ booking, style, onClick }: DayBookingCardProps) {
       )}
     </button>
   );
+
+  // Wrap with tooltip for narrow/overlapping cards
+  if (showTooltip) {
+    return (
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {cardContent}
+          </TooltipTrigger>
+          <TooltipContent side="right" className="max-w-xs">
+            <div className="space-y-1">
+              <p className="font-bold">{startTime} - {endTime}</p>
+              <p className="font-semibold">{booking.client_name}</p>
+              <p className="text-sm opacity-80">{booking.service_name}</p>
+              {booking.barber && (
+                <p className="text-sm opacity-70">Barbero: {booking.barber}</p>
+              )}
+              <p className="text-sm font-semibold">€{booking.service_price}</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return cardContent;
 }

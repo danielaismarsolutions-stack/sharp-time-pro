@@ -7,13 +7,19 @@ import {
   eachDayOfInterval,
   format,
   isSameMonth,
-  isSameDay,
   isToday,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { ApiBooking } from '@/types/api';
 import { Service } from '@/types';
+import { Clock, User } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface MonthViewProps {
   currentDate: Date;
@@ -25,31 +31,31 @@ interface MonthViewProps {
 
 const MAX_VISIBLE_BOOKINGS = 3;
 
-// Predefined pastel colors for services
+// Predefined pastel colors for services with left border
 const pastelColors = [
-  { bg: 'bg-blue-200', hover: 'hover:bg-blue-300', text: 'text-blue-900' },
-  { bg: 'bg-emerald-200', hover: 'hover:bg-emerald-300', text: 'text-emerald-900' },
-  { bg: 'bg-amber-200', hover: 'hover:bg-amber-300', text: 'text-amber-900' },
-  { bg: 'bg-rose-200', hover: 'hover:bg-rose-300', text: 'text-rose-900' },
-  { bg: 'bg-violet-200', hover: 'hover:bg-violet-300', text: 'text-violet-900' },
-  { bg: 'bg-pink-200', hover: 'hover:bg-pink-300', text: 'text-pink-900' },
-  { bg: 'bg-cyan-200', hover: 'hover:bg-cyan-300', text: 'text-cyan-900' },
-  { bg: 'bg-lime-200', hover: 'hover:bg-lime-300', text: 'text-lime-900' },
+  { bg: 'bg-blue-100', hover: 'hover:bg-blue-200', text: 'text-blue-900', border: 'border-l-blue-500' },
+  { bg: 'bg-emerald-100', hover: 'hover:bg-emerald-200', text: 'text-emerald-900', border: 'border-l-emerald-500' },
+  { bg: 'bg-amber-100', hover: 'hover:bg-amber-200', text: 'text-amber-900', border: 'border-l-amber-500' },
+  { bg: 'bg-rose-100', hover: 'hover:bg-rose-200', text: 'text-rose-900', border: 'border-l-rose-500' },
+  { bg: 'bg-violet-100', hover: 'hover:bg-violet-200', text: 'text-violet-900', border: 'border-l-violet-500' },
+  { bg: 'bg-pink-100', hover: 'hover:bg-pink-200', text: 'text-pink-900', border: 'border-l-pink-500' },
+  { bg: 'bg-cyan-100', hover: 'hover:bg-cyan-200', text: 'text-cyan-900', border: 'border-l-cyan-500' },
+  { bg: 'bg-lime-100', hover: 'hover:bg-lime-200', text: 'text-lime-900', border: 'border-l-lime-500' },
 ];
 
 // Map service colors to pastel classes
-const serviceColorMap: Record<string, { bg: string; hover: string; text: string }> = {
-  '#3b82f6': { bg: 'bg-blue-200', hover: 'hover:bg-blue-300', text: 'text-blue-900' },
-  '#10b981': { bg: 'bg-emerald-200', hover: 'hover:bg-emerald-300', text: 'text-emerald-900' },
-  '#f59e0b': { bg: 'bg-amber-200', hover: 'hover:bg-amber-300', text: 'text-amber-900' },
-  '#ef4444': { bg: 'bg-red-200', hover: 'hover:bg-red-300', text: 'text-red-900' },
-  '#8b5cf6': { bg: 'bg-violet-200', hover: 'hover:bg-violet-300', text: 'text-violet-900' },
-  '#ec4899': { bg: 'bg-pink-200', hover: 'hover:bg-pink-300', text: 'text-pink-900' },
-  '#06b6d4': { bg: 'bg-cyan-200', hover: 'hover:bg-cyan-300', text: 'text-cyan-900' },
-  '#84cc16': { bg: 'bg-lime-200', hover: 'hover:bg-lime-300', text: 'text-lime-900' },
-  '#6366f1': { bg: 'bg-indigo-200', hover: 'hover:bg-indigo-300', text: 'text-indigo-900' },
-  '#14b8a6': { bg: 'bg-teal-200', hover: 'hover:bg-teal-300', text: 'text-teal-900' },
-  '#f97316': { bg: 'bg-orange-200', hover: 'hover:bg-orange-300', text: 'text-orange-900' },
+const serviceColorMap: Record<string, typeof pastelColors[0]> = {
+  '#3b82f6': { bg: 'bg-blue-100', hover: 'hover:bg-blue-200', text: 'text-blue-900', border: 'border-l-blue-500' },
+  '#10b981': { bg: 'bg-emerald-100', hover: 'hover:bg-emerald-200', text: 'text-emerald-900', border: 'border-l-emerald-500' },
+  '#f59e0b': { bg: 'bg-amber-100', hover: 'hover:bg-amber-200', text: 'text-amber-900', border: 'border-l-amber-500' },
+  '#ef4444': { bg: 'bg-red-100', hover: 'hover:bg-red-200', text: 'text-red-900', border: 'border-l-red-500' },
+  '#8b5cf6': { bg: 'bg-violet-100', hover: 'hover:bg-violet-200', text: 'text-violet-900', border: 'border-l-violet-500' },
+  '#ec4899': { bg: 'bg-pink-100', hover: 'hover:bg-pink-200', text: 'text-pink-900', border: 'border-l-pink-500' },
+  '#06b6d4': { bg: 'bg-cyan-100', hover: 'hover:bg-cyan-200', text: 'text-cyan-900', border: 'border-l-cyan-500' },
+  '#84cc16': { bg: 'bg-lime-100', hover: 'hover:bg-lime-200', text: 'text-lime-900', border: 'border-l-lime-500' },
+  '#6366f1': { bg: 'bg-indigo-100', hover: 'hover:bg-indigo-200', text: 'text-indigo-900', border: 'border-l-indigo-500' },
+  '#14b8a6': { bg: 'bg-teal-100', hover: 'hover:bg-teal-200', text: 'text-teal-900', border: 'border-l-teal-500' },
+  '#f97316': { bg: 'bg-orange-100', hover: 'hover:bg-orange-200', text: 'text-orange-900', border: 'border-l-orange-500' },
 };
 
 // Get pastel color classes for a booking based on its service
@@ -58,7 +64,6 @@ const getServicePastelColor = (booking: ApiBooking, services: Service[]) => {
   if (service?.color && serviceColorMap[service.color]) {
     return serviceColorMap[service.color];
   }
-  // Fallback: use hash of service name to pick a consistent color
   const hash = (booking.service_name || '').split('').reduce((a, b) => a + b.charCodeAt(0), 0);
   return pastelColors[hash % pastelColors.length];
 };
@@ -68,7 +73,7 @@ export function MonthView({ currentDate, bookings, services, onDateClick, onBook
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
-    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 }); // Start on Monday
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
   }, [currentDate]);
@@ -85,7 +90,6 @@ export function MonthView({ currentDate, bookings, services, onDateClick, onBook
         }
         grouped[dateKey].push(booking);
       });
-    // Sort bookings within each day by start_time
     Object.values(grouped).forEach((dayBookings) => {
       dayBookings.sort((a, b) => a.start_time.localeCompare(b.start_time));
     });
@@ -146,7 +150,7 @@ export function MonthView({ currentDate, bookings, services, onDateClick, onBook
                 {dayBookings.slice(0, MAX_VISIBLE_BOOKINGS).map((booking) => {
                   const colorClasses = getServicePastelColor(booking, services);
                   return (
-                    <BookingCard
+                    <MonthBookingCard
                       key={booking.id}
                       booking={booking}
                       colorClasses={colorClasses}
@@ -177,39 +181,62 @@ export function MonthView({ currentDate, bookings, services, onDateClick, onBook
   );
 }
 
-interface BookingCardProps {
+interface MonthBookingCardProps {
   booking: ApiBooking;
-  colorClasses: { bg: string; hover: string; text: string };
+  colorClasses: { bg: string; hover: string; text: string; border: string };
   onClick: (e: React.MouseEvent) => void;
 }
 
-function BookingCard({ booking, colorClasses, onClick }: BookingCardProps) {
+function MonthBookingCard({ booking, colorClasses, onClick }: MonthBookingCardProps) {
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
 
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'w-full text-left px-1.5 py-1 rounded-md transition-colors shadow-sm',
-        colorClasses.bg,
-        colorClasses.hover,
-        colorClasses.text
-      )}
-    >
-      {/* Row 1: Time range + Price */}
-      <div className="flex justify-between items-baseline gap-0.5">
-        <span className="text-[9px] font-semibold shrink-0">
-          {startTime}-{endTime}
-        </span>
-        <span className="text-[9px] font-bold shrink-0">
-          €{booking.service_price}
-        </span>
-      </div>
-      {/* Row 2: Client name */}
-      <div className="text-[9px] font-medium truncate">
-        {booking.client_name}
-      </div>
-    </button>
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={onClick}
+            className={cn(
+              // New design: rounded corners, left border, shadow
+              'w-full text-left px-1.5 py-1 rounded-lg border-l-4 transition-all',
+              'shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:shadow-md',
+              'hover:brightness-95',
+              colorClasses.bg,
+              colorClasses.hover,
+              colorClasses.text,
+              colorClasses.border
+            )}
+          >
+            {/* Row 1: Time (bold) + Price */}
+            <div className="flex justify-between items-baseline gap-0.5">
+              <span className="text-[9px] font-bold flex items-center gap-0.5">
+                <Clock className="w-2 h-2 opacity-70" />
+                {startTime}
+              </span>
+              <span className="text-[9px] font-bold shrink-0">
+                €{booking.service_price}
+              </span>
+            </div>
+            {/* Row 2: Client name */}
+            <div className="flex items-center gap-0.5 text-[9px] font-medium truncate">
+              <User className="w-2 h-2 opacity-70 shrink-0" />
+              <span className="truncate">{booking.client_name}</span>
+            </div>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="max-w-xs">
+          <div className="space-y-1">
+            <p className="font-bold">{startTime} - {endTime}</p>
+            <p className="font-semibold">{booking.client_name}</p>
+            <p className="text-sm opacity-80">{booking.service_name}</p>
+            {booking.barber && (
+              <p className="text-sm opacity-70">Barbero: {booking.barber}</p>
+            )}
+            <p className="text-sm font-semibold">€{booking.service_price}</p>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
