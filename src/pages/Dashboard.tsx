@@ -396,16 +396,16 @@ export default function Dashboard() {
                 Por Barbero
               </CardTitle>
             </CardHeader>
-            <CardContent className={cn(isMobile ? "px-0 pb-3 pt-0" : "p-6 pt-0")}>
+            <CardContent className={cn(isMobile ? "px-4 pb-3 pt-0" : "p-6 pt-0")}>
               {isMobile ? (
-                <div className="flex gap-2.5 overflow-x-auto pb-1 px-4 snap-x snap-mandatory scrollbar-none">
+                <div className="grid grid-cols-2 gap-2">
                   {barberStatsList.map((barber, index) => (
                     <motion.div
                       key={barber.name}
-                      initial={{ opacity: 0, x: 10 }}
-                      animate={{ opacity: 1, x: 0 }}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      className="flex-shrink-0 p-3 rounded-xl border bg-card/50 min-w-[130px] snap-start"
+                      className="p-3 rounded-xl border bg-card/50"
                     >
                       <div className="font-semibold text-[11px] mb-1.5 truncate">{barber.name}</div>
                       <div className="space-y-0.5">
