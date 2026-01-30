@@ -3,7 +3,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Users, DollarSign, TrendingUp, Plus, ArrowRight, RefreshCw, Loader2, AlertCircle, Scissors, ArrowUpDown, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Calendar, Users, DollarSign, TrendingUp, Plus, ArrowRight, RefreshCw, Loader2, AlertCircle, Scissors, ArrowUpDown, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Clock, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,8 @@ import { apiClient } from '@/services/apiClient';
 import { ApiBooking } from '@/types/api';
 import { cn } from '@/lib/utils';
 import { AnimatedCard } from '@/components/ui/animated-card';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 type SortField = 'date' | 'client' | 'service' | 'barber' | 'price';
 type SortOrder = 'asc' | 'desc';
@@ -21,10 +23,12 @@ type StatusFilter = 'all' | 'confirmed' | 'pending' | 'completed' | 'cancelled' 
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [bookings, setBookings] = useState<ApiBooking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   
   // Filter and sort state
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,7 +39,7 @@ export default function Dashboard() {
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(isMobile ? 10 : 15);
 
   const loadBookings = useCallback(async () => {
     try {
@@ -226,7 +230,7 @@ export default function Dashboard() {
         </div>
         <h2 className="text-xl font-semibold text-center">Error al cargar</h2>
         <p className="text-muted-foreground text-center max-w-md">{error}</p>
-        <Button onClick={handleRefresh} disabled={isRefreshing}>
+        <Button onClick={handleRefresh} disabled={isRefreshing} className="h-11 min-h-[44px]">
           {isRefreshing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -243,230 +247,384 @@ export default function Dashboard() {
     );
   }
 
+  // Mobile booking card component
+  const MobileBookingCard = ({ booking, index }: { booking: ApiBooking; index: number }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.03, 0.15) }}
+      className="p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+    >
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-sm truncate">{booking.client_name}</div>
+          <div className="text-xs text-muted-foreground">{booking.client_phone}</div>
+        </div>
+        <Badge 
+          variant="outline" 
+          className={cn("text-[10px] px-1.5 py-0.5 shrink-0", getStatusBadge(booking.status).class)}
+        >
+          {getStatusBadge(booking.status).label}
+        </Badge>
+      </div>
+      
+      <div className="text-sm font-medium text-primary mb-2">{booking.service_name}</div>
+      
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {format(new Date(booking.booking_date), "d MMM", { locale: es })}
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {formatTime(booking.start_time)}
+          </span>
+          {booking.barber && (
+            <span className="flex items-center gap-1">
+              <User className="h-3 w-3" />
+              {booking.barber.split(' ')[0]}
+            </span>
+          )}
+        </div>
+        <span className="font-semibold text-foreground">€{booking.service_price.toFixed(0)}</span>
+      </div>
+    </motion.div>
+  );
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="p-4 md:p-6 space-y-4 md:space-y-6"
+      className="p-3 md:p-6 space-y-3 md:space-y-6"
     >
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-2">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
+          className="min-w-0"
         >
-          <h1 className="text-2xl md:text-3xl font-bold">Panel de Control</h1>
-          <p className="text-muted-foreground text-sm md:text-base">
-            {format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
+          <h1 className="text-xl md:text-3xl font-bold truncate">Panel de Control</h1>
+          <p className="text-muted-foreground text-xs md:text-base truncate">
+            {format(new Date(), isMobile ? "d MMM yyyy" : "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
           </p>
         </motion.div>
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
-          className="flex gap-2 md:gap-3"
+          className="flex gap-2 shrink-0"
         >
           <Button 
             variant="outline" 
-            size="sm" 
-            className="flex-1 sm:flex-none h-11 min-h-[44px]"
+            size="icon" 
+            className="h-10 w-10 min-h-[44px] min-w-[44px]"
             onClick={handleRefresh}
             disabled={isRefreshing}
           >
-            <RefreshCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
-            <span className="hidden sm:inline">Actualizar</span>
+            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
           </Button>
-          <Button size="sm" className="flex-1 sm:flex-none h-11 min-h-[44px]" onClick={() => navigate('/calendar')}>
-            <Plus className="mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Nueva Cita</span>
-            <span className="sm:hidden">Nueva</span>
+          <Button size="sm" className="h-10 min-h-[44px] px-3" onClick={() => navigate('/calendar')}>
+            <Plus className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Nueva Cita</span>
           </Button>
         </motion.div>
       </div>
 
-      {/* Stats Cards - 4 cards grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      {/* Stats Cards - 2x2 on mobile */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
         <AnimatedCard delay={0}>
           <Card className="touch-manipulation h-full">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Total Citas</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground hidden sm:block" />
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <div className="text-xl md:text-2xl font-bold">{stats.totalBookings}</div>
-              <p className="text-[10px] md:text-xs text-muted-foreground">reservas totales</p>
+            <CardContent className="p-3 md:p-6">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] md:text-sm font-medium text-muted-foreground">Total Citas</span>
+                <Calendar className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+              </div>
+              <div className="text-lg md:text-2xl font-bold">{stats.totalBookings}</div>
+              <p className="text-[9px] md:text-xs text-muted-foreground">reservas</p>
             </CardContent>
           </Card>
         </AnimatedCard>
 
         <AnimatedCard delay={1}>
           <Card className="touch-manipulation h-full border-emerald-500/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Confirmadas</CardTitle>
-              <Users className="h-4 w-4 text-emerald-500 hidden sm:block" />
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <div className="text-xl md:text-2xl font-bold text-emerald-500">{stats.confirmedBookings}</div>
-              <p className="text-[10px] md:text-xs text-emerald-500/70">citas confirmadas</p>
+            <CardContent className="p-3 md:p-6">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] md:text-sm font-medium text-muted-foreground">Confirmadas</span>
+                <Users className="h-3.5 w-3.5 md:h-4 md:w-4 text-emerald-500" />
+              </div>
+              <div className="text-lg md:text-2xl font-bold text-emerald-500">{stats.confirmedBookings}</div>
+              <p className="text-[9px] md:text-xs text-emerald-500/70">citas</p>
             </CardContent>
           </Card>
         </AnimatedCard>
 
         <AnimatedCard delay={2}>
           <Card className="touch-manipulation h-full">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Ingresos</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground hidden sm:block" />
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <div className="text-xl md:text-2xl font-bold">€{stats.todayRevenue.toFixed(2)}</div>
-              <p className="text-[10px] md:text-xs text-muted-foreground">ingresos totales</p>
+            <CardContent className="p-3 md:p-6">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] md:text-sm font-medium text-muted-foreground">Ingresos</span>
+                <DollarSign className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+              </div>
+              <div className="text-lg md:text-2xl font-bold">€{stats.todayRevenue.toFixed(0)}</div>
+              <p className="text-[9px] md:text-xs text-muted-foreground">totales</p>
             </CardContent>
           </Card>
         </AnimatedCard>
 
         <AnimatedCard delay={3}>
           <Card className="touch-manipulation h-full">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Promedio</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground hidden sm:block" />
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <div className="text-xl md:text-2xl font-bold">€{stats.averagePrice.toFixed(2)}</div>
-              <p className="text-[10px] md:text-xs text-muted-foreground">precio promedio</p>
+            <CardContent className="p-3 md:p-6">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] md:text-sm font-medium text-muted-foreground">Promedio</span>
+                <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
+              </div>
+              <div className="text-lg md:text-2xl font-bold">€{stats.averagePrice.toFixed(0)}</div>
+              <p className="text-[9px] md:text-xs text-muted-foreground">por cita</p>
             </CardContent>
           </Card>
         </AnimatedCard>
       </div>
 
-      {/* Barber Stats */}
+      {/* Barber Stats - Horizontal scroll on mobile */}
       {barberStatsList.length > 0 && (
         <AnimatedCard delay={4}>
           <Card>
-            <CardHeader className="p-4 md:p-6">
-              <CardTitle className="text-base md:text-lg flex items-center gap-2">
-                <Scissors className="h-5 w-5" />
-                Estadísticas por Barbero
+            <CardHeader className="p-3 md:p-6 pb-2 md:pb-4">
+              <CardTitle className="text-sm md:text-lg flex items-center gap-2">
+                <Scissors className="h-4 w-4 md:h-5 md:w-5" />
+                Por Barbero
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                {barberStatsList.map((barber, index) => (
-                  <motion.div
-                    key={barber.name}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
-                  >
-                    <div className="font-semibold text-sm md:text-base mb-3">{barber.name}</div>
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div>
-                        <div className="text-lg md:text-xl font-bold text-primary">{barber.totalBookings}</div>
-                        <div className="text-[10px] md:text-xs text-muted-foreground">Citas</div>
+            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+              {isMobile ? (
+                <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 px-3 scrollbar-dark">
+                  {barberStatsList.map((barber, index) => (
+                    <motion.div
+                      key={barber.name}
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="flex-shrink-0 p-3 rounded-lg border bg-card min-w-[140px]"
+                    >
+                      <div className="font-semibold text-xs mb-2 truncate">{barber.name}</div>
+                      <div className="flex items-baseline gap-1 mb-1">
+                        <span className="text-lg font-bold text-primary">{barber.totalBookings}</span>
+                        <span className="text-[10px] text-muted-foreground">citas</span>
                       </div>
-                      <div>
-                        <div className="text-lg md:text-xl font-bold text-emerald-500">€{barber.totalRevenue.toFixed(0)}</div>
-                        <div className="text-[10px] md:text-xs text-muted-foreground">Ingresos</div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-sm font-bold text-emerald-500">€{barber.totalRevenue.toFixed(0)}</span>
+                        <span className="text-[10px] text-muted-foreground">ingresos</span>
                       </div>
-                      <div>
-                        <div className="text-lg md:text-xl font-bold">€{barber.averagePrice.toFixed(0)}</div>
-                        <div className="text-[10px] md:text-xs text-muted-foreground">Promedio</div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                  {barberStatsList.map((barber, index) => (
+                    <motion.div
+                      key={barber.name}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+                    >
+                      <div className="font-semibold text-sm md:text-base mb-3">{barber.name}</div>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div>
+                          <div className="text-lg md:text-xl font-bold text-primary">{barber.totalBookings}</div>
+                          <div className="text-[10px] md:text-xs text-muted-foreground">Citas</div>
+                        </div>
+                        <div>
+                          <div className="text-lg md:text-xl font-bold text-emerald-500">€{barber.totalRevenue.toFixed(0)}</div>
+                          <div className="text-[10px] md:text-xs text-muted-foreground">Ingresos</div>
+                        </div>
+                        <div>
+                          <div className="text-lg md:text-xl font-bold">€{barber.averagePrice.toFixed(0)}</div>
+                          <div className="text-[10px] md:text-xs text-muted-foreground">Promedio</div>
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </AnimatedCard>
       )}
 
-      {/* Bookings Table */}
+      {/* Bookings List */}
       <AnimatedCard delay={4}>
         <Card>
-          <CardHeader className="p-4 md:p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <CardTitle className="text-base md:text-lg">
-                Listado de Citas
+          <CardHeader className="p-3 md:p-6 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-sm md:text-lg">
+                Citas
                 {filteredAndSortedBookings.length !== bookings.length && (
-                  <span className="text-sm font-normal text-muted-foreground ml-2">
-                    ({filteredAndSortedBookings.length} de {bookings.length})
+                  <span className="text-xs font-normal text-muted-foreground ml-1">
+                    ({filteredAndSortedBookings.length}/{bookings.length})
                   </span>
                 )}
               </CardTitle>
-              <Button variant="ghost" size="sm" className="h-9 min-h-[44px] px-2 md:px-3" onClick={() => navigate('/calendar')}>
-                <span className="hidden sm:inline">Ver Calendario</span>
-                <span className="sm:hidden">Ver</span>
-                <ArrowRight className="ml-1 md:ml-2 h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                {isMobile && (
+                  <Button 
+                    variant={hasActiveFilters ? "default" : "outline"} 
+                    size="icon" 
+                    className="h-9 w-9 min-h-[44px] min-w-[44px]"
+                    onClick={() => setFiltersOpen(!filtersOpen)}
+                  >
+                    <Filter className="h-4 w-4" />
+                    {hasActiveFilters && (
+                      <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full" />
+                    )}
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" className="h-9 min-h-[44px] px-2" onClick={() => navigate('/calendar')}>
+                  <span className="hidden sm:inline">Ver Agenda</span>
+                  <ArrowRight className="h-4 w-4 sm:ml-1" />
+                </Button>
+              </div>
             </div>
             
-            {/* Filter Controls */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              {/* Search */}
-              <div className="relative flex-1">
-                <Input
-                  placeholder="Buscar cliente, servicio..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-10 pr-8"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+            {/* Filter Controls - Collapsible on mobile */}
+            {isMobile ? (
+              <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+                <CollapsibleContent className="space-y-2">
+                  {/* Search */}
+                  <div className="relative">
+                    <Input
+                      placeholder="Buscar cliente, servicio..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="h-11 pr-8"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    {/* Status Filter */}
+                    <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+                      <SelectTrigger className="flex-1 h-11">
+                        <SelectValue placeholder="Estado" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border shadow-lg z-50">
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="confirmed">Confirmada</SelectItem>
+                        <SelectItem value="pending">Pendiente</SelectItem>
+                        <SelectItem value="completed">Completada</SelectItem>
+                        <SelectItem value="cancelled">Cancelada</SelectItem>
+                        <SelectItem value="no_show">No asistió</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {/* Barber Filter */}
+                    <Select value={barberFilter} onValueChange={setBarberFilter}>
+                      <SelectTrigger className="flex-1 h-11">
+                        <SelectValue placeholder="Barbero" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border shadow-lg z-50">
+                        <SelectItem value="all">Todos</SelectItem>
+                        {uniqueBarbers.map((barber) => (
+                          <SelectItem key={barber} value={barber}>{barber}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Clear Filters */}
+                  {hasActiveFilters && (
+                    <Button variant="outline" size="sm" onClick={clearFilters} className="w-full h-11">
+                      <X className="h-4 w-4 mr-2" />
+                      Limpiar filtros
+                    </Button>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* Search */}
+                <div className="relative flex-1">
+                  <Input
+                    placeholder="Buscar cliente, servicio..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-10 pr-8"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                
+                {/* Status Filter */}
+                <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+                  <SelectTrigger className="w-full sm:w-[160px] h-10">
+                    <SelectValue placeholder="Estado" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border shadow-lg z-50">
+                    <SelectItem value="all">Todos los estados</SelectItem>
+                    <SelectItem value="confirmed">Confirmada</SelectItem>
+                    <SelectItem value="pending">Pendiente</SelectItem>
+                    <SelectItem value="completed">Completada</SelectItem>
+                    <SelectItem value="cancelled">Cancelada</SelectItem>
+                    <SelectItem value="no_show">No asistió</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                {/* Barber Filter */}
+                <Select value={barberFilter} onValueChange={setBarberFilter}>
+                  <SelectTrigger className="w-full sm:w-[160px] h-10">
+                    <SelectValue placeholder="Barbero" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border shadow-lg z-50">
+                    <SelectItem value="all">Todos los barberos</SelectItem>
+                    {uniqueBarbers.map((barber) => (
+                      <SelectItem key={barber} value={barber}>{barber}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {/* Clear Filters */}
+                {hasActiveFilters && (
+                  <Button variant="outline" size="sm" onClick={clearFilters} className="h-10 min-h-[44px]">
+                    <X className="h-4 w-4 mr-1" />
+                    Limpiar
+                  </Button>
                 )}
               </div>
-              
-              {/* Status Filter */}
-              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-                <SelectTrigger className="w-full sm:w-[160px] h-10">
-                  <SelectValue placeholder="Estado" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border shadow-lg z-50">
-                  <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="confirmed">Confirmada</SelectItem>
-                  <SelectItem value="pending">Pendiente</SelectItem>
-                  <SelectItem value="completed">Completada</SelectItem>
-                  <SelectItem value="cancelled">Cancelada</SelectItem>
-                  <SelectItem value="no_show">No asistió</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              {/* Barber Filter */}
-              <Select value={barberFilter} onValueChange={setBarberFilter}>
-                <SelectTrigger className="w-full sm:w-[160px] h-10">
-                  <SelectValue placeholder="Barbero" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border shadow-lg z-50">
-                  <SelectItem value="all">Todos los barberos</SelectItem>
-                  {uniqueBarbers.map((barber) => (
-                    <SelectItem key={barber} value={barber}>{barber}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              {/* Clear Filters */}
-              {hasActiveFilters && (
-                <Button variant="outline" size="sm" onClick={clearFilters} className="h-10 min-h-[44px]">
-                  <X className="h-4 w-4 mr-1" />
-                  Limpiar
-                </Button>
-              )}
-            </div>
+            )}
           </CardHeader>
           
-          <CardContent className="p-0 md:p-6 md:pt-0">
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             {filteredAndSortedBookings.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {hasActiveFilters ? 'No se encontraron citas con los filtros aplicados' : 'No hay citas registradas'}
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                {hasActiveFilters ? 'No hay citas con estos filtros' : 'No hay citas registradas'}
+              </div>
+            ) : isMobile ? (
+              /* Mobile: Card list */
+              <div className="space-y-2">
+                <AnimatePresence mode="wait">
+                  {paginatedBookings.map((booking, index) => (
+                    <MobileBookingCard key={booking.id} booking={booking} index={index} />
+                  ))}
+                </AnimatePresence>
               </div>
             ) : (
+              /* Desktop: Table */
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -574,36 +732,41 @@ export default function Dashboard() {
           
           {/* Pagination Controls */}
           {totalItems > 0 && (
-            <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t">
+            <CardFooter className={cn(
+              "flex items-center justify-between gap-2 p-3 md:p-4 border-t",
+              isMobile && "flex-col"
+            )}>
               {/* Results info */}
-              <div className="text-sm text-muted-foreground order-2 sm:order-1">
-                Mostrando {startIndex + 1}-{endIndex} de {totalItems} citas
+              <div className="text-xs md:text-sm text-muted-foreground">
+                {startIndex + 1}-{endIndex} de {totalItems}
               </div>
               
-              <div className="flex items-center gap-2 order-1 sm:order-2">
-                {/* Page size selector */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground hidden sm:inline">Por página:</span>
-                  <Select value={pageSize.toString()} onValueChange={(v) => setPageSize(Number(v))}>
-                    <SelectTrigger className="w-[70px] h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover border shadow-lg z-50">
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="15">15</SelectItem>
-                      <SelectItem value="25">25</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                      <SelectItem value="100">100</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="flex items-center gap-2">
+                {/* Page size selector - hidden on mobile */}
+                {!isMobile && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Por página:</span>
+                    <Select value={pageSize.toString()} onValueChange={(v) => setPageSize(Number(v))}>
+                      <SelectTrigger className="w-[70px] h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border shadow-lg z-50">
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="15">15</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 
                 {/* Navigation buttons */}
                 <div className="flex items-center gap-1">
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9"
+                    className="h-9 w-9 min-h-[44px] min-w-[44px]"
                     onClick={() => goToPage(1)}
                     disabled={currentPage === 1}
                   >
@@ -612,7 +775,7 @@ export default function Dashboard() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9"
+                    className="h-9 w-9 min-h-[44px] min-w-[44px]"
                     onClick={() => goToPage(currentPage - 1)}
                     disabled={currentPage === 1}
                   >
@@ -620,7 +783,7 @@ export default function Dashboard() {
                   </Button>
                   
                   {/* Page indicator */}
-                  <div className="flex items-center gap-1 px-2">
+                  <div className="flex items-center gap-1 px-2 min-w-[60px] justify-center">
                     <span className="text-sm font-medium">{currentPage}</span>
                     <span className="text-sm text-muted-foreground">/</span>
                     <span className="text-sm text-muted-foreground">{totalPages || 1}</span>
@@ -629,7 +792,7 @@ export default function Dashboard() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9"
+                    className="h-9 w-9 min-h-[44px] min-w-[44px]"
                     onClick={() => goToPage(currentPage + 1)}
                     disabled={currentPage >= totalPages}
                   >
@@ -638,7 +801,7 @@ export default function Dashboard() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9"
+                    className="h-9 w-9 min-h-[44px] min-w-[44px]"
                     onClick={() => goToPage(totalPages)}
                     disabled={currentPage >= totalPages}
                   >
