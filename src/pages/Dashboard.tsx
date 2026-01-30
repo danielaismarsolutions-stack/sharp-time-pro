@@ -297,7 +297,7 @@ export default function Dashboard() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className={cn(
-        "space-y-4",
+        "space-y-4 overflow-x-hidden w-full max-w-full",
         isMobile ? "p-4 pb-6" : "p-6 space-y-6"
       )}
     >
