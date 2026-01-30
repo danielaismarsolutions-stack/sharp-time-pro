@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Calendar, Users, Scissors, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, Scissors, MessageSquare, UserCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -8,6 +8,7 @@ const navItems = [
   { icon: Calendar, label: 'Agenda', path: '/calendar' },
   { icon: MessageSquare, label: 'Consultas', path: '/consultations' },
   { icon: Users, label: 'Clientes', path: '/clients' },
+  { icon: UserCog, label: 'Barberos', path: '/barbers' },
   { icon: Scissors, label: 'Servicios', path: '/services' },
 ];
 
