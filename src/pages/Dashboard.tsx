@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,7 +15,7 @@ import { ApiBooking } from '@/types/api';
 import { cn } from '@/lib/utils';
 import { AnimatedCard } from '@/components/ui/animated-card';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 
 type SortField = 'date' | 'client' | 'service' | 'barber' | 'price';
 type SortOrder = 'asc' | 'desc';
@@ -35,11 +35,11 @@ export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [barberFilter, setBarberFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('date');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc'); // Newest first by default
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(isMobile ? 10 : 15);
+  const [pageSize, setPageSize] = useState(10);
 
   const loadBookings = useCallback(async () => {
     try {
@@ -250,44 +250,44 @@ export default function Dashboard() {
   // Mobile booking card component
   const MobileBookingCard = ({ booking, index }: { booking: ApiBooking; index: number }) => (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.03, 0.15) }}
-      className="p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+      transition={{ delay: Math.min(index * 0.02, 0.1) }}
+      className="p-3 rounded-xl border bg-card active:bg-muted/50 transition-colors touch-manipulation"
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
+      <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-sm truncate">{booking.client_name}</div>
-          <div className="text-xs text-muted-foreground">{booking.client_phone}</div>
+          <div className="text-[11px] text-muted-foreground truncate">{booking.client_phone}</div>
         </div>
         <Badge 
           variant="outline" 
-          className={cn("text-[10px] px-1.5 py-0.5 shrink-0", getStatusBadge(booking.status).class)}
+          className={cn("text-[10px] px-1.5 py-0.5 shrink-0 whitespace-nowrap", getStatusBadge(booking.status).class)}
         >
           {getStatusBadge(booking.status).label}
         </Badge>
       </div>
       
-      <div className="text-sm font-medium text-primary mb-2">{booking.service_name}</div>
+      <div className="text-[13px] font-medium text-primary mb-1.5 truncate">{booking.service_name}</div>
       
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
+            <Calendar className="h-3 w-3 shrink-0" />
             {format(new Date(booking.booking_date), "d MMM", { locale: es })}
           </span>
           <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
+            <Clock className="h-3 w-3 shrink-0" />
             {formatTime(booking.start_time)}
           </span>
           {booking.barber && (
-            <span className="flex items-center gap-1">
-              <User className="h-3 w-3" />
+            <span className="flex items-center gap-1 truncate max-w-[80px]">
+              <User className="h-3 w-3 shrink-0" />
               {booking.barber.split(' ')[0]}
             </span>
           )}
         </div>
-        <span className="font-semibold text-foreground">€{booking.service_price.toFixed(0)}</span>
+        <span className="font-bold text-sm text-foreground">€{booking.service_price.toFixed(0)}</span>
       </div>
     </motion.div>
   );
@@ -296,133 +296,132 @@ export default function Dashboard() {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="p-3 md:p-6 space-y-3 md:space-y-6"
+      className={cn(
+        "space-y-4",
+        isMobile ? "p-4 pb-6" : "p-6 space-y-6"
+      )}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          className="min-w-0"
-        >
-          <h1 className="text-xl md:text-3xl font-bold truncate">Panel de Control</h1>
-          <p className="text-muted-foreground text-xs md:text-base truncate">
-            {format(new Date(), isMobile ? "d MMM yyyy" : "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
+      {/* Header - Optimizado para móvil */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className={cn(
+            "font-bold truncate",
+            isMobile ? "text-lg" : "text-2xl md:text-3xl"
+          )}>Panel de Control</h1>
+          <p className={cn(
+            "text-muted-foreground truncate",
+            isMobile ? "text-[11px]" : "text-sm md:text-base"
+          )}>
+            {format(new Date(), isMobile ? "EEE, d MMM" : "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
           </p>
-        </motion.div>
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="flex gap-2 shrink-0"
-        >
+        </div>
+        <div className="flex gap-2 shrink-0">
           <Button 
             variant="outline" 
             size="icon" 
-            className="h-10 w-10 min-h-[44px] min-w-[44px]"
+            className={cn(
+              "touch-manipulation",
+              isMobile ? "h-10 w-10" : "h-10 w-10"
+            )}
             onClick={handleRefresh}
             disabled={isRefreshing}
           >
             <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
           </Button>
-          <Button size="sm" className="h-10 min-h-[44px] px-3" onClick={() => navigate('/calendar')}>
-            <Plus className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">Nueva Cita</span>
+          <Button 
+            size={isMobile ? "icon" : "sm"} 
+            className={cn(
+              "touch-manipulation",
+              isMobile ? "h-10 w-10" : "h-10 px-3"
+            )}
+            onClick={() => navigate('/calendar')}
+          >
+            <Plus className="h-4 w-4" />
+            {!isMobile && <span className="ml-2">Nueva Cita</span>}
           </Button>
-        </motion.div>
+        </div>
       </div>
 
-      {/* Stats Cards - 2x2 on mobile */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
-        <AnimatedCard delay={0}>
-          <Card className="touch-manipulation h-full">
-            <CardContent className="p-3 md:p-6">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] md:text-sm font-medium text-muted-foreground">Total Citas</span>
-                <Calendar className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
-              </div>
-              <div className="text-lg md:text-2xl font-bold">{stats.totalBookings}</div>
-              <p className="text-[9px] md:text-xs text-muted-foreground">reservas</p>
-            </CardContent>
-          </Card>
-        </AnimatedCard>
-
-        <AnimatedCard delay={1}>
-          <Card className="touch-manipulation h-full border-emerald-500/20">
-            <CardContent className="p-3 md:p-6">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] md:text-sm font-medium text-muted-foreground">Confirmadas</span>
-                <Users className="h-3.5 w-3.5 md:h-4 md:w-4 text-emerald-500" />
-              </div>
-              <div className="text-lg md:text-2xl font-bold text-emerald-500">{stats.confirmedBookings}</div>
-              <p className="text-[9px] md:text-xs text-emerald-500/70">citas</p>
-            </CardContent>
-          </Card>
-        </AnimatedCard>
-
-        <AnimatedCard delay={2}>
-          <Card className="touch-manipulation h-full">
-            <CardContent className="p-3 md:p-6">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] md:text-sm font-medium text-muted-foreground">Ingresos</span>
-                <DollarSign className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
-              </div>
-              <div className="text-lg md:text-2xl font-bold">€{stats.todayRevenue.toFixed(0)}</div>
-              <p className="text-[9px] md:text-xs text-muted-foreground">totales</p>
-            </CardContent>
-          </Card>
-        </AnimatedCard>
-
-        <AnimatedCard delay={3}>
-          <Card className="touch-manipulation h-full">
-            <CardContent className="p-3 md:p-6">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] md:text-sm font-medium text-muted-foreground">Promedio</span>
-                <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
-              </div>
-              <div className="text-lg md:text-2xl font-bold">€{stats.averagePrice.toFixed(0)}</div>
-              <p className="text-[9px] md:text-xs text-muted-foreground">por cita</p>
-            </CardContent>
-          </Card>
-        </AnimatedCard>
+      {/* Stats Cards - Grid optimizado 2x2 en móvil */}
+      <div className={cn(
+        "grid gap-3",
+        isMobile ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-4 gap-4"
+      )}>
+        {[
+          { label: 'Total Citas', value: stats.totalBookings, sub: 'reservas', icon: Calendar, color: '' },
+          { label: 'Confirmadas', value: stats.confirmedBookings, sub: 'citas', icon: Users, color: 'text-emerald-500', borderColor: 'border-emerald-500/20' },
+          { label: 'Ingresos', value: `€${stats.todayRevenue.toFixed(0)}`, sub: 'totales', icon: DollarSign, color: '' },
+          { label: 'Promedio', value: `€${stats.averagePrice.toFixed(0)}`, sub: 'por cita', icon: TrendingUp, color: '' },
+        ].map((stat, idx) => (
+          <AnimatedCard key={stat.label} delay={idx}>
+            <Card className={cn("touch-manipulation h-full", stat.borderColor)}>
+              <CardContent className={cn(isMobile ? "p-3" : "p-4 md:p-6")}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className={cn(
+                    "font-medium text-muted-foreground truncate",
+                    isMobile ? "text-[10px]" : "text-xs md:text-sm"
+                  )}>{stat.label}</span>
+                  <stat.icon className={cn(
+                    "shrink-0",
+                    isMobile ? "h-3.5 w-3.5" : "h-4 w-4",
+                    stat.color || "text-muted-foreground"
+                  )} />
+                </div>
+                <div className={cn(
+                  "font-bold",
+                  isMobile ? "text-xl" : "text-2xl md:text-3xl",
+                  stat.color
+                )}>{stat.value}</div>
+                <p className={cn(
+                  "text-muted-foreground",
+                  isMobile ? "text-[9px]" : "text-xs",
+                  stat.color && stat.color.replace('text-', 'text-') + '/70'
+                )}>{stat.sub}</p>
+              </CardContent>
+            </Card>
+          </AnimatedCard>
+        ))}
       </div>
 
-      {/* Barber Stats - Horizontal scroll on mobile */}
+      {/* Barber Stats - Scroll horizontal optimizado en móvil */}
       {barberStatsList.length > 0 && (
         <AnimatedCard delay={4}>
           <Card>
-            <CardHeader className="p-3 md:p-6 pb-2 md:pb-4">
-              <CardTitle className="text-sm md:text-lg flex items-center gap-2">
-                <Scissors className="h-4 w-4 md:h-5 md:w-5" />
+            <CardHeader className={cn(isMobile ? "px-4 py-3 pb-2" : "p-6 pb-4")}>
+              <CardTitle className={cn(
+                "flex items-center gap-2",
+                isMobile ? "text-sm" : "text-lg"
+              )}>
+                <Scissors className={cn(isMobile ? "h-4 w-4" : "h-5 w-5")} />
                 Por Barbero
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <CardContent className={cn(isMobile ? "px-0 pb-3 pt-0" : "p-6 pt-0")}>
               {isMobile ? (
-                <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 px-3 scrollbar-dark">
+                <div className="flex gap-2.5 overflow-x-auto pb-1 px-4 snap-x snap-mandatory scrollbar-none">
                   {barberStatsList.map((barber, index) => (
                     <motion.div
                       key={barber.name}
                       initial={{ opacity: 0, x: 10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="flex-shrink-0 p-3 rounded-lg border bg-card min-w-[140px]"
+                      transition={{ delay: index * 0.05 }}
+                      className="flex-shrink-0 p-3 rounded-xl border bg-card/50 min-w-[130px] snap-start"
                     >
-                      <div className="font-semibold text-xs mb-2 truncate">{barber.name}</div>
-                      <div className="flex items-baseline gap-1 mb-1">
-                        <span className="text-lg font-bold text-primary">{barber.totalBookings}</span>
-                        <span className="text-[10px] text-muted-foreground">citas</span>
-                      </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-sm font-bold text-emerald-500">€{barber.totalRevenue.toFixed(0)}</span>
-                        <span className="text-[10px] text-muted-foreground">ingresos</span>
+                      <div className="font-semibold text-[11px] mb-1.5 truncate">{barber.name}</div>
+                      <div className="space-y-0.5">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-base font-bold text-primary">{barber.totalBookings}</span>
+                          <span className="text-[9px] text-muted-foreground">citas</span>
+                        </div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-sm font-bold text-emerald-500">€{barber.totalRevenue.toFixed(0)}</span>
+                        </div>
                       </div>
                     </motion.div>
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {barberStatsList.map((barber, index) => (
                     <motion.div
                       key={barber.name}
@@ -431,19 +430,19 @@ export default function Dashboard() {
                       transition={{ delay: index * 0.1 }}
                       className="p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
                     >
-                      <div className="font-semibold text-sm md:text-base mb-3">{barber.name}</div>
+                      <div className="font-semibold text-base mb-3">{barber.name}</div>
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div>
-                          <div className="text-lg md:text-xl font-bold text-primary">{barber.totalBookings}</div>
-                          <div className="text-[10px] md:text-xs text-muted-foreground">Citas</div>
+                          <div className="text-xl font-bold text-primary">{barber.totalBookings}</div>
+                          <div className="text-xs text-muted-foreground">Citas</div>
                         </div>
                         <div>
-                          <div className="text-lg md:text-xl font-bold text-emerald-500">€{barber.totalRevenue.toFixed(0)}</div>
-                          <div className="text-[10px] md:text-xs text-muted-foreground">Ingresos</div>
+                          <div className="text-xl font-bold text-emerald-500">€{barber.totalRevenue.toFixed(0)}</div>
+                          <div className="text-xs text-muted-foreground">Ingresos</div>
                         </div>
                         <div>
-                          <div className="text-lg md:text-xl font-bold">€{barber.averagePrice.toFixed(0)}</div>
-                          <div className="text-[10px] md:text-xs text-muted-foreground">Promedio</div>
+                          <div className="text-xl font-bold">€{barber.averagePrice.toFixed(0)}</div>
+                          <div className="text-xs text-muted-foreground">Promedio</div>
                         </div>
                       </div>
                     </motion.div>
@@ -455,36 +454,41 @@ export default function Dashboard() {
         </AnimatedCard>
       )}
 
-      {/* Bookings List */}
+      {/* Bookings List - Optimizado para móvil */}
       <AnimatedCard delay={4}>
         <Card>
-          <CardHeader className="p-3 md:p-6 space-y-3">
+          <CardHeader className={cn(isMobile ? "px-4 py-3 space-y-2" : "p-6 space-y-3")}>
             <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-sm md:text-lg">
+              <CardTitle className={cn(isMobile ? "text-sm" : "text-lg")}>
                 Citas
                 {filteredAndSortedBookings.length !== bookings.length && (
-                  <span className="text-xs font-normal text-muted-foreground ml-1">
+                  <span className="text-[10px] md:text-xs font-normal text-muted-foreground ml-1">
                     ({filteredAndSortedBookings.length}/{bookings.length})
                   </span>
                 )}
               </CardTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {isMobile && (
                   <Button 
                     variant={hasActiveFilters ? "default" : "outline"} 
                     size="icon" 
-                    className="h-9 w-9 min-h-[44px] min-w-[44px]"
+                    className="h-9 w-9 relative touch-manipulation"
                     onClick={() => setFiltersOpen(!filtersOpen)}
                   >
                     <Filter className="h-4 w-4" />
                     {hasActiveFilters && (
-                      <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full" />
+                      <span className="absolute -top-1 -right-1 h-2 w-2 bg-destructive rounded-full" />
                     )}
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" className="h-9 min-h-[44px] px-2" onClick={() => navigate('/calendar')}>
-                  <span className="hidden sm:inline">Ver Agenda</span>
-                  <ArrowRight className="h-4 w-4 sm:ml-1" />
+                <Button 
+                  variant="ghost" 
+                  size={isMobile ? "icon" : "sm"} 
+                  className={cn("touch-manipulation", isMobile ? "h-9 w-9" : "h-9 px-2")}
+                  onClick={() => navigate('/calendar')}
+                >
+                  {!isMobile && <span>Ver Agenda</span>}
+                  <ArrowRight className={cn("h-4 w-4", !isMobile && "ml-1")} />
                 </Button>
               </div>
             </div>
@@ -492,19 +496,19 @@ export default function Dashboard() {
             {/* Filter Controls - Collapsible on mobile */}
             {isMobile ? (
               <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-                <CollapsibleContent className="space-y-2">
+                <CollapsibleContent className="space-y-2 pt-1">
                   {/* Search */}
                   <div className="relative">
                     <Input
                       placeholder="Buscar cliente, servicio..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="h-11 pr-8"
+                      className="h-10 pr-8 text-sm"
                     />
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground active:text-foreground p-1 touch-manipulation"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -514,7 +518,7 @@ export default function Dashboard() {
                   <div className="flex gap-2">
                     {/* Status Filter */}
                     <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-                      <SelectTrigger className="flex-1 h-11">
+                      <SelectTrigger className="flex-1 h-10 text-sm">
                         <SelectValue placeholder="Estado" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border shadow-lg z-50">
@@ -529,7 +533,7 @@ export default function Dashboard() {
                     
                     {/* Barber Filter */}
                     <Select value={barberFilter} onValueChange={setBarberFilter}>
-                      <SelectTrigger className="flex-1 h-11">
+                      <SelectTrigger className="flex-1 h-10 text-sm">
                         <SelectValue placeholder="Barbero" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border shadow-lg z-50">
@@ -543,7 +547,7 @@ export default function Dashboard() {
                   
                   {/* Clear Filters */}
                   {hasActiveFilters && (
-                    <Button variant="outline" size="sm" onClick={clearFilters} className="w-full h-11">
+                    <Button variant="outline" size="sm" onClick={clearFilters} className="w-full h-10 text-sm">
                       <X className="h-4 w-4 mr-2" />
                       Limpiar filtros
                     </Button>
@@ -609,15 +613,18 @@ export default function Dashboard() {
             )}
           </CardHeader>
           
-          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+          <CardContent className={cn(isMobile ? "px-4 pb-3 pt-0" : "p-6 pt-0")}>
             {filteredAndSortedBookings.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">
+              <div className={cn(
+                "text-center text-muted-foreground",
+                isMobile ? "py-6 text-sm" : "py-8"
+              )}>
                 {hasActiveFilters ? 'No hay citas con estos filtros' : 'No hay citas registradas'}
               </div>
             ) : isMobile ? (
-              /* Mobile: Card list */
+              /* Mobile: Card list optimizado */
               <div className="space-y-2">
-                <AnimatePresence mode="wait">
+                <AnimatePresence mode="popLayout">
                   {paginatedBookings.map((booking, index) => (
                     <MobileBookingCard key={booking.id} booking={booking} index={index} />
                   ))}
@@ -730,21 +737,26 @@ export default function Dashboard() {
             )}
           </CardContent>
           
-          {/* Pagination Controls */}
+          {/* Pagination Controls - Compacto en móvil */}
           {totalItems > 0 && (
             <CardFooter className={cn(
-              "flex items-center justify-between gap-2 p-3 md:p-4 border-t",
-              isMobile && "flex-col"
+              "flex items-center border-t",
+              isMobile 
+                ? "justify-between gap-2 px-4 py-3" 
+                : "justify-between gap-2 p-4"
             )}>
               {/* Results info */}
-              <div className="text-xs md:text-sm text-muted-foreground">
+              <div className={cn(
+                "text-muted-foreground",
+                isMobile ? "text-[11px]" : "text-sm"
+              )}>
                 {startIndex + 1}-{endIndex} de {totalItems}
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {/* Page size selector - hidden on mobile */}
                 {!isMobile && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mr-2">
                     <span className="text-sm text-muted-foreground">Por página:</span>
                     <Select value={pageSize.toString()} onValueChange={(v) => setPageSize(Number(v))}>
                       <SelectTrigger className="w-[70px] h-9">
@@ -761,21 +773,23 @@ export default function Dashboard() {
                   </div>
                 )}
                 
-                {/* Navigation buttons */}
+                {/* Navigation buttons - Compactos en móvil */}
                 <div className="flex items-center gap-1">
+                  {!isMobile && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9"
+                      onClick={() => goToPage(1)}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9 min-h-[44px] min-w-[44px]"
-                    onClick={() => goToPage(1)}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronsLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 min-h-[44px] min-w-[44px]"
+                    className={cn("touch-manipulation", isMobile ? "h-8 w-8" : "h-9 w-9")}
                     onClick={() => goToPage(currentPage - 1)}
                     disabled={currentPage === 1}
                   >
@@ -783,30 +797,35 @@ export default function Dashboard() {
                   </Button>
                   
                   {/* Page indicator */}
-                  <div className="flex items-center gap-1 px-2 min-w-[60px] justify-center">
-                    <span className="text-sm font-medium">{currentPage}</span>
-                    <span className="text-sm text-muted-foreground">/</span>
-                    <span className="text-sm text-muted-foreground">{totalPages || 1}</span>
+                  <div className={cn(
+                    "flex items-center justify-center gap-0.5",
+                    isMobile ? "min-w-[50px] text-xs" : "min-w-[60px] text-sm px-2"
+                  )}>
+                    <span className="font-medium">{currentPage}</span>
+                    <span className="text-muted-foreground">/</span>
+                    <span className="text-muted-foreground">{totalPages || 1}</span>
                   </div>
                   
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9 min-h-[44px] min-w-[44px]"
+                    className={cn("touch-manipulation", isMobile ? "h-8 w-8" : "h-9 w-9")}
                     onClick={() => goToPage(currentPage + 1)}
                     disabled={currentPage >= totalPages}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 min-h-[44px] min-w-[44px]"
-                    onClick={() => goToPage(totalPages)}
-                    disabled={currentPage >= totalPages}
-                  >
-                    <ChevronsRight className="h-4 w-4" />
-                  </Button>
+                  {!isMobile && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9"
+                      onClick={() => goToPage(totalPages)}
+                      disabled={currentPage >= totalPages}
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardFooter>
