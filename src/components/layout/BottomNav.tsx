@@ -4,12 +4,12 @@ import { LayoutDashboard, Calendar, Users, Scissors, MessageSquare, UserCog } fr
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Inicio', path: '/dashboard' },
   { icon: Calendar, label: 'Agenda', path: '/calendar' },
   { icon: MessageSquare, label: 'Consultas', path: '/consultations' },
   { icon: Users, label: 'Clientes', path: '/clients' },
   { icon: UserCog, label: 'Barberos', path: '/barbers' },
   { icon: Scissors, label: 'Servicios', path: '/services' },
+  { icon: LayoutDashboard, label: 'Finanzas', path: '/dashboard' },
 ];
 
 export default function BottomNav() {

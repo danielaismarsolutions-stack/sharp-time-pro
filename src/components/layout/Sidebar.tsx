@@ -23,12 +23,12 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Inicio', path: '/dashboard' },
   { icon: Calendar, label: 'Agenda', path: '/calendar' },
   { icon: MessageSquare, label: 'Consultas', path: '/consultations' },
   { icon: Users, label: 'Clientes', path: '/clients' },
   { icon: UserCog, label: 'Barberos', path: '/barbers' },
   { icon: Scissors, label: 'Servicios', path: '/services' },
+  { icon: LayoutDashboard, label: 'Finanzas', path: '/dashboard' },
   { icon: BarChart3, label: 'Informes', path: '/reports' },
   { icon: Settings, label: 'Ajustes', path: '/settings' },
 ];
