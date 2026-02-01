@@ -206,7 +206,7 @@ function MonthBookingCard({ booking, colorClasses, isMobile, onClick }: MonthBoo
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
 
-  // Ultra compact mobile version
+  // Ultra compact mobile version - minimal text to fit in tiny cards
   if (isMobile) {
     return (
       <TooltipProvider delayDuration={200}>
@@ -215,19 +215,19 @@ function MonthBookingCard({ booking, colorClasses, isMobile, onClick }: MonthBoo
             <button
               onClick={onClick}
               className={cn(
-                'w-full text-left rounded border-l-2 transition-all',
-                'shadow-[0_1px_2px_rgba(0,0,0,0.1)] hover:shadow-md',
-                'hover:brightness-95 px-0.5 py-px',
+                'w-full text-left rounded border-l transition-all overflow-hidden',
+                'hover:brightness-95 px-0.5 py-0',
                 colorClasses.bg,
                 colorClasses.hover,
                 colorClasses.text,
                 colorClasses.border
               )}
+              style={{ maxHeight: '14px' }}
             >
-              {/* Single line: time + initials */}
-              <div className="flex items-center justify-between gap-0.5">
-                <span className="text-[6px] font-bold leading-none">{startTime}</span>
-                <span className="text-[6px] font-medium leading-none">{getInitials(booking.client_name)}</span>
+              {/* Single line: time only, ultra compact */}
+              <div className="flex items-center gap-0.5 whitespace-nowrap overflow-hidden">
+                <span className="text-[5px] font-bold leading-none truncate">{startTime}</span>
+                <span className="text-[5px] font-medium leading-none truncate">{getInitials(booking.client_name)}</span>
               </div>
             </button>
           </TooltipTrigger>
