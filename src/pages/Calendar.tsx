@@ -10,8 +10,6 @@ import {
   subMonths,
   addDays,
   subDays,
-  startOfMonth,
-  endOfMonth,
   eachHourOfInterval,
   setHours,
   setMinutes,
@@ -37,8 +35,6 @@ import {
   Filter,
   Loader2,
   RefreshCw,
-  Clock,
-  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -61,7 +57,7 @@ import { useCalendarDragDrop } from '@/hooks/useCalendarDragDrop';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/bookings/BookingModal';
-import { BookingDetailModal, BookingStatus } from '@/components/calendar';
+import { BookingDetailModal, BookingStatus, MonthView } from '@/components/calendar';
 import { ServiceLegend } from '@/components/calendar/ServiceLegend';
 import {
   BookingCard,
@@ -460,111 +456,22 @@ export default function Calendar() {
   );
 
   // Render Month View
-  const renderMonthView = () => {
-    const monthStart = startOfMonth(currentDate);
-    const monthEnd = endOfMonth(currentDate);
-    const start = startOfWeek(monthStart, { weekStartsOn: 1 });
-    const end = endOfWeek(monthEnd, { weekStartsOn: 1 });
-    const days = eachDayOfInterval({ start, end });
-    const weeks: Date[][] = [];
-    for (let i = 0; i < days.length; i += 7) {
-      weeks.push(days.slice(i, i + 7));
-    }
-
-    return (
-      <div className="flex flex-1 overflow-hidden" {...(isMobile ? swipeHandlers : {})}>
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <div className="grid grid-cols-7 border-b border-border">
-            {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((day) => (
-              <div key={day} className="p-2 text-center text-xs md:text-sm font-medium text-muted-foreground uppercase">
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Weeks */}
-          <div className="flex-1 grid" style={{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }}>
-            {weeks.map((week, weekIdx) => (
-              <div key={weekIdx} className="grid grid-cols-7 border-b border-border last:border-b-0">
-                {week.map((day) => {
-                  const dayBookings = getBookingsForDay(day);
-                  const isCurrentMonth = day.getMonth() === currentDate.getMonth();
-                  const isCurrentDay = isToday(day);
-
-                  return (
-                    <div
-                      key={day.toString()}
-                      className={cn(
-                        'min-h-[80px] md:min-h-[100px] border-r border-border last:border-r-0 p-1 cursor-pointer hover:bg-muted/30 transition-colors',
-                        !isCurrentMonth && 'bg-muted/10',
-                        isCurrentDay && 'bg-primary/5'
-                      )}
-                      onClick={() => {
-                        setCurrentDate(day);
-                        setViewMode('day');
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span
-                          className={cn(
-                            'inline-flex items-center justify-center w-6 h-6 rounded-full text-xs md:text-sm font-medium',
-                            !isCurrentMonth && 'text-muted-foreground/50',
-                            isCurrentDay && 'bg-primary text-primary-foreground'
-                          )}
-                        >
-                          {format(day, 'd')}
-                        </span>
-                      </div>
-                      <div className="space-y-0.5">
-                        {dayBookings.slice(0, 3).map((booking) => {
-                          const colorClasses = getServicePastelColor(booking, services);
-                          return (
-                            <div
-                              key={booking.id}
-                              className={cn(
-                                'px-1.5 py-1 rounded-lg border-l-4 shadow-sm cursor-pointer transition-all duration-200',
-                                'hover:shadow-md hover:brightness-95',
-                                colorClasses.bg,
-                                colorClasses.text,
-                                colorClasses.border
-                              )}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openBookingDetail(booking);
-                              }}
-                            >
-                              {/* Row 1: Time range (bold) - consistent design */}
-                              <div className="flex items-center gap-0.5">
-                                <Clock className="w-2.5 h-2.5 opacity-70 shrink-0" />
-                                <span className="text-[10px] font-bold leading-none">
-                                  {booking.start_time.substring(0, 5)} - {booking.end_time.substring(0, 5)}
-                                </span>
-                              </div>
-                              {/* Row 2: Client name - consistent design */}
-                              <div className="flex items-center gap-0.5 mt-0.5">
-                                <User className="w-2.5 h-2.5 opacity-70 shrink-0" />
-                                <span className="text-[10px] font-medium truncate leading-none">{booking.client_name}</span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        {dayBookings.length > 3 && (
-                          <p className="text-[10px] md:text-xs text-primary font-medium px-1">
-                            +{dayBookings.length - 3} más
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
+  const renderMonthView = () => (
+    <div className="flex flex-1 overflow-hidden" {...(isMobile ? swipeHandlers : {})}>
+      <div className="flex-1 h-full">
+        <MonthView
+          currentDate={currentDate}
+          bookings={filteredBookings}
+          services={services}
+          onDateClick={(date) => {
+            setCurrentDate(date);
+            setViewMode('day');
+          }}
+          onBookingClick={(booking) => openBookingDetail(booking)}
+        />
       </div>
-    );
-  };
+    </div>
+  );
 
   if (isLoading) {
     return (
