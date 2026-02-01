@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Clock, User, Scissors, Search, Plus, Check, ChevronsUpDown } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Check, ChevronsUpDown } from 'lucide-react';
 import { es } from 'date-fns/locale';
 import {
   Dialog,
@@ -212,17 +212,14 @@ export default function BookingModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Client Selection with Search */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Cliente
-            </Label>
+            <Label className="text-sm font-medium">Cliente</Label>
             <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
                   aria-expanded={clientSearchOpen}
-                  className="w-full justify-between font-normal"
+                  className="w-full justify-between font-normal h-10"
                 >
                   {selectedClient ? (
                     <span className="truncate">{selectedClient.name} - {selectedClient.phone}</span>
@@ -294,15 +291,12 @@ export default function BookingModal({
 
           {/* Service Selection */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Scissors className="h-4 w-4" />
-              Servicio
-            </Label>
+            <Label className="text-sm font-medium">Servicio</Label>
             <Select
               value={formData.serviceId}
               onValueChange={(value) => setFormData({ ...formData, serviceId: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-10">
                 <SelectValue placeholder="Selecciona un servicio" />
               </SelectTrigger>
               <SelectContent>
@@ -322,15 +316,12 @@ export default function BookingModal({
 
           {/* Barber Selection */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Barbero
-            </Label>
+            <Label className="text-sm font-medium">Barbero</Label>
             <Select
               value={formData.barberId || 'none'}
               onValueChange={(value) => setFormData({ ...formData, barberId: value === 'none' ? '' : value })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-10">
                 <SelectValue placeholder="Selecciona un barbero (opcional)" />
               </SelectTrigger>
               <SelectContent>
@@ -347,13 +338,13 @@ export default function BookingModal({
           {/* Date & Time */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Fecha</Label>
+              <Label className="text-sm font-medium">Fecha</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
-                      'w-full justify-start text-left font-normal',
+                      'w-full justify-start text-left font-normal h-10',
                       !date && 'text-muted-foreground'
                     )}
                   >
@@ -374,15 +365,12 @@ export default function BookingModal({
             </div>
 
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Hora
-              </Label>
+              <Label className="text-sm font-medium">Hora</Label>
               <Select
                 value={formData.time}
                 onValueChange={(value) => setFormData({ ...formData, time: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -396,53 +384,15 @@ export default function BookingModal({
             </div>
           </div>
 
-          {/* Status & Source */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Estado</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value as Booking['status'] })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pendiente</SelectItem>
-                  <SelectItem value="confirmed">Confirmada</SelectItem>
-                  <SelectItem value="completed">Completada</SelectItem>
-                  <SelectItem value="cancelled">Cancelada</SelectItem>
-                  <SelectItem value="no-show">No asistió</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Origen</Label>
-              <Select
-                value={formData.source}
-                onValueChange={(value) => setFormData({ ...formData, source: value as Booking['source'] })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="online">Online</SelectItem>
-                  <SelectItem value="phone">Teléfono</SelectItem>
-                  <SelectItem value="walk-in">Sin cita</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
           {/* Notes */}
           <div className="space-y-2">
-            <Label>Notas</Label>
+            <Label className="text-sm font-medium">Notas <span className="text-muted-foreground font-normal">(opcional)</span></Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Solicitudes especiales o notas..."
-              rows={3}
+              rows={2}
+              className="resize-none"
             />
           </div>
 
