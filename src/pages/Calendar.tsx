@@ -321,13 +321,9 @@ export default function Calendar() {
               const overlapInfo = getOverlapInfo(dayBookings, booking);
               const colorClasses = getServicePastelColor(booking, services);
               
-              // Mobile: stack vertically instead of side-by-side
-              const leftCalc = isMobile 
-                ? '8px' 
-                : `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 8px)`;
-              const widthCalc = isMobile
-                ? 'calc(100% - 16px)'
-                : `calc(${100 / overlapInfo.total}% - 16px)`;
+              // Side-by-side layout for overlapping bookings (same on mobile and desktop)
+              const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 4px)`;
+              const widthCalc = `calc(${100 / overlapInfo.total}% - 8px)`;
               
               return (
                 <BookingCard
