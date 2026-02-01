@@ -36,14 +36,17 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Booking, Client, Service } from '@/types';
+import { Barber } from '@/types/barber';
 import { useToast } from '@/hooks/use-toast';
 import ClientModal from '@/components/clients/ClientModal';
+
 interface BookingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   booking?: Booking | null;
   clients: Client[];
   services: Service[];
+  barbers: Barber[];
   onSave: (booking: Partial<Booking>) => Promise<void>;
   onClientCreate?: (client: Partial<Client>) => Promise<Client>;
   selectedDate?: Date;
@@ -64,6 +67,7 @@ export default function BookingModal({
   booking,
   clients,
   services,
+  barbers,
   onSave,
   onClientCreate,
   selectedDate,
@@ -77,6 +81,7 @@ export default function BookingModal({
   const [formData, setFormData] = useState({
     clientId: '',
     serviceId: '',
+    barberId: '',
     time: '09:00',
     status: 'confirmed' as Booking['status'],
     source: 'phone' as Booking['source'],
@@ -101,6 +106,7 @@ export default function BookingModal({
       setFormData({
         clientId: booking.clientId,
         serviceId: booking.serviceId,
+        barberId: booking.barber || '',
         time: booking.time,
         status: booking.status,
         source: booking.source,
@@ -111,6 +117,7 @@ export default function BookingModal({
       setFormData({
         clientId: '',
         serviceId: '',
+        barberId: '',
         time: '09:00',
         status: 'confirmed',
         source: 'phone',
@@ -121,6 +128,7 @@ export default function BookingModal({
 
   const selectedService = services.find((s) => s.id === formData.serviceId);
   const selectedClient = clients.find((c) => c.id === formData.clientId);
+  const selectedBarber = barbers.find((b) => b.id === formData.barberId);
 
   // Handle new client creation
   const handleClientCreate = async (clientData: Partial<Client>) => {
@@ -165,6 +173,7 @@ export default function BookingModal({
         serviceName: selectedService?.name || '',
         serviceDuration: selectedService?.duration || 30,
         servicePrice: selectedService?.price || 0,
+        barber: selectedBarber?.name || null,
         date: format(date, 'yyyy-MM-dd'),
         time: formData.time,
         status: formData.status,
@@ -305,6 +314,30 @@ export default function BookingModal({
                         {service.duration}min • €{service.price}
                       </span>
                     </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Barber Selection */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Barbero
+            </Label>
+            <Select
+              value={formData.barberId || 'none'}
+              onValueChange={(value) => setFormData({ ...formData, barberId: value === 'none' ? '' : value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona un barbero (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sin asignar</SelectItem>
+                {barbers.map((barber) => (
+                  <SelectItem key={barber.id} value={barber.id}>
+                    {barber.name}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -13,6 +13,7 @@ export interface Booking {
   serviceName: string;
   serviceDuration: number;
   servicePrice: number;
+  barber?: string | null;
   date: string; // ISO format YYYY-MM-DD
   time: string; // HH:mm format
   status: BookingStatus;
