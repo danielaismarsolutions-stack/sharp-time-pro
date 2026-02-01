@@ -148,8 +148,8 @@ export function MonthView({ currentDate, bookings, services, onDateClick, onBook
                 </span>
               </div>
 
-              {/* Bookings */}
-              <div className="space-y-0.5">
+              {/* Bookings - no gaps between cards */}
+              <div className="flex flex-col">
                 {dayBookings.slice(0, MAX_VISIBLE_BOOKINGS).map((booking) => {
                   const colorClasses = getServicePastelColor(booking, services);
                   return (
@@ -214,15 +214,16 @@ function MonthBookingCard({ booking, colorClasses, isMobile, onClick }: MonthBoo
           <button
             onClick={onClick}
             className={cn(
-              'w-full text-left rounded border-l-2 transition-all overflow-hidden',
+              'w-full text-left rounded-sm border-l-2 transition-all overflow-hidden',
               'hover:brightness-95',
-              isMobile ? 'px-0.5 py-0' : 'px-1 py-0.5',
+              // No vertical padding - fully compact
+              isMobile ? 'px-0.5' : 'px-1',
               colorClasses.bg,
               colorClasses.hover,
               colorClasses.text,
               colorClasses.border
             )}
-            style={{ maxHeight: isMobile ? '14px' : '20px' }}
+            style={{ height: isMobile ? '12px' : '16px' }}
           >
             {/* Single line: time + initials - ultra compact */}
             <div className="flex items-center gap-0.5 whitespace-nowrap overflow-hidden">
