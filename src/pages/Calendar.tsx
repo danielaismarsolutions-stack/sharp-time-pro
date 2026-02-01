@@ -47,10 +47,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Client, Service } from '@/types';
+import { Barber } from '@/types/barber';
 import { ApiBooking, ApiBookingStatus } from '@/types/api';
 import { supabaseClientsApi } from '@/services/supabaseClients';
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBookingsApi } from '@/services/supabaseBookings';
+import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCalendarDragDrop } from '@/hooks/useCalendarDragDrop';
@@ -81,6 +83,7 @@ export default function Calendar() {
   const [bookings, setBookings] = useState<ApiBooking[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [barbers, setBarbers] = useState<Barber[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<ApiBooking | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -99,14 +102,16 @@ export default function Calendar() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [bookingsData, clientsData, servicesData] = await Promise.all([
+      const [bookingsData, clientsData, servicesData, barbersData] = await Promise.all([
         supabaseBookingsApi.getAll(),
         supabaseClientsApi.getAll(),
         supabaseServicesApi.getAll(),
+        supabaseBarbersApi.getAll(false),
       ]);
       setBookings(bookingsData);
       setClients(clientsData);
       setServices(servicesData);
+      setBarbers(barbersData);
       console.log('✅ Calendar data loaded from Supabase');
     } catch (error) {
       console.error('Error loading data:', error);
@@ -160,8 +165,8 @@ export default function Calendar() {
     onSwipeRight: () => navigateDate('prev'),
   });
 
-  // Extract unique barbers
-  const barbers = useMemo(() => {
+  // Extract unique barber names for filter dropdown
+  const barberNames = useMemo(() => {
     const barberSet = new Set<string>();
     bookings.forEach((b) => {
       if (b.barber) barberSet.add(b.barber);
@@ -527,9 +532,9 @@ export default function Calendar() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  {barbers.map((barber) => (
-                    <SelectItem key={barber} value={barber}>
-                      {barber}
+                  {barberNames.map((barberName) => (
+                    <SelectItem key={barberName} value={barberName}>
+                      {barberName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -633,6 +638,7 @@ export default function Calendar() {
             serviceName: selectedBooking.service_name,
             serviceDuration: selectedBooking.service_duration,
             servicePrice: selectedBooking.service_price,
+            barber: selectedBooking.barber,
             date: selectedBooking.booking_date,
             time: selectedBooking.start_time.substring(0, 5),
             status: selectedBooking.status.replace('_', '-') as any,
@@ -642,6 +648,7 @@ export default function Calendar() {
           } : null}
           clients={clients}
           services={services}
+          barbers={barbers}
           onClientCreate={async (clientData) => {
             const newClient = await supabaseClientsApi.create({
               name: clientData.name || '',
@@ -670,6 +677,7 @@ export default function Calendar() {
                   end_time: endTime,
                   status: (data.status?.replace('-', '_') || 'confirmed') as any,
                   notes: data.notes || null,
+                  barber: data.barber || null,
                 });
                 
                 setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updatedBooking : b));
@@ -690,6 +698,7 @@ export default function Calendar() {
                   service_duration: duration,
                   service_price: data.servicePrice || 0,
                   notes: data.notes || null,
+                  barber: data.barber || null,
                 });
                 
                 setBookings(prev => [...prev, newBooking]);
