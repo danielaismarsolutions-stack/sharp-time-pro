@@ -13,7 +13,7 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { ApiBooking } from '@/types/api';
 import { Service } from '@/types';
-import { Clock, User } from 'lucide-react';
+// Icons removed - using compact text-only version for month view
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Tooltip,
@@ -206,47 +206,7 @@ function MonthBookingCard({ booking, colorClasses, isMobile, onClick }: MonthBoo
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
 
-  // Ultra compact mobile version - minimal text to fit in tiny cards
-  if (isMobile) {
-    return (
-      <TooltipProvider delayDuration={200}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={onClick}
-              className={cn(
-                'w-full text-left rounded border-l transition-all overflow-hidden',
-                'hover:brightness-95 px-0.5 py-0',
-                colorClasses.bg,
-                colorClasses.hover,
-                colorClasses.text,
-                colorClasses.border
-              )}
-              style={{ maxHeight: '14px' }}
-            >
-              {/* Single line: time only, ultra compact */}
-              <div className="flex items-center gap-0.5 whitespace-nowrap overflow-hidden">
-                <span className="text-[5px] font-bold leading-none truncate">{startTime}</span>
-                <span className="text-[5px] font-medium leading-none truncate">{getInitials(booking.client_name)}</span>
-              </div>
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="max-w-xs">
-            <div className="space-y-1">
-              <p className="font-bold">{startTime} - {endTime}</p>
-              <p className="font-semibold">{booking.client_name}</p>
-              <p className="text-sm opacity-80">{booking.service_name}</p>
-              {booking.barber && (
-                <p className="text-sm opacity-70">Barbero: {booking.barber}</p>
-              )}
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
-  // Desktop version with full details
+  // Always use compact version for month view - cells are always small
   return (
     <TooltipProvider delayDuration={200}>
       <Tooltip>
@@ -254,27 +214,29 @@ function MonthBookingCard({ booking, colorClasses, isMobile, onClick }: MonthBoo
           <button
             onClick={onClick}
             className={cn(
-              'w-full text-left rounded-lg border-l-4 transition-all',
-              'shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:shadow-md',
-              'hover:brightness-95 px-1.5 py-1',
+              'w-full text-left rounded border-l-2 transition-all overflow-hidden',
+              'hover:brightness-95',
+              isMobile ? 'px-0.5 py-0' : 'px-1 py-0.5',
               colorClasses.bg,
               colorClasses.hover,
               colorClasses.text,
               colorClasses.border
             )}
+            style={{ maxHeight: isMobile ? '14px' : '20px' }}
           >
-            {/* Row 1: Time range */}
-            <div className="flex items-center gap-0.5">
-              <Clock className="w-2.5 h-2.5 opacity-70 shrink-0" />
-              <span className="text-[10px] font-bold leading-none">
-                {startTime} - {endTime}
+            {/* Single line: time + initials - ultra compact */}
+            <div className="flex items-center gap-0.5 whitespace-nowrap overflow-hidden">
+              <span className={cn(
+                'font-bold leading-none truncate',
+                isMobile ? 'text-[6px]' : 'text-[8px]'
+              )}>
+                {startTime}
               </span>
-            </div>
-            {/* Row 2: Client name */}
-            <div className="flex items-center gap-0.5 mt-0.5">
-              <User className="w-2.5 h-2.5 opacity-70 shrink-0" />
-              <span className="text-[10px] font-medium truncate leading-none">
-                {booking.client_name}
+              <span className={cn(
+                'font-medium leading-none truncate',
+                isMobile ? 'text-[6px]' : 'text-[8px]'
+              )}>
+                {getInitials(booking.client_name)}
               </span>
             </div>
           </button>
