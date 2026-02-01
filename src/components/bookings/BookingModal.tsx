@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Clock, User, Scissors } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, User, Scissors, Search, Plus, Check, ChevronsUpDown } from 'lucide-react';
 import { es } from 'date-fns/locale';
 import {
   Dialog,
@@ -24,10 +24,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@/components/ui/command';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Booking, Client, Service } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import ClientModal from '@/components/clients/ClientModal';
 interface BookingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,6 +45,7 @@ interface BookingModalProps {
   clients: Client[];
   services: Service[];
   onSave: (booking: Partial<Booking>) => Promise<void>;
+  onClientCreate?: (client: Partial<Client>) => Promise<Client>;
   selectedDate?: Date;
 }
 
@@ -54,11 +65,15 @@ export default function BookingModal({
   clients,
   services,
   onSave,
+  onClientCreate,
   selectedDate,
 }: BookingModalProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
+  const [clientSearchOpen, setClientSearchOpen] = useState(false);
+  const [clientSearch, setClientSearch] = useState('');
+  const [showClientModal, setShowClientModal] = useState(false);
   const [formData, setFormData] = useState({
     clientId: '',
     serviceId: '',
@@ -67,6 +82,18 @@ export default function BookingModal({
     source: 'phone' as Booking['source'],
     notes: '',
   });
+
+  // Filter clients based on search
+  const filteredClients = useMemo(() => {
+    if (!clientSearch) return clients;
+    const searchLower = clientSearch.toLowerCase();
+    return clients.filter(
+      (client) =>
+        client.name.toLowerCase().includes(searchLower) ||
+        client.phone.includes(clientSearch) ||
+        client.email?.toLowerCase().includes(searchLower)
+    );
+  }, [clients, clientSearch]);
 
   useEffect(() => {
     if (booking) {
@@ -94,6 +121,26 @@ export default function BookingModal({
 
   const selectedService = services.find((s) => s.id === formData.serviceId);
   const selectedClient = clients.find((c) => c.id === formData.clientId);
+
+  // Handle new client creation
+  const handleClientCreate = async (clientData: Partial<Client>) => {
+    if (!onClientCreate) return;
+    try {
+      const newClient = await onClientCreate(clientData);
+      setFormData({ ...formData, clientId: newClient.id });
+      setShowClientModal(false);
+      toast({
+        title: 'Cliente creado',
+        description: 'El nuevo cliente ha sido añadido',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'No se pudo crear el cliente',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,27 +201,86 @@ export default function BookingModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Client Selection */}
+          {/* Client Selection with Search */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <User className="h-4 w-4" />
               Cliente
             </Label>
-            <Select
-              value={formData.clientId}
-              onValueChange={(value) => setFormData({ ...formData, clientId: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona un cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name} - {client.phone}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={clientSearchOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  {selectedClient ? (
+                    <span className="truncate">{selectedClient.name} - {selectedClient.phone}</span>
+                  ) : (
+                    <span className="text-muted-foreground">Buscar cliente...</span>
+                  )}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command shouldFilter={false}>
+                  <CommandInput
+                    placeholder="Buscar por nombre, teléfono..."
+                    value={clientSearch}
+                    onValueChange={setClientSearch}
+                  />
+                  <CommandList>
+                    <CommandEmpty>No se encontraron clientes</CommandEmpty>
+                    
+                    {/* Create New Client Option */}
+                    {onClientCreate && (
+                      <>
+                        <CommandGroup>
+                          <CommandItem
+                            onSelect={() => {
+                              setClientSearchOpen(false);
+                              setShowClientModal(true);
+                            }}
+                            className="text-primary"
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            <span className="font-medium">Crear nuevo cliente</span>
+                          </CommandItem>
+                        </CommandGroup>
+                        <CommandSeparator />
+                      </>
+                    )}
+                    
+                    {/* Client List */}
+                    <CommandGroup heading="Clientes">
+                      {filteredClients.map((client) => (
+                        <CommandItem
+                          key={client.id}
+                          value={client.id}
+                          onSelect={() => {
+                            setFormData({ ...formData, clientId: client.id });
+                            setClientSearchOpen(false);
+                            setClientSearch('');
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              'mr-2 h-4 w-4',
+                              formData.clientId === client.id ? 'opacity-100' : 'opacity-0'
+                            )}
+                          />
+                          <div className="flex flex-col">
+                            <span className="font-medium">{client.name}</span>
+                            <span className="text-xs text-muted-foreground">{client.phone}</span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Service Selection */}
@@ -333,6 +439,15 @@ export default function BookingModal({
           </div>
         </form>
       </DialogContent>
+
+      {/* Nested Client Creation Modal */}
+      {onClientCreate && (
+        <ClientModal
+          open={showClientModal}
+          onOpenChange={setShowClientModal}
+          onSave={handleClientCreate}
+        />
+      )}
     </Dialog>
   );
 }

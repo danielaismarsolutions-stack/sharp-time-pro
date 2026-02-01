@@ -642,6 +642,17 @@ export default function Calendar() {
           } : null}
           clients={clients}
           services={services}
+          onClientCreate={async (clientData) => {
+            const newClient = await supabaseClientsApi.create({
+              name: clientData.name || '',
+              phone: clientData.phone || '',
+              email: clientData.email || '',
+              notes: clientData.notes || '',
+              tags: clientData.tags || [],
+            });
+            setClients(prev => [...prev, newClient]);
+            return newClient;
+          }}
           onSave={async (data) => {
             try {
               const selectedService = services.find(s => s.id === data.serviceId);
