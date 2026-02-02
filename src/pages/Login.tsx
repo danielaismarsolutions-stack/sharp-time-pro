@@ -39,7 +39,7 @@ export default function LoginPage() {
         title: '¡Bienvenido de nuevo!',
         description: 'Has iniciado sesión correctamente.',
       });
-      navigate('/dashboard');
+      navigate('/calendar');
     } catch (error) {
       toast({
         title: 'Error de inicio de sesión',
