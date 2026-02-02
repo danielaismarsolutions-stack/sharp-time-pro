@@ -52,13 +52,14 @@ export function calculateTimeFromY(
   };
 }
 
-// Check for conflicts with other bookings
+// Check for conflicts with other bookings (same barber only)
 export function checkConflicts(
   bookings: ApiBooking[],
   bookingId: string,
   newDate: string,
   newStartTime: string,
-  newEndTime: string
+  newEndTime: string,
+  barber?: string | null
 ): { hasConflict: boolean; conflictingBookings: ApiBooking[] } {
   const newStart = parse(newStartTime, 'HH:mm', new Date());
   const newEnd = parse(newEndTime, 'HH:mm', new Date());
@@ -67,6 +68,9 @@ export function checkConflicts(
     if (b.id === bookingId) return false;
     if (b.booking_date !== newDate) return false;
     if (b.status === 'cancelled') return false;
+    
+    // Allow overlap if different barbers are assigned
+    if (barber && b.barber && barber !== b.barber) return false;
     
     const existingStart = parse(b.start_time.substring(0, 5), 'HH:mm', new Date());
     const existingEnd = parse(b.end_time.substring(0, 5), 'HH:mm', new Date());
@@ -152,13 +156,14 @@ export function useCalendarDragDropEnhanced({
     const endDate = addMinutes(parse(newStartTime, 'HH:mm', new Date()), duration);
     const newEndTime = format(endDate, 'HH:mm');
     
-    // Check for conflicts
+    // Check for conflicts (same barber only)
     const { hasConflict, conflictingBookings } = checkConflicts(
       bookings,
       activeId,
       dropData.date,
       newStartTime,
-      newEndTime
+      newEndTime,
+      booking.barber
     );
     
     setDropPreview({
@@ -241,13 +246,14 @@ export function useCalendarDragDropEnhanced({
       return;
     }
     
-    // Check for conflicts
+    // Check for conflicts (same barber only)
     const { hasConflict, conflictingBookings } = checkConflicts(
       bookings,
       bookingId,
       newDate,
       newStartTime.substring(0, 5),
-      newEndTime.substring(0, 5)
+      newEndTime.substring(0, 5),
+      booking.barber
     );
     
     if (hasConflict) {
