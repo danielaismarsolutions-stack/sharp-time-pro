@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   format,
   startOfWeek,
@@ -24,6 +24,7 @@ import {
   useSensor,
   useSensors,
   closestCenter,
+  DragMoveEvent,
 } from '@dnd-kit/core';
 import {
   ChevronLeft,
@@ -35,6 +36,7 @@ import {
   Filter,
   Loader2,
   RefreshCw,
+  Undo2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -55,7 +57,7 @@ import { supabaseBookingsApi } from '@/services/supabaseBookings';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useCalendarDragDrop } from '@/hooks/useCalendarDragDrop';
+import { useCalendarDragDropEnhanced, snapToQuarterHour } from '@/hooks/useCalendarDragDropEnhanced';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/bookings/BookingModal';
@@ -63,7 +65,8 @@ import { BookingDetailModal, BookingStatus, MonthView } from '@/components/calen
 import { ServiceLegend } from '@/components/calendar/ServiceLegend';
 import {
   BookingCard,
-  DroppableTimeSlot,
+  DroppableTimeSlotEnhanced,
+  DragOverlayCard,
   getServicePastelColor,
   getOverlapInfo,
   getBookingPosition,
@@ -74,6 +77,7 @@ type ViewMode = 'day' | 'week' | 'month';
 const HOUR_HEIGHT_DAY = 80;
 const HOUR_HEIGHT_WEEK = 60;
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8:00 - 20:00
+const START_HOUR = 8;
 
 export default function Calendar() {
   const { toast } = useToast();
@@ -125,20 +129,31 @@ export default function Calendar() {
     loadData();
   }, [loadData]);
 
-  // Drag and drop setup
+  // Current hour height based on view mode
+  const currentHourHeight = viewMode === 'day' ? HOUR_HEIGHT_DAY : HOUR_HEIGHT_WEEK;
+
+  // Enhanced drag and drop setup with 15-min snapping
   const {
     activeId,
+    activeBooking,
+    dropPreview,
     handleDragStart,
+    handleDragMove,
     handleDragEnd,
-  } = useCalendarDragDrop({
+    handleDragCancel,
+    handleUndo,
+    undoStack,
+  } = useCalendarDragDropEnhanced({
     bookings,
     onBookingUpdate: (id, updated) => {
       setBookings(prev => prev.map(b => b.id === id ? updated : b));
     },
     onBookingsChange: setBookings,
+    hourHeight: currentHourHeight,
+    startHour: START_HOUR,
   });
 
-  // Configure sensors for drag-drop
+  // Configure sensors for drag-drop with long-press on mobile
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -152,12 +167,6 @@ export default function Calendar() {
       },
     })
   );
-
-  // Get active booking for drag overlay
-  const activeBooking = useMemo(() => {
-    if (!activeId) return null;
-    return bookings.find(b => b.id === activeId) || null;
-  }, [activeId, bookings]);
 
   // Swipe gesture for mobile navigation
   const swipeHandlers = useSwipeGesture({
@@ -302,18 +311,22 @@ export default function Calendar() {
           {/* Day content */}
           <div className="flex-1 relative min-w-[200px]">
             {HOURS.map((hour) => (
-              <DroppableTimeSlot
+              <DroppableTimeSlotEnhanced
                 key={hour}
                 id={`day-${dateStr}-${hour}`}
                 hour={hour}
                 date={dateStr}
-                className="h-20 hover:bg-muted/30 cursor-pointer"
+                hourHeight={HOUR_HEIGHT_DAY}
+                isDropTarget={dropPreview?.date === dateStr && dropPreview?.time?.startsWith(hour.toString().padStart(2, '0'))}
+                previewTime={dropPreview?.date === dateStr ? dropPreview?.time : null}
+                hasConflict={dropPreview?.hasConflict}
+                className="hover:bg-muted/30 cursor-pointer"
               >
                 <div 
                   className="absolute inset-0"
                   onClick={() => openNewBooking(currentDate)} 
                 />
-              </DroppableTimeSlot>
+              </DroppableTimeSlotEnhanced>
             ))}
 
             {/* Bookings overlay */}
@@ -411,18 +424,22 @@ export default function Calendar() {
               {/* Hours grid */}
               <div className="relative">
                 {HOURS.map((hour) => (
-                  <DroppableTimeSlot
+                  <DroppableTimeSlotEnhanced
                     key={hour}
                     id={`week-${dateStr}-${hour}`}
                     hour={hour}
                     date={dateStr}
-                    className="h-[60px] hover:bg-muted/30 cursor-pointer"
+                    hourHeight={HOUR_HEIGHT_WEEK}
+                    isDropTarget={dropPreview?.date === dateStr && dropPreview?.time?.startsWith(hour.toString().padStart(2, '0'))}
+                    previewTime={dropPreview?.date === dateStr ? dropPreview?.time : null}
+                    hasConflict={dropPreview?.hasConflict}
+                    className="hover:bg-muted/30 cursor-pointer"
                   >
                     <div 
                       className="absolute inset-0"
                       onClick={() => openNewBooking(day)}
                     />
-                  </DroppableTimeSlot>
+                  </DroppableTimeSlotEnhanced>
                 ))}
 
                 {/* Bookings overlay */}
@@ -494,7 +511,9 @@ export default function Calendar() {
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <div className="h-full flex flex-col">
         {/* Header */}
@@ -595,14 +614,33 @@ export default function Calendar() {
           <ServiceLegend services={services} />
         </Card>
 
-        {/* Drag Overlay */}
+        {/* Undo Button */}
+        {undoStack.length > 0 && (
+          <div className="fixed bottom-24 left-4 md:bottom-4 z-50">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const lastAction = undoStack[undoStack.length - 1];
+                if (lastAction) handleUndo(lastAction.bookingId, lastAction.previousState);
+              }}
+              className="shadow-lg bg-card"
+            >
+              <Undo2 className="h-4 w-4 mr-2" />
+              Deshacer
+            </Button>
+          </div>
+        )}
+
+        {/* Drag Overlay with time preview */}
         <DragOverlay>
           {activeBooking && (
-            <div className="bg-card rounded-lg shadow-xl p-3 border-l-4 border-primary opacity-90">
-              <p className="font-bold text-sm">{activeBooking.start_time.substring(0, 5)} - {activeBooking.end_time.substring(0, 5)}</p>
-              <p className="font-semibold">{activeBooking.client_name}</p>
-              <p className="text-sm text-muted-foreground">{activeBooking.service_name}</p>
-            </div>
+            <DragOverlayCard
+              booking={activeBooking}
+              previewTime={dropPreview?.time}
+              hasConflict={dropPreview?.hasConflict}
+              conflictingNames={dropPreview?.conflictingBookings}
+            />
           )}
         </DragOverlay>
 
