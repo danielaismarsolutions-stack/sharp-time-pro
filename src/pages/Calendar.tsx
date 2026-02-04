@@ -581,7 +581,16 @@ export default function Calendar() {
               <Button variant="outline" size="icon" onClick={() => navigateDate('prev')} className="h-9 w-9 min-w-[44px] min-h-[44px]">
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())} className="hidden sm:flex">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setCurrentDate(new Date())} 
+                disabled={isToday(currentDate)}
+                className={cn(
+                  "h-9 px-2 sm:px-3 text-xs sm:text-sm min-h-[44px]",
+                  isToday(currentDate) && "opacity-50 cursor-not-allowed"
+                )}
+              >
                 Hoy
               </Button>
               <Button variant="outline" size="icon" onClick={() => navigateDate('next')} className="h-9 w-9 min-w-[44px] min-h-[44px]">
