@@ -9,6 +9,7 @@ interface DragOverlayCardProps {
   previewTime?: string | null;
   hasConflict?: boolean;
   conflictingNames?: string[];
+  scheduleError?: string;
 }
 
 export function DragOverlayCard({
@@ -16,16 +17,18 @@ export function DragOverlayCard({
   previewTime,
   hasConflict = false,
   conflictingNames = [],
+  scheduleError,
 }: DragOverlayCardProps) {
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
+  const hasError = hasConflict || !!scheduleError;
   
   return (
     <div 
       className={cn(
         'bg-card rounded-lg shadow-2xl p-3 border-l-4 min-w-[180px] max-w-[250px]',
         'transform scale-105 transition-transform',
-        hasConflict 
+        hasError 
           ? 'border-destructive ring-2 ring-destructive/30' 
           : 'border-primary ring-2 ring-primary/30'
       )}
@@ -35,12 +38,12 @@ export function DragOverlayCard({
         <div 
           className={cn(
             'absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold shadow-lg',
-            hasConflict 
+            hasError 
               ? 'bg-destructive text-destructive-foreground' 
               : 'bg-primary text-primary-foreground animate-pulse'
           )}
         >
-          {hasConflict && <AlertTriangle className="w-3 h-3 inline mr-1" />}
+          {hasError && <AlertTriangle className="w-3 h-3 inline mr-1" />}
           {previewTime}
         </div>
       )}
@@ -65,8 +68,18 @@ export function DragOverlayCard({
       {/* Service */}
       <p className="text-sm text-muted-foreground pl-6">{booking.service_name}</p>
       
+      {/* Schedule error */}
+      {scheduleError && (
+        <div className="mt-2 pt-2 border-t border-destructive/30">
+          <p className="text-xs text-destructive font-medium flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3" />
+            {scheduleError}
+          </p>
+        </div>
+      )}
+      
       {/* Conflict warning */}
-      {hasConflict && conflictingNames.length > 0 && (
+      {!scheduleError && hasConflict && conflictingNames.length > 0 && (
         <div className="mt-2 pt-2 border-t border-destructive/30">
           <p className="text-xs text-destructive font-medium flex items-center gap-1">
             <AlertTriangle className="w-3 h-3" />

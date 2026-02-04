@@ -1,16 +1,19 @@
-// Enhanced drag-and-drop hook with 15-minute snapping
+// Enhanced drag-and-drop hook with 15-minute snapping and barber schedule validation
 import { useState, useCallback, useMemo } from 'react';
 import { DragEndEvent, DragStartEvent, DragMoveEvent } from '@dnd-kit/core';
-import { parse, format, addMinutes, differenceInMinutes } from 'date-fns';
+import { parse, format, addMinutes, differenceInMinutes, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ApiBooking } from '@/types/api';
+import { Barber, BarberSchedule } from '@/types/barber';
 import { supabaseBookingsApi } from '@/services/supabaseBookings';
 import { createNotification } from '@/services/supabaseNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { BUSINESS_ID } from '@/config/api';
 import { useToast } from '@/hooks/use-toast';
+
 interface UseCalendarDragDropEnhancedOptions {
   bookings: ApiBooking[];
+  barbers: Barber[];
   onBookingUpdate: (bookingId: string, updatedBooking: ApiBooking) => void;
   onBookingsChange: (updatedBookings: ApiBooking[]) => void;
   hourHeight: number;
@@ -27,7 +30,19 @@ interface DropPreview {
   time: string;
   hasConflict: boolean;
   conflictingBookings: string[];
+  scheduleError?: string;
 }
+
+// Day of week mapping (getDay returns 0=Sunday, 1=Monday, etc.)
+const DAY_OF_WEEK_TO_KEY: Record<number, keyof BarberSchedule> = {
+  0: 'sunday',
+  1: 'monday',
+  2: 'tuesday',
+  3: 'wednesday',
+  4: 'thursday',
+  5: 'friday',
+  6: 'saturday',
+};
 
 // Snap to nearest 15-minute interval
 export function snapToQuarterHour(minutes: number): number {
@@ -53,6 +68,78 @@ export function calculateTimeFromY(
     minutes,
     timeString: `${clampedHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
   };
+}
+
+// Check if barber is available at the given date and time
+export function checkBarberSchedule(
+  barbers: Barber[],
+  barberName: string | null | undefined,
+  date: string,
+  startTime: string,
+  endTime: string
+): { isAvailable: boolean; reason?: string } {
+  // If no barber assigned, allow the drop (no schedule to check)
+  if (!barberName) {
+    return { isAvailable: true };
+  }
+  
+  // Find barber by name
+  const barber = barbers.find(b => b.name === barberName);
+  if (!barber) {
+    return { isAvailable: true }; // Barber not found, allow anyway
+  }
+  
+  const dateObj = new Date(date);
+  const dayOfWeek = getDay(dateObj);
+  const dayKey = DAY_OF_WEEK_TO_KEY[dayOfWeek];
+  const daySchedule = barber.schedule[dayKey];
+  
+  // Check if barber has time off on this date
+  const isOnTimeOff = barber.time_off.some(timeOff => {
+    const startDate = new Date(timeOff.start_date);
+    const endDate = new Date(timeOff.end_date);
+    return dateObj >= startDate && dateObj <= endDate;
+  });
+  
+  if (isOnTimeOff) {
+    return { 
+      isAvailable: false, 
+      reason: `${barberName} tiene el día libre` 
+    };
+  }
+  
+  // Check if the day is enabled
+  if (!daySchedule.enabled || daySchedule.shifts.length === 0) {
+    return { 
+      isAvailable: false, 
+      reason: `${barberName} no trabaja este día` 
+    };
+  }
+  
+  // Parse booking times
+  const bookingStart = parse(startTime.substring(0, 5), 'HH:mm', new Date());
+  const bookingEnd = parse(endTime.substring(0, 5), 'HH:mm', new Date());
+  
+  // Check if the booking fits within any of the barber's shifts
+  const fitsInShift = daySchedule.shifts.some(shift => {
+    const shiftStart = parse(shift.start, 'HH:mm', new Date());
+    const shiftEnd = parse(shift.end, 'HH:mm', new Date());
+    
+    return bookingStart >= shiftStart && bookingEnd <= shiftEnd;
+  });
+  
+  if (!fitsInShift) {
+    // Format the shifts for the error message
+    const shiftsText = daySchedule.shifts
+      .map(s => `${s.start}-${s.end}`)
+      .join(', ');
+    return { 
+      isAvailable: false, 
+      reason: `Fuera del horario de ${barberName} (${shiftsText})` 
+    };
+  }
+  
+  return { isAvailable: true };
 }
 
 // Check for conflicts with other bookings (same barber only)
@@ -89,6 +176,7 @@ export function checkConflicts(
 
 export function useCalendarDragDropEnhanced({
   bookings,
+  barbers,
   onBookingUpdate,
   onBookingsChange,
   hourHeight,
@@ -170,18 +258,28 @@ export function useCalendarDragDropEnhanced({
       booking.barber
     );
     
+    // Check barber schedule availability
+    const scheduleCheck = checkBarberSchedule(
+      barbers,
+      booking.barber,
+      dropData.date,
+      newStartTime,
+      newEndTime
+    );
+    
     setDropPreview({
       date: dropData.date,
       time: newStartTime,
-      hasConflict,
+      hasConflict: hasConflict || !scheduleCheck.isAvailable,
       conflictingBookings: conflictingBookings.map(b => b.client_name),
+      scheduleError: scheduleCheck.reason,
     });
     
     // Haptic feedback when snapping to a new time
     if ('vibrate' in navigator && dropPreview?.time !== newStartTime) {
       navigator.vibrate(5);
     }
-  }, [activeId, bookings, getBookingDuration, hourHeight, dropPreview?.time]);
+  }, [activeId, bookings, barbers, getBookingDuration, hourHeight, dropPreview?.time]);
   
   const handleDragCancel = useCallback(() => {
     setActiveId(null);
@@ -264,6 +362,24 @@ export function useCalendarDragDropEnhanced({
       toast({
         title: 'Horario ocupado',
         description: `Conflicto con: ${conflictingBookings.map(b => b.client_name).join(', ')}`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Check barber schedule availability
+    const scheduleCheck = checkBarberSchedule(
+      barbers,
+      booking.barber,
+      newDate,
+      newStartTime,
+      newEndTime
+    );
+    
+    if (!scheduleCheck.isAvailable) {
+      toast({
+        title: 'Horario no disponible',
+        description: scheduleCheck.reason,
         variant: 'destructive',
       });
       return;
