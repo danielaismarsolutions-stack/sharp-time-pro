@@ -55,6 +55,10 @@ import { supabaseClientsApi } from '@/services/supabaseClients';
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBookingsApi } from '@/services/supabaseBookings';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
+import { createNotification } from '@/services/supabaseNotifications';
+import { useAuth } from '@/contexts/AuthContext';
+import { BUSINESS_ID } from '@/config/api';
+import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCalendarDragDropEnhanced, snapToQuarterHour } from '@/hooks/useCalendarDragDropEnhanced';
@@ -81,6 +85,7 @@ const START_HOUR = 8;
 
 export default function Calendar() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<ViewMode>(() => isMobile ? 'day' : 'week');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -128,6 +133,58 @@ export default function Calendar() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Real-time subscription for bookings from web/external sources
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const channel = supabase
+      .channel('bookings-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'bookings',
+          filter: `business_id=eq.${BUSINESS_ID}`,
+        },
+        async (payload) => {
+          const newBooking = payload.new as ApiBooking;
+          console.log('🔔 New booking from external source:', newBooking);
+          
+          // Only create notification if booking was created from web (not from this session)
+          if (newBooking.source === 'online') {
+            try {
+              await createNotification({
+                user_id: user.id,
+                business_id: BUSINESS_ID,
+                type: 'booking_created',
+                title: 'Nueva reserva online',
+                message: `${newBooking.client_name} ha reservado ${newBooking.service_name} para el ${format(new Date(newBooking.booking_date), 'dd/MM/yyyy', { locale: es })} a las ${newBooking.start_time.substring(0, 5)}`,
+                metadata: {
+                  booking_id: newBooking.id,
+                  client_name: newBooking.client_name,
+                  service_name: newBooking.service_name,
+                  booking_date: newBooking.booking_date,
+                  start_time: newBooking.start_time,
+                },
+              });
+              console.log('✅ Notification created for online booking');
+            } catch (error) {
+              console.error('Failed to create notification:', error);
+            }
+          }
+          
+          // Refresh bookings list
+          loadData();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, loadData]);
 
   // Current hour height based on view mode
   const currentHourHeight = viewMode === 'day' ? HOUR_HEIGHT_DAY : HOUR_HEIGHT_WEEK;
@@ -719,6 +776,29 @@ export default function Calendar() {
                 });
                 
                 setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updatedBooking : b));
+                
+                // Create notification for booking modification
+                if (user?.id) {
+                  try {
+                    await createNotification({
+                      user_id: user.id,
+                      business_id: BUSINESS_ID,
+                      type: 'booking_modified',
+                      title: 'Reserva modificada',
+                      message: `${data.clientName} - ${data.serviceName} actualizada al ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
+                      metadata: {
+                        booking_id: selectedBooking.id,
+                        client_name: data.clientName,
+                        service_name: data.serviceName,
+                        booking_date: data.date,
+                        start_time: data.time,
+                      },
+                    });
+                  } catch (notifError) {
+                    console.error('Failed to create notification:', notifError);
+                  }
+                }
+                
                 toast({ title: 'Cita actualizada correctamente' });
               } else {
                 const newBooking = await supabaseBookingsApi.create({
@@ -740,6 +820,29 @@ export default function Calendar() {
                 });
                 
                 setBookings(prev => [...prev, newBooking]);
+                
+                // Create notification for new booking
+                if (user?.id) {
+                  try {
+                    await createNotification({
+                      user_id: user.id,
+                      business_id: BUSINESS_ID,
+                      type: 'booking_created',
+                      title: 'Nueva reserva',
+                      message: `${data.clientName} ha reservado ${data.serviceName} para el ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
+                      metadata: {
+                        booking_id: newBooking.id,
+                        client_name: data.clientName,
+                        service_name: data.serviceName,
+                        booking_date: data.date,
+                        start_time: data.time,
+                      },
+                    });
+                  } catch (notifError) {
+                    console.error('Failed to create notification:', notifError);
+                  }
+                }
+                
                 toast({ title: 'Cita creada correctamente' });
               }
               

@@ -34,6 +34,9 @@ import { supabaseBookingsApi, CreateBookingData } from '@/services/supabaseBooki
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { supabaseClientsApi } from '@/services/supabaseClients';
+import { createNotification } from '@/services/supabaseNotifications';
+import { useAuth } from '@/contexts/AuthContext';
+import { BUSINESS_ID } from '@/config/api';
 
 interface ConsultationBookingModalProps {
   open: boolean;
@@ -58,6 +61,7 @@ export function ConsultationBookingModal({
   onBooked,
 }: ConsultationBookingModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
@@ -241,7 +245,31 @@ export function ConsultationBookingModal({
         notes: formData.notes || `Reserva desde consulta: ${consultation.client_notes || ''}`.trim(),
       };
 
-      await supabaseBookingsApi.create(bookingData);
+      const newBooking = await supabaseBookingsApi.create(bookingData);
+      
+      // Create notification for booking from consultation
+      if (user?.id) {
+        try {
+          await createNotification({
+            user_id: user.id,
+            business_id: BUSINESS_ID,
+            type: 'booking_created',
+            title: 'Nueva reserva desde consulta',
+            message: `${consultation.client_name} ha reservado ${selectedService.name} para el ${format(date, "dd/MM/yyyy", { locale: es })} a las ${formData.time}`,
+            metadata: {
+              booking_id: newBooking.id,
+              consultation_id: consultation.id,
+              client_name: consultation.client_name,
+              service_name: selectedService.name,
+              booking_date: format(date, 'yyyy-MM-dd'),
+              start_time: formData.time,
+            },
+          });
+          console.log('✅ Notification created for consultation booking');
+        } catch (notifError) {
+          console.error('Failed to create notification:', notifError);
+        }
+      }
       
       toast({
         title: 'Cita creada',
