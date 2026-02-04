@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Filter } from 'lucide-react';
-import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays } from 'date-fns';
+import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, isToday, startOfWeek, endOfWeek, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -52,6 +52,24 @@ export function CalendarNav({
     onDateChange(new Date());
   };
 
+  // Check if we're already viewing today
+  const isViewingToday = () => {
+    const today = new Date();
+    if (view === 'day') {
+      return isSameDay(currentDate, today);
+    }
+    if (view === 'week') {
+      const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+      return today >= weekStart && today <= weekEnd;
+    }
+    // Month view - check if same month
+    return currentDate.getMonth() === today.getMonth() && 
+           currentDate.getFullYear() === today.getFullYear();
+  };
+
+  const isTodayDisabled = isViewingToday();
+
   const getDateLabel = () => {
     if (view === 'day') {
       return format(currentDate, "EEEE, d 'de' MMMM yyyy", { locale: es });
@@ -66,7 +84,13 @@ export function CalendarNav({
         <Button variant="outline" size="icon" onClick={goToPrevious}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <Button variant="outline" size="sm" onClick={goToToday}>
+        <Button 
+          variant={isTodayDisabled ? "ghost" : "outline"} 
+          size="sm" 
+          onClick={goToToday}
+          disabled={isTodayDisabled}
+          className={isTodayDisabled ? "opacity-50 cursor-not-allowed" : ""}
+        >
           Hoy
         </Button>
         <Button variant="outline" size="icon" onClick={goToNext}>

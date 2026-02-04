@@ -19,6 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { CurrentTimeIndicator } from './CurrentTimeIndicator';
 
 interface WeekViewProps {
   currentDate: Date;
@@ -180,6 +181,16 @@ export function WeekView({ currentDate, bookings, services, onBookingClick }: We
                     <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-border/30" />
                   </div>
                 ))}
+
+                {/* Current time indicator - only on today's column */}
+                {isToday(day) && (
+                  <CurrentTimeIndicator
+                    currentDate={day}
+                    startHour={8}
+                    endHour={21}
+                    hourHeight={HOUR_HEIGHT}
+                  />
+                )}
 
                 {/* Bookings */}
                 {dayBookings.map((booking) => {

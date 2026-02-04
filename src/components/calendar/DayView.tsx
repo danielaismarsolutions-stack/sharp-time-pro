@@ -12,6 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { CurrentTimeIndicator } from './CurrentTimeIndicator';
 
 interface DayViewProps {
   currentDate: Date;
@@ -106,6 +107,14 @@ export function DayView({ currentDate, bookings, onBookingClick }: DayViewProps)
                 <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-border/30" />
               </div>
             ))}
+
+            {/* Current time indicator */}
+            <CurrentTimeIndicator
+              currentDate={currentDate}
+              startHour={8}
+              endHour={21}
+              hourHeight={HOUR_HEIGHT}
+            />
 
             {/* Bookings */}
             {dayBookings.map((booking) => {
