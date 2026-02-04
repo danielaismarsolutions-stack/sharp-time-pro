@@ -78,36 +78,36 @@ export function CalendarNav({
   };
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 border-b border-border bg-card">
-      {/* Left: Navigation */}
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="icon" onClick={goToPrevious}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <Button 
-          variant={isTodayDisabled ? "ghost" : "outline"} 
-          size="sm" 
-          onClick={goToToday}
-          disabled={isTodayDisabled}
-          className={isTodayDisabled ? "opacity-50 cursor-not-allowed" : ""}
-        >
-          Hoy
-        </Button>
-        <Button variant="outline" size="icon" onClick={goToNext}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-        <h2 className="text-lg font-semibold capitalize ml-2 hidden sm:block">
+    <div className="flex flex-col gap-2 p-3 sm:p-4 border-b border-border bg-card">
+      {/* Row 1: Navigation controls + Date */}
+      <div className="flex items-center justify-between gap-2">
+        {/* Navigation buttons */}
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <Button variant="outline" size="icon" className="h-8 w-8 sm:h-10 sm:w-10" onClick={goToPrevious}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant={isTodayDisabled ? "ghost" : "outline"} 
+            size="sm" 
+            onClick={goToToday}
+            disabled={isTodayDisabled}
+            className={`h-8 px-2 sm:px-3 text-xs sm:text-sm ${isTodayDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            Hoy
+          </Button>
+          <Button variant="outline" size="icon" className="h-8 w-8 sm:h-10 sm:w-10" onClick={goToNext}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Date label - always visible */}
+        <h2 className="text-sm sm:text-lg font-semibold capitalize truncate flex-1 text-center sm:text-left">
           {getDateLabel()}
         </h2>
       </div>
 
-      {/* Mobile Date Label */}
-      <h2 className="text-base font-semibold capitalize sm:hidden">
-        {getDateLabel()}
-      </h2>
-
-      {/* Right: View Switcher & Filters */}
-      <div className="flex items-center gap-3">
+      {/* Row 2: View Switcher & Filters */}
+      <div className="flex items-center justify-between gap-2">
         {/* View Switcher */}
         <Tabs value={view} onValueChange={(v) => onViewChange(v as CalendarView)}>
           <TabsList className="grid w-full grid-cols-3">
