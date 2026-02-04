@@ -2,10 +2,13 @@
 import { useState, useCallback, useMemo } from 'react';
 import { DragEndEvent, DragStartEvent, DragMoveEvent } from '@dnd-kit/core';
 import { parse, format, addMinutes, differenceInMinutes } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { ApiBooking } from '@/types/api';
 import { supabaseBookingsApi } from '@/services/supabaseBookings';
+import { createNotification } from '@/services/supabaseNotifications';
+import { useAuth } from '@/contexts/AuthContext';
+import { BUSINESS_ID } from '@/config/api';
 import { useToast } from '@/hooks/use-toast';
-
 interface UseCalendarDragDropEnhancedOptions {
   bookings: ApiBooking[];
   onBookingUpdate: (bookingId: string, updatedBooking: ApiBooking) => void;
@@ -92,6 +95,7 @@ export function useCalendarDragDropEnhanced({
   startHour = 8,
 }: UseCalendarDragDropEnhancedOptions) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [undoStack, setUndoStack] = useState<UndoAction[]>([]);
@@ -296,6 +300,29 @@ export function useCalendarDragDropEnhanced({
       onBookingUpdate(bookingId, updated);
       setUndoStack(prev => [...prev.slice(-9), { bookingId, previousState }]);
       
+      // Create notification for the booking modification
+      if (user?.id) {
+        try {
+          await createNotification({
+            user_id: user.id,
+            business_id: BUSINESS_ID,
+            type: 'booking_modified',
+            title: 'Reserva modificada',
+            message: `${booking.client_name} ha modificado su reserva de ${booking.service_name} al ${format(new Date(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,
+            metadata: {
+              booking_id: bookingId,
+              client_name: booking.client_name,
+              service_name: booking.service_name,
+              booking_date: newDate,
+              start_time: newStartTime,
+            },
+          });
+          console.log('✅ Notification created for booking modification');
+        } catch (notifError) {
+          console.error('Failed to create notification:', notifError);
+        }
+      }
+      
       // Haptic feedback on success
       if ('vibrate' in navigator) {
         navigator.vibrate([10, 50, 10]);
@@ -307,6 +334,11 @@ export function useCalendarDragDropEnhanced({
       });
     } catch (error) {
       onBookingsChange(bookings);
+      toast({
+        title: 'Error al mover cita',
+        description: 'No se pudo actualizar la cita',
+        variant: 'destructive',
+      });
       toast({
         title: 'Error al mover cita',
         description: 'No se pudo actualizar la cita',
