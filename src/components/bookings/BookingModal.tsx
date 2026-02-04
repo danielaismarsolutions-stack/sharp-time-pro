@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
-import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Plus, Check, ChevronsUpDown } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { format, getDay, addMinutes, parse, isBefore, isAfter, isSameDay } from 'date-fns';
+import { Calendar as CalendarIcon, Plus, Check, ChevronsUpDown, AlertCircle } from 'lucide-react';
 import { es } from 'date-fns/locale';
 import {
   Dialog,
@@ -36,9 +36,11 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Booking, Client, Service } from '@/types';
-import { Barber } from '@/types/barber';
+import { ApiBooking } from '@/types/api';
+import { Barber, BarberSchedule } from '@/types/barber';
 import { useToast } from '@/hooks/use-toast';
 import ClientModal from '@/components/clients/ClientModal';
+import { supabaseBookingsApi } from '@/services/supabaseBookings';
 
 interface BookingModalProps {
   open: boolean;
@@ -47,19 +49,35 @@ interface BookingModalProps {
   clients: Client[];
   services: Service[];
   barbers: Barber[];
+  allBookings?: Booking[];
   onSave: (booking: Partial<Booking>) => Promise<void>;
   onClientCreate?: (client: Partial<Client>) => Promise<Client>;
   selectedDate?: Date;
 }
 
-const timeSlots = Array.from({ length: 25 }, (_, i) => {
-  const hour = Math.floor(i / 2) + 8;
-  const minutes = i % 2 === 0 ? '00' : '30';
-  return `${hour.toString().padStart(2, '0')}:${minutes}`;
-}).filter((time) => {
-  const hour = parseInt(time.split(':')[0]);
-  return hour >= 8 && hour < 20;
-});
+// Day of week mapping for schedule lookup
+const DAY_MAP: Record<number, keyof BarberSchedule> = {
+  0: 'sunday',
+  1: 'monday',
+  2: 'tuesday',
+  3: 'wednesday',
+  4: 'thursday',
+  5: 'friday',
+  6: 'saturday',
+};
+
+// Generate time slots in 15-minute intervals
+const generateAllTimeSlots = () => {
+  const slots: string[] = [];
+  for (let hour = 8; hour < 21; hour++) {
+    for (let min = 0; min < 60; min += 15) {
+      slots.push(`${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`);
+    }
+  }
+  return slots;
+};
+
+const ALL_TIME_SLOTS = generateAllTimeSlots();
 
 export default function BookingModal({
   open,
@@ -68,6 +86,7 @@ export default function BookingModal({
   clients,
   services,
   barbers,
+  allBookings = [],
   onSave,
   onClientCreate,
   selectedDate,
@@ -78,11 +97,12 @@ export default function BookingModal({
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
   const [showClientModal, setShowClientModal] = useState(false);
+  const [existingBookings, setExistingBookings] = useState<ApiBooking[]>([]);
   const [formData, setFormData] = useState({
     clientId: '',
     serviceId: '',
     barberId: '',
-    time: '09:00',
+    time: '',
     status: 'confirmed' as Booking['status'],
     source: 'phone' as Booking['source'],
     notes: '',
@@ -100,13 +120,138 @@ export default function BookingModal({
     );
   }, [clients, clientSearch]);
 
+  const selectedService = services.find((s) => s.id === formData.serviceId);
+  const selectedClient = clients.find((c) => c.id === formData.clientId);
+  const selectedBarber = barbers.find((b) => b.id === formData.barberId);
+
+  // Fetch bookings for the selected date when barber changes
+  useEffect(() => {
+    const fetchBookingsForDate = async () => {
+      if (!date || !formData.barberId) {
+        setExistingBookings([]);
+        return;
+      }
+      
+      try {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const bookings = await supabaseBookingsApi.getByDateRange(dateStr, dateStr);
+        // Filter bookings for this barber (or unassigned)
+        const barberBookings = bookings.filter(
+          (b) => b.barber === selectedBarber?.name || (!b.barber && !formData.barberId)
+        );
+        setExistingBookings(barberBookings);
+      } catch (error) {
+        console.error('Error fetching bookings:', error);
+        setExistingBookings([]);
+      }
+    };
+
+    fetchBookingsForDate();
+  }, [date, formData.barberId, selectedBarber?.name]);
+
+  // Check if barber works on a specific date
+  const isBarberWorkingOnDate = useCallback((checkDate: Date, barber: Barber): boolean => {
+    if (!barber.schedule) return true;
+    
+    const dayOfWeek = getDay(checkDate);
+    const dayName = DAY_MAP[dayOfWeek];
+    const daySchedule = barber.schedule[dayName];
+    
+    if (!daySchedule?.enabled || daySchedule.shifts.length === 0) {
+      return false;
+    }
+    
+    // Check time_off
+    const dateStr = format(checkDate, 'yyyy-MM-dd');
+    if (barber.time_off?.some(
+      (to) => dateStr >= to.start_date && dateStr <= to.end_date
+    )) {
+      return false;
+    }
+    
+    return true;
+  }, []);
+
+  // Get available time slots based on barber schedule and existing bookings
+  const availableTimeSlots = useMemo(() => {
+    if (!date || !selectedBarber?.schedule) {
+      return ALL_TIME_SLOTS;
+    }
+
+    const dayOfWeek = getDay(date);
+    const dayName = DAY_MAP[dayOfWeek];
+    const daySchedule = selectedBarber.schedule[dayName];
+
+    if (!daySchedule?.enabled || daySchedule.shifts.length === 0) {
+      return [];
+    }
+
+    // Get all slots within barber's shifts
+    const slotsInShifts: string[] = [];
+    daySchedule.shifts.forEach((shift) => {
+      ALL_TIME_SLOTS.forEach((slot) => {
+        if (slot >= shift.start && slot < shift.end) {
+          slotsInShifts.push(slot);
+        }
+      });
+    });
+
+    // Filter out slots that conflict with existing bookings
+    const serviceDuration = selectedService?.duration || 30;
+    const availableSlots = slotsInShifts.filter((slot) => {
+      const slotStart = parse(slot, 'HH:mm', date);
+      const slotEnd = addMinutes(slotStart, serviceDuration);
+
+      // Check for conflicts with existing bookings
+      const hasConflict = existingBookings.some((existingBooking) => {
+        // Skip the booking being edited
+        if (booking?.id === existingBooking.id) return false;
+        
+        // Only check conflicts for same barber
+        if (existingBooking.barber !== selectedBarber.name) return false;
+
+        // Parse times - API returns HH:MM:SS format
+        const existingTimeStr = existingBooking.start_time.slice(0, 5);
+        const existingStart = parse(existingTimeStr, 'HH:mm', date);
+        const existingEnd = addMinutes(existingStart, existingBooking.service_duration || 30);
+
+        // Check overlap
+        return (
+          (slotStart >= existingStart && slotStart < existingEnd) ||
+          (slotEnd > existingStart && slotEnd <= existingEnd) ||
+          (slotStart <= existingStart && slotEnd >= existingEnd)
+        );
+      });
+
+      // Also check that the service fits within the shift
+      const fitsInShift = daySchedule.shifts.some((shift) => {
+        const shiftEnd = parse(shift.end, 'HH:mm', date);
+        return slotEnd <= shiftEnd;
+      });
+
+      return !hasConflict && fitsInShift;
+    });
+
+    return availableSlots;
+  }, [date, selectedBarber, selectedService, existingBookings, booking?.id]);
+
+  // Disable dates where barber doesn't work
+  const disabledDates = useCallback(
+    (checkDate: Date) => {
+      // Don't disable past dates here, let the calendar handle that
+      if (!selectedBarber) return false;
+      return !isBarberWorkingOnDate(checkDate, selectedBarber);
+    },
+    [selectedBarber, isBarberWorkingOnDate]
+  );
+
   useEffect(() => {
     if (booking) {
       setDate(new Date(booking.date));
       setFormData({
         clientId: booking.clientId,
         serviceId: booking.serviceId,
-        barberId: booking.barber || '',
+        barberId: booking.barber ? barbers.find(b => b.name === booking.barber)?.id || '' : '',
         time: booking.time,
         status: booking.status,
         source: booking.source,
@@ -118,17 +263,39 @@ export default function BookingModal({
         clientId: '',
         serviceId: '',
         barberId: '',
-        time: '09:00',
+        time: '',
         status: 'confirmed',
         source: 'phone',
         notes: '',
       });
     }
-  }, [booking, selectedDate, open]);
+  }, [booking, selectedDate, open, barbers]);
 
-  const selectedService = services.find((s) => s.id === formData.serviceId);
-  const selectedClient = clients.find((c) => c.id === formData.clientId);
-  const selectedBarber = barbers.find((b) => b.id === formData.barberId);
+  // Reset time when date or barber changes (only for new bookings)
+  useEffect(() => {
+    if (!booking && formData.barberId && date) {
+      // Select first available slot
+      if (availableTimeSlots.length > 0 && !availableTimeSlots.includes(formData.time)) {
+        setFormData((prev) => ({ ...prev, time: availableTimeSlots[0] }));
+      }
+    }
+  }, [date, formData.barberId, availableTimeSlots, booking, formData.time]);
+
+  // Reset date when barber changes if current date is not valid
+  useEffect(() => {
+    if (!booking && selectedBarber && date && !isBarberWorkingOnDate(date, selectedBarber)) {
+      // Find next available date
+      let nextDate = new Date();
+      for (let i = 0; i < 60; i++) {
+        const checkDate = new Date(nextDate);
+        checkDate.setDate(checkDate.getDate() + i);
+        if (isBarberWorkingOnDate(checkDate, selectedBarber)) {
+          setDate(checkDate);
+          break;
+        }
+      }
+    }
+  }, [selectedBarber, booking, isBarberWorkingOnDate]);
 
   // Handle new client creation
   const handleClientCreate = async (clientData: Partial<Client>) => {
@@ -345,12 +512,18 @@ export default function BookingModal({
                     variant="outline"
                     className={cn(
                       'w-full justify-start text-left font-normal h-10',
-                      !date && 'text-muted-foreground'
+                      !date && 'text-muted-foreground',
+                      !formData.barberId && 'opacity-60'
                     )}
+                    disabled={!formData.barberId}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
                     <span className="truncate">
-                      {date ? format(date, "d 'de' MMM yyyy", { locale: es }) : 'Selecciona fecha'}
+                      {!formData.barberId 
+                        ? 'Selecciona barbero primero'
+                        : date 
+                          ? format(date, "d 'de' MMM yyyy", { locale: es }) 
+                          : 'Selecciona fecha'}
                     </span>
                   </Button>
                 </PopoverTrigger>
@@ -359,6 +532,7 @@ export default function BookingModal({
                     mode="single"
                     selected={date}
                     onSelect={setDate}
+                    disabled={disabledDates}
                     initialFocus
                     className="pointer-events-auto"
                   />
@@ -371,18 +545,36 @@ export default function BookingModal({
               <Select
                 value={formData.time}
                 onValueChange={(value) => setFormData({ ...formData, time: value })}
+                disabled={!formData.barberId || !date || availableTimeSlots.length === 0}
               >
-                <SelectTrigger className="h-10">
-                  <SelectValue />
+                <SelectTrigger className={cn(
+                  "h-10",
+                  (!formData.barberId || !date) && 'opacity-60'
+                )}>
+                  <SelectValue placeholder={
+                    !formData.barberId 
+                      ? 'Selecciona barbero' 
+                      : !date 
+                        ? 'Selecciona fecha' 
+                        : availableTimeSlots.length === 0 
+                          ? 'Sin horas disponibles'
+                          : 'Selecciona hora'
+                  } />
                 </SelectTrigger>
                 <SelectContent>
-                  {timeSlots.map((time) => (
+                  {availableTimeSlots.map((time) => (
                     <SelectItem key={time} value={time}>
                       {time}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {formData.barberId && date && availableTimeSlots.length === 0 && (
+                <p className="text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  No hay horas disponibles este día
+                </p>
+              )}
             </div>
           </div>
 
