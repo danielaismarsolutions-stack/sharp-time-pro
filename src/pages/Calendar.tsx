@@ -202,6 +202,7 @@ export default function Calendar() {
     undoStack,
   } = useCalendarDragDropEnhanced({
     bookings,
+    barbers,
     onBookingUpdate: (id, updated) => {
       setBookings(prev => prev.map(b => b.id === id ? updated : b));
     },
@@ -697,6 +698,7 @@ export default function Calendar() {
               previewTime={dropPreview?.time}
               hasConflict={dropPreview?.hasConflict}
               conflictingNames={dropPreview?.conflictingBookings}
+              scheduleError={dropPreview?.scheduleError}
             />
           )}
         </DragOverlay>
