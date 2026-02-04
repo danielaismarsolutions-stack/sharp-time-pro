@@ -67,6 +67,7 @@ import { cn } from '@/lib/utils';
 import BookingModal from '@/components/bookings/BookingModal';
 import { BookingDetailModal, BookingStatus, MonthView } from '@/components/calendar';
 import { ServiceLegend } from '@/components/calendar/ServiceLegend';
+import { CurrentTimeIndicator } from '@/components/calendar/CurrentTimeIndicator';
 import {
   BookingCard,
   DroppableTimeSlotEnhanced,
@@ -417,6 +418,16 @@ export default function Calendar() {
               );
             })}
 
+            {/* Current time indicator */}
+            {isToday(currentDate) && (
+              <CurrentTimeIndicator
+                currentDate={currentDate}
+                startHour={START_HOUR}
+                endHour={21}
+                hourHeight={HOUR_HEIGHT_DAY}
+              />
+            )}
+
             {/* Empty state */}
             {dayBookings.length === 0 && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -499,6 +510,16 @@ export default function Calendar() {
                     />
                   </DroppableTimeSlotEnhanced>
                 ))}
+
+                {/* Current time indicator - only on today's column */}
+                {isCurrentDay && (
+                  <CurrentTimeIndicator
+                    currentDate={day}
+                    startHour={START_HOUR}
+                    endHour={21}
+                    hourHeight={HOUR_HEIGHT_WEEK}
+                  />
+                )}
 
                 {/* Bookings overlay */}
                 {dayBookings.map((booking) => {
