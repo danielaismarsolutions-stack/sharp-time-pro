@@ -30,6 +30,7 @@ interface SetmoreHeaderProps {
   barberNames: string[];
   selectedBarber: string | null;
   onBarberChange: (barber: string | null) => void;
+  isMobile?: boolean;
 }
 
 export function SetmoreHeader({
@@ -42,6 +43,7 @@ export function SetmoreHeader({
   barberNames,
   selectedBarber,
   onBarberChange,
+  isMobile = false,
 }: SetmoreHeaderProps) {
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
@@ -187,18 +189,30 @@ export function SetmoreHeader({
       <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-card">
         <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)}>
           <TabsList className="h-9">
-            <TabsTrigger value="agenda" className="text-xs px-2 min-h-[40px]">
+            <TabsTrigger value="agenda" className="text-xs px-2 md:px-3 min-h-[40px]">
               <List className="h-4 w-4 mr-1" />
               Agenda
             </TabsTrigger>
-            <TabsTrigger value="day" className="text-xs px-2 min-h-[40px]">
+            <TabsTrigger value="day" className="text-xs px-2 md:px-3 min-h-[40px]">
               <LayoutGrid className="h-4 w-4 mr-1" />
               Día
             </TabsTrigger>
-            <TabsTrigger value="3day" className="text-xs px-2 min-h-[40px]">
+            <TabsTrigger value="3day" className="text-xs px-2 md:px-3 min-h-[40px]">
               <CalendarIcon className="h-4 w-4 mr-1" />
               3 Días
             </TabsTrigger>
+            {!isMobile && (
+              <>
+                <TabsTrigger value="week" className="text-xs px-2 md:px-3 min-h-[40px]">
+                  <LayoutGrid className="h-4 w-4 mr-1" />
+                  Semana
+                </TabsTrigger>
+                <TabsTrigger value="month" className="text-xs px-2 md:px-3 min-h-[40px]">
+                  <CalendarIcon className="h-4 w-4 mr-1" />
+                  Mes
+                </TabsTrigger>
+              </>
+            )}
           </TabsList>
         </Tabs>
 
@@ -208,7 +222,7 @@ export function SetmoreHeader({
             value={selectedBarber || 'all'}
             onValueChange={(v) => onBarberChange(v === 'all' ? null : v)}
           >
-            <SelectTrigger className="w-[100px] h-9">
+            <SelectTrigger className="w-[100px] md:w-[140px] h-9">
               <Filter className="h-4 w-4 mr-1 shrink-0" />
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
