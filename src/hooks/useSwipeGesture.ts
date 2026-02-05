@@ -1,5 +1,5 @@
 // Mobile swipe hook for calendar navigation
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef } from 'react';
 
 interface SwipeHandlers {
   onTouchStart: (e: React.TouchEvent) => void;
@@ -11,29 +11,54 @@ interface UseSwipeOptions {
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
   threshold?: number;
+  minDistance?: number; // Minimum distance to consider it a swipe (not a tap)
 }
 
 export function useSwipeGesture({
   onSwipeLeft,
   onSwipeRight,
   threshold = 50,
+  minDistance = 30, // Must move at least 30px to be considered a swipe
 }: UseSwipeOptions): SwipeHandlers {
-  const touchStartX = useRef<number>(0);
-  const touchEndX = useRef<number>(0);
-  const [isSwiping, setIsSwiping] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+  const hasMoved = useRef<boolean>(false);
   
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
-    setIsSwiping(true);
+    touchStartY.current = e.touches[0].clientY;
+    touchEndX.current = null;
+    hasMoved.current = false;
   }, []);
   
   const onTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isSwiping) return;
+    if (touchStartX.current === null) return;
+    
     touchEndX.current = e.touches[0].clientX;
-  }, [isSwiping]);
+    
+    // Check if we've moved enough to consider it a swipe
+    const deltaX = Math.abs(touchEndX.current - touchStartX.current);
+    const deltaY = touchStartY.current !== null 
+      ? Math.abs(e.touches[0].clientY - touchStartY.current) 
+      : 0;
+    
+    // Only mark as moved if horizontal movement is significant and greater than vertical
+    if (deltaX > minDistance && deltaX > deltaY) {
+      hasMoved.current = true;
+    }
+  }, [minDistance]);
   
-  const onTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!isSwiping) return;
+  const onTouchEnd = useCallback(() => {
+    // Only trigger swipe if user actually moved their finger significantly
+    if (touchStartX.current === null || touchEndX.current === null || !hasMoved.current) {
+      // This was a tap, not a swipe - don't navigate
+      touchStartX.current = null;
+      touchStartY.current = null;
+      touchEndX.current = null;
+      hasMoved.current = false;
+      return;
+    }
     
     const diff = touchStartX.current - touchEndX.current;
     
@@ -47,10 +72,12 @@ export function useSwipeGesture({
       }
     }
     
-    setIsSwiping(false);
-    touchStartX.current = 0;
-    touchEndX.current = 0;
-  }, [isSwiping, threshold, onSwipeLeft, onSwipeRight]);
+    // Reset all values
+    touchStartX.current = null;
+    touchStartY.current = null;
+    touchEndX.current = null;
+    hasMoved.current = false;
+  }, [threshold, onSwipeLeft, onSwipeRight]);
   
   return { onTouchStart, onTouchMove, onTouchEnd };
 }
