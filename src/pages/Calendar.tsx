@@ -621,6 +621,11 @@ export default function Calendar() {
               }
             }}
             onMenuClick={() => setIsMobileMenuOpen(true)}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            barberNames={barberNames}
+            selectedBarber={selectedBarber}
+            onBarberChange={setSelectedBarber}
           />
         )}
 
@@ -719,48 +724,6 @@ export default function Calendar() {
           </div>
         )}
 
-        {/* Mobile View Switcher */}
-        {isMobile && (
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card">
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-              <TabsList className="h-9">
-                <TabsTrigger value="agenda" className="text-xs px-2 min-h-[40px]">
-                  <List className="h-4 w-4 mr-1" />
-                  Agenda
-                </TabsTrigger>
-                <TabsTrigger value="day" className="text-xs px-2 min-h-[40px]">
-                  <LayoutGrid className="h-4 w-4 mr-1" />
-                  Día
-                </TabsTrigger>
-                <TabsTrigger value="3day" className="text-xs px-2 min-h-[40px]">
-                  <CalendarIcon className="h-4 w-4 mr-1" />
-                  3 Días
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            {/* Barber Filter on mobile */}
-            {barbers.length > 0 && (
-              <Select
-                value={selectedBarber || 'all'}
-                onValueChange={(v) => setSelectedBarber(v === 'all' ? null : v)}
-              >
-                <SelectTrigger className="w-[100px] h-9">
-                  <Filter className="h-4 w-4 mr-1 shrink-0" />
-                  <SelectValue placeholder="Barbero" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {barberNames.map((barberName) => (
-                    <SelectItem key={barberName} value={barberName}>
-                      {barberName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-        )}
 
         {/* Mobile Floating Action Button - Setmore style */}
         <button
