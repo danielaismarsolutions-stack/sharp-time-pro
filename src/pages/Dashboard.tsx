@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { format } from 'date-fns';
+import { format, subDays, isSameDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { AnimatedCard } from '@/components/ui/animated-card';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { AnimatedCounter } from '@/components/dashboard/AnimatedCounter';
 
 type SortField = 'date' | 'client' | 'service' | 'barber' | 'price';
 type SortOrder = 'asc' | 'desc';
@@ -166,11 +167,21 @@ export default function Dashboard() {
 
   const hasActiveFilters = searchQuery || statusFilter !== 'all' || barberFilter !== 'all';
 
-  // Calculate stats
+  // Calculate stats with today vs yesterday comparison
+  const today = new Date();
+  const yesterday = subDays(today, 1);
+  
+  const todayBookings = bookings.filter(b => isSameDay(parseISO(b.booking_date), today));
+  const yesterdayBookings = bookings.filter(b => isSameDay(parseISO(b.booking_date), yesterday));
+  
+  const todayRevenue = todayBookings.reduce((sum, b) => sum + b.service_price, 0);
+  const yesterdayRevenue = yesterdayBookings.reduce((sum, b) => sum + b.service_price, 0);
+  
   const stats = {
     totalBookings: bookings.length,
     confirmedBookings: bookings.filter(b => b.status === 'confirmed').length,
-    todayRevenue: bookings.reduce((sum, b) => sum + b.service_price, 0),
+    todayRevenue,
+    yesterdayRevenue,
     averagePrice: bookings.length > 0 
       ? bookings.reduce((sum, b) => sum + b.service_price, 0) / bookings.length 
       : 0,
@@ -342,18 +353,35 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Animated Revenue Counter - Featured Card */}
+      <AnimatedCard delay={0}>
+        <Card className="touch-manipulation border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          <CardContent className={cn(isMobile ? "p-4" : "p-6")}>
+            <div className="flex items-start justify-between">
+              <AnimatedCounter 
+                value={stats.todayRevenue} 
+                previousValue={stats.yesterdayRevenue}
+                celebrateAt={[100, 500, 1000, 2000, 5000]}
+              />
+              <div className="p-2 rounded-full bg-primary/10">
+                <DollarSign className={cn("text-primary", isMobile ? "h-5 w-5" : "h-6 w-6")} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </AnimatedCard>
+
       {/* Stats Cards - Grid optimizado 2x2 en móvil */}
       <div className={cn(
         "grid gap-3",
-        isMobile ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-4 gap-4"
+        isMobile ? "grid-cols-3" : "grid-cols-3 lg:grid-cols-3 gap-4"
       )}>
         {[
           { label: 'Total Citas', value: stats.totalBookings, sub: 'reservas', icon: Calendar, color: '' },
           { label: 'Confirmadas', value: stats.confirmedBookings, sub: 'citas', icon: Users, color: 'text-emerald-500', borderColor: 'border-emerald-500/20' },
-          { label: 'Ingresos', value: `€${stats.todayRevenue.toFixed(0)}`, sub: 'totales', icon: DollarSign, color: '' },
           { label: 'Promedio', value: `€${stats.averagePrice.toFixed(0)}`, sub: 'por cita', icon: TrendingUp, color: '' },
         ].map((stat, idx) => (
-          <AnimatedCard key={stat.label} delay={idx}>
+          <AnimatedCard key={stat.label} delay={idx + 1}>
             <Card className={cn("touch-manipulation h-full", stat.borderColor)}>
               <CardContent className={cn(isMobile ? "p-3" : "p-4 md:p-6")}>
                 <div className="flex items-center justify-between mb-1">
