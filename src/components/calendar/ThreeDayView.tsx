@@ -283,18 +283,18 @@ export function ThreeDayView({
                 className="absolute left-0 z-30 flex items-center"
                 style={{ top: currentTimePosition - 8 }}
               >
-                <span className="text-[10px] font-medium text-destructive bg-background px-1 rounded">
+                <span className="text-[10px] font-medium text-white bg-black px-1 rounded">
                   {format(currentTime, 'H:mm')}
                 </span>
               </div>
               
-              {/* Red dot and line */}
+              {/* Black dot and line */}
               <div
                 className="absolute left-14 right-0 z-20 flex items-center pointer-events-none"
                 style={{ top: currentTimePosition }}
               >
-                <div className="w-2 h-2 rounded-full bg-destructive -ml-1 shrink-0" />
-                <div className="flex-1 h-0.5 bg-destructive" />
+                <div className="w-2 h-2 rounded-full bg-black -ml-1 shrink-0" />
+                <div className="flex-1 h-0.5 bg-black" />
               </div>
             </>
           )}
