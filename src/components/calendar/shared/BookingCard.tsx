@@ -23,40 +23,11 @@ interface BookingCardProps {
   isMobile?: boolean;
 }
 
-// Status-based color mapping (Setmore style)
-const getStatusColors = (status: string) => {
-  switch (status) {
-    case 'confirmed':
-      return {
-        bg: '#D1FAE5', // Mint/teal
-        border: '#10B981', // Green accent
-        text: '#065F46', // Dark green text
-      };
-    case 'pending':
-      return {
-        bg: '#FEF3C7', // Light yellow
-        border: '#F59E0B', // Amber accent
-        text: '#92400E', // Dark amber text
-      };
-    case 'completed':
-      return {
-        bg: '#F3F4F6', // Light gray
-        border: '#9CA3AF', // Gray accent
-        text: '#374151', // Dark gray text
-      };
-    case 'no-show':
-      return {
-        bg: '#FEE2E2', // Light red
-        border: '#EF4444', // Red accent
-        text: '#991B1B', // Dark red text
-      };
-    default:
-      return {
-        bg: '#D1FAE5', // Default mint
-        border: '#10B981',
-        text: '#065F46',
-      };
-  }
+// Default mint colors (Setmore style)
+const DEFAULT_COLORS = {
+  bg: '#D1FAE5',
+  border: '#10B981',
+  text: '#065F46',
 };
 
 // Get client initials for very narrow cards
@@ -82,11 +53,11 @@ interface CardButtonProps {
   dragAttributes: Record<string, any>;
   dragListeners: Record<string, any> | undefined;
   onClick: () => void;
+  colorClasses: ColorClasses;
 }
 
 const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
-  ({ booking, style, widthPercent, leftPercent, gap, isDragging, isDraggable, dragStyle, dragAttributes, dragListeners, onClick }, ref) => {
-    const statusColors = getStatusColors(booking.status);
+  ({ booking, style, widthPercent, leftPercent, gap, isDragging, isDraggable, dragStyle, dragAttributes, dragListeners, onClick, colorClasses }, ref) => {
     const isShortCard = style.height < 40;
     const isTinyCard = style.height < 30;
 
@@ -111,12 +82,12 @@ const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
         )}
         style={{
           top: style.top,
-          height: Math.max(style.height, 30), // Minimum 30px
+          height: Math.max(style.height, 30),
           left: style.left || `calc(${leftPercent}% + ${gap}px)`,
           width: style.width || `calc(${widthPercent}% - ${gap * 2}px)`,
-          backgroundColor: statusColors.bg,
-          borderLeftColor: statusColors.border,
-          color: statusColors.text,
+          backgroundColor: colorClasses.bg || DEFAULT_COLORS.bg,
+          borderLeftColor: colorClasses.border || DEFAULT_COLORS.border,
+          color: colorClasses.text || DEFAULT_COLORS.text,
           ...dragStyle,
         }}
         {...(isDraggable ? { ...dragAttributes, ...dragListeners } : {})}
@@ -193,6 +164,7 @@ export function BookingCard({
     dragAttributes: attributes,
     dragListeners: listeners,
     onClick,
+    colorClasses,
   };
   
   // Wrap with tooltip for compact cards
