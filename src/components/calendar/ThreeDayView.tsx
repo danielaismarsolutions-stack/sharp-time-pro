@@ -18,11 +18,11 @@ interface ThreeDayViewProps {
   hourHeight?: number;
 }
 
-const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8:00 - 20:00
-const START_HOUR = 8;
-const END_HOUR = 20;
+const HOURS = Array.from({ length: 17 }, (_, i) => i + 7); // 7:00 - 23:00
+const START_HOUR = 7;
+const END_HOUR = 23;
 const BUSINESS_START = 9;
-const BUSINESS_END = 19;
+const BUSINESS_END = 21;
 
 export function ThreeDayView({
   currentDate,
