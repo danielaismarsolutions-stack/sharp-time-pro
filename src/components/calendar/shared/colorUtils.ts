@@ -3,7 +3,7 @@ import { ApiBooking } from '@/types/api';
 import { Service } from '@/types';
 import { ColorClasses } from './types';
 
-// Predefined pastel colors for services
+// Predefined pastel colors for barbers
 export const pastelColors: ColorClasses[] = [
   { bg: 'bg-blue-100', hover: 'hover:bg-blue-200', text: 'text-blue-900', border: 'border-l-blue-500' },
   { bg: 'bg-emerald-100', hover: 'hover:bg-emerald-200', text: 'text-emerald-900', border: 'border-l-emerald-500' },
@@ -15,7 +15,7 @@ export const pastelColors: ColorClasses[] = [
   { bg: 'bg-lime-100', hover: 'hover:bg-lime-200', text: 'text-lime-900', border: 'border-l-lime-500' },
 ];
 
-// Map service colors to pastel classes
+// Map service colors to pastel classes (kept for backwards compatibility)
 export const serviceColorMap: Record<string, ColorClasses> = {
   '#3b82f6': { bg: 'bg-blue-100', hover: 'hover:bg-blue-200', text: 'text-blue-900', border: 'border-l-blue-500' },
   '#10b981': { bg: 'bg-emerald-100', hover: 'hover:bg-emerald-200', text: 'text-emerald-900', border: 'border-l-emerald-500' },
@@ -30,13 +30,33 @@ export const serviceColorMap: Record<string, ColorClasses> = {
   '#f97316': { bg: 'bg-orange-100', hover: 'hover:bg-orange-200', text: 'text-orange-900', border: 'border-l-orange-500' },
 };
 
-// Get pastel color classes for a booking based on its service
-export const getServicePastelColor = (booking: ApiBooking, services: Service[]): ColorClasses => {
-  const service = services.find(s => s.id === booking.service_id || s.name === booking.service_name);
-  if (service?.color && serviceColorMap[service.color]) {
-    return serviceColorMap[service.color];
+// Cache for barber name to color index mapping
+const barberColorCache: Map<string, number> = new Map();
+let nextColorIndex = 0;
+
+// Get pastel color classes for a booking based on its barber
+export const getBarberPastelColor = (booking: ApiBooking): ColorClasses => {
+  const barberName = booking.barber;
+  
+  if (!barberName) {
+    // Fallback for bookings without barber
+    return pastelColors[0];
   }
-  // Fallback: use hash of service name to pick a consistent color
-  const hash = (booking.service_name || '').split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-  return pastelColors[hash % pastelColors.length];
+  
+  // Check cache first
+  if (barberColorCache.has(barberName)) {
+    return pastelColors[barberColorCache.get(barberName)!];
+  }
+  
+  // Assign next color to this barber
+  const colorIndex = nextColorIndex % pastelColors.length;
+  barberColorCache.set(barberName, colorIndex);
+  nextColorIndex++;
+  
+  return pastelColors[colorIndex];
+};
+
+// Legacy function - now redirects to barber-based coloring
+export const getServicePastelColor = (booking: ApiBooking, services: Service[]): ColorClasses => {
+  return getBarberPastelColor(booking);
 };
