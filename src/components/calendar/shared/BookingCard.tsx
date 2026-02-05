@@ -1,8 +1,7 @@
-// Shared BookingCard component with consistent text size across all cards
+// BookingCard component matching Setmore's visual style
 import React, { forwardRef } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Clock, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ApiBooking } from '@/types/api';
 import { ColorClasses, OverlapInfo } from './types';
@@ -24,50 +23,40 @@ interface BookingCardProps {
   isMobile?: boolean;
 }
 
-// Get spacing based on card height - text size is ALWAYS the same
-const getSpacingStyles = (height: number) => {
-  // Very small cards (< 35px) - minimal spacing
-  if (height < 35) {
-    return {
-      padding: 'px-1 py-0.5',
-      marginBetween: 'mt-0',
-      lineHeight: 'leading-tight',
-    };
+// Status-based color mapping (Setmore style)
+const getStatusColors = (status: string) => {
+  switch (status) {
+    case 'confirmed':
+      return {
+        bg: '#D1FAE5', // Mint/teal
+        border: '#10B981', // Green accent
+        text: '#065F46', // Dark green text
+      };
+    case 'pending':
+      return {
+        bg: '#FEF3C7', // Light yellow
+        border: '#F59E0B', // Amber accent
+        text: '#92400E', // Dark amber text
+      };
+    case 'completed':
+      return {
+        bg: '#F3F4F6', // Light gray
+        border: '#9CA3AF', // Gray accent
+        text: '#374151', // Dark gray text
+      };
+    case 'no-show':
+      return {
+        bg: '#FEE2E2', // Light red
+        border: '#EF4444', // Red accent
+        text: '#991B1B', // Dark red text
+      };
+    default:
+      return {
+        bg: '#D1FAE5', // Default mint
+        border: '#10B981',
+        text: '#065F46',
+      };
   }
-  
-  // Small cards (35-50px) - tight spacing
-  if (height < 50) {
-    return {
-      padding: 'px-1.5 py-0.5',
-      marginBetween: 'mt-0.5',
-      lineHeight: 'leading-tight',
-    };
-  }
-  
-  // Medium cards (50-70px) - normal spacing
-  if (height < 70) {
-    return {
-      padding: 'px-1.5 py-1',
-      marginBetween: 'mt-1',
-      lineHeight: 'leading-normal',
-    };
-  }
-  
-  // Large cards (70-100px) - comfortable spacing
-  if (height < 100) {
-    return {
-      padding: 'px-2 py-1.5',
-      marginBetween: 'mt-1.5',
-      lineHeight: 'leading-normal',
-    };
-  }
-  
-  // Extra large cards (>= 100px) - generous spacing
-  return {
-    padding: 'px-2 py-2',
-    marginBetween: 'mt-2',
-    lineHeight: 'leading-relaxed',
-  };
 };
 
 // Get client initials for very narrow cards
@@ -84,8 +73,6 @@ const getInitials = (name: string): string => {
 interface CardButtonProps {
   booking: ApiBooking;
   style: { top: number; height: number; left?: string; width?: string };
-  colorClasses: ColorClasses;
-  spacingStyles: ReturnType<typeof getSpacingStyles>;
   widthPercent: number;
   leftPercent: number;
   gap: number;
@@ -98,58 +85,60 @@ interface CardButtonProps {
 }
 
 const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
-  ({ booking, style, colorClasses, spacingStyles, widthPercent, leftPercent, gap, isDragging, isDraggable, dragStyle, dragAttributes, dragListeners, onClick }, ref) => {
-    const startTime = booking.start_time.substring(0, 5);
-    const endTime = booking.end_time.substring(0, 5);
+  ({ booking, style, widthPercent, leftPercent, gap, isDragging, isDraggable, dragStyle, dragAttributes, dragListeners, onClick }, ref) => {
+    const statusColors = getStatusColors(booking.status);
+    const isShortCard = style.height < 40;
+    const isTinyCard = style.height < 30;
 
     return (
       <button
         ref={ref}
         onClick={onClick}
         className={cn(
-          // Base styling
-          'absolute rounded-lg border border-border/40 border-l-4 cursor-pointer',
-          'transition-all duration-200 overflow-hidden flex flex-col justify-start text-left',
-          // Shadow for depth
-          'shadow-sm hover:shadow-md',
+          // Base styling - Setmore style
+          'absolute rounded-lg cursor-pointer',
+          'transition-all duration-150 overflow-hidden flex flex-col justify-start text-left',
+          // Border left accent
+          'border-l-[3px]',
           // Hover effects
-          'hover:brightness-95 hover:scale-[1.01]',
+          'hover:brightness-[0.95] hover:shadow-md',
+          // Active/pressed state
+          'active:scale-[0.98] active:brightness-[0.92]',
           // Dragging state
-          isDragging && 'opacity-60 scale-105 shadow-lg z-50',
-          // Padding based on height
-          spacingStyles.padding,
-          // Line height
-          spacingStyles.lineHeight,
-          // Colors
-          colorClasses.bg,
-          colorClasses.text,
-          colorClasses.border
+          isDragging && 'opacity-70 shadow-xl cursor-grabbing z-50',
+          // Padding
+          isTinyCard ? 'px-2 py-1' : 'px-3 py-2'
         )}
         style={{
           top: style.top,
-          height: style.height,
+          height: Math.max(style.height, 30), // Minimum 30px
           left: style.left || `calc(${leftPercent}% + ${gap}px)`,
           width: style.width || `calc(${widthPercent}% - ${gap * 2}px)`,
-          minHeight: 20,
+          backgroundColor: statusColors.bg,
+          borderLeftColor: statusColors.border,
+          color: statusColors.text,
           ...dragStyle,
         }}
         {...(isDraggable ? { ...dragAttributes, ...dragListeners } : {})}
       >
-        {/* Row 1: Time range - ALWAYS show start and end time with CONSISTENT text size */}
-        <div className="flex items-center gap-1 w-full">
-          <Clock className="w-2.5 h-2.5 shrink-0 opacity-70" />
-          <span className="text-[10px] font-bold whitespace-nowrap">
-            {startTime} - {endTime}
-          </span>
-        </div>
+        {/* Line 1: Client Name - BOLD */}
+        <span 
+          className={cn(
+            'font-bold truncate w-full',
+            isTinyCard ? 'text-[11px]' : 'text-[13px]'
+          )}
+        >
+          {widthPercent < 35 ? getInitials(booking.client_name) : booking.client_name}
+        </span>
         
-        {/* Row 2: Client Name - ALWAYS visible with CONSISTENT text size */}
-        <div className={cn('flex items-center gap-1 w-full', spacingStyles.marginBetween)}>
-          <User className="w-2.5 h-2.5 shrink-0 opacity-70" />
-          <span className="text-[10px] font-medium truncate">
-            {widthPercent < 35 ? getInitials(booking.client_name) : booking.client_name}
+        {/* Line 2: Service Name - only show if card is tall enough */}
+        {!isShortCard && (
+          <span 
+            className="text-[11px] font-normal truncate w-full mt-0.5 opacity-80"
+          >
+            {booking.service_name}
           </span>
-        </div>
+        )}
       </button>
     );
   }
@@ -179,18 +168,14 @@ export function BookingCard({
   const dragStyle = transform ? {
     transform: CSS.Translate.toString(transform),
     zIndex: 100,
-    opacity: 0.8,
   } : undefined;
   
   // Calculate width based on overlaps (side-by-side for all devices)
   const widthPercent = 100 / total;
   const leftPercent = index * widthPercent;
-  const gap = isMobile ? 1 : 2; // Smaller gap on mobile
+  const gap = isMobile ? 2 : 4; // Small padding from edges
   
-  // Get spacing based on card height only
-  const spacingStyles = getSpacingStyles(style.height);
-  
-  // Show tooltip for narrow cards
+  // Show tooltip for narrow cards or many overlaps
   const showTooltip = widthPercent < 50 || total >= 3;
   
   const startTime = booking.start_time.substring(0, 5);
@@ -199,8 +184,6 @@ export function BookingCard({
   const cardProps = {
     booking,
     style,
-    colorClasses,
-    spacingStyles,
     widthPercent,
     leftPercent,
     gap,
