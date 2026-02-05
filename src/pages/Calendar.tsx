@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   format,
   startOfWeek,
@@ -14,6 +14,7 @@ import {
   setHours,
   setMinutes,
   isToday,
+  isSameDay,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -23,8 +24,6 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
-  closestCenter,
-  DragMoveEvent,
 } from '@dnd-kit/core';
 import {
   ChevronLeft,
@@ -68,6 +67,7 @@ import BookingModal from '@/components/bookings/BookingModal';
 import { BookingDetailModal, BookingStatus, MonthView } from '@/components/calendar';
 import { ServiceLegend } from '@/components/calendar/ServiceLegend';
 import { CurrentTimeIndicator } from '@/components/calendar/CurrentTimeIndicator';
+import { SetmoreHeader } from '@/components/calendar/SetmoreHeader';
 import {
   BookingCard,
   DroppableTimeSlotEnhanced,
@@ -588,53 +588,133 @@ export default function Calendar() {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
       <div className="h-full flex flex-col">
-        {/* Header */}
-        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 md:p-4 border-b border-border bg-card">
-          <div className="flex items-center gap-2 md:gap-4">
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="icon" onClick={() => navigateDate('prev')} className="h-9 w-9 min-w-[44px] min-h-[44px]">
-                <ChevronLeft className="h-4 w-4" />
+        {/* Setmore-style Header - Mobile */}
+        {isMobile && (
+          <SetmoreHeader
+            currentDate={currentDate}
+            onDateChange={(date) => {
+              setCurrentDate(date);
+              setViewMode('day');
+            }}
+          />
+        )}
+
+        {/* Desktop Header */}
+        {!isMobile && (
+          <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 md:p-4 border-b border-border bg-card">
+            <div className="flex items-center gap-2 md:gap-4">
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" onClick={() => navigateDate('prev')} className="h-9 w-9 min-w-[44px] min-h-[44px]">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setCurrentDate(new Date())} 
+                  disabled={isToday(currentDate)}
+                  className={cn(
+                    "h-9 px-2 sm:px-3 text-xs sm:text-sm min-h-[44px]",
+                    isToday(currentDate) && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  Hoy
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => navigateDate('next')} className="h-9 w-9 min-w-[44px] min-h-[44px]">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <h2 className="text-base md:text-lg font-semibold capitalize truncate">
+                {viewMode === 'day' && format(currentDate, "EEEE, d 'de' MMMM", { locale: es })}
+                {viewMode === 'week' &&
+                  `${format(weekDays[0], 'd MMM', { locale: es })} - ${format(weekDays[6], 'd MMM', { locale: es })}`}
+                {viewMode === 'month' && format(currentDate, 'MMMM yyyy', { locale: es })}
+              </h2>
+            </div>
+
+            <div className="flex items-center gap-2 md:gap-3">
+              {/* Barber Filter */}
+              {barbers.length > 0 && (
+                <Select
+                  value={selectedBarber || 'all'}
+                  onValueChange={(v) => setSelectedBarber(v === 'all' ? null : v)}
+                >
+                  <SelectTrigger className="w-[130px] md:w-[160px] h-9 min-h-[44px]">
+                    <Filter className="h-4 w-4 mr-1 md:mr-2 shrink-0" />
+                    <SelectValue placeholder="Barbero" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {barberNames.map((barberName) => (
+                      <SelectItem key={barberName} value={barberName}>
+                        {barberName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* View Switcher */}
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+                <TabsList className="h-9">
+                  <TabsTrigger value="day" className="text-xs md:text-sm px-2 md:px-3 min-h-[44px] min-w-[44px]">
+                    <List className="h-4 w-4 md:mr-1" />
+                    <span className="hidden md:inline">Día</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="week" className="text-xs md:text-sm px-2 md:px-3">
+                    <LayoutGrid className="h-4 w-4 md:mr-1" />
+                    <span className="hidden md:inline">Semana</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="month" className="text-xs md:text-sm px-2 md:px-3 min-h-[44px] min-w-[44px]">
+                    <CalendarIcon className="h-4 w-4 md:mr-1" />
+                    <span className="hidden md:inline">Mes</span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              {/* Refresh Button */}
+              <Button variant="outline" size="icon" onClick={loadData} className="h-9 w-9 min-w-[44px] min-h-[44px]">
+                <RefreshCw className="h-4 w-4" />
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setCurrentDate(new Date())} 
-                disabled={isToday(currentDate)}
-                className={cn(
-                  "h-9 px-2 sm:px-3 text-xs sm:text-sm min-h-[44px]",
-                  isToday(currentDate) && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                Hoy
-              </Button>
-              <Button variant="outline" size="icon" onClick={() => navigateDate('next')} className="h-9 w-9 min-w-[44px] min-h-[44px]">
-                <ChevronRight className="h-4 w-4" />
+
+              {/* New Booking Button */}
+              <Button onClick={() => openNewBooking()} size="sm" className="h-9 min-h-[44px]">
+                <Plus className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Nueva Cita</span>
               </Button>
             </div>
-            <h2 className="text-base md:text-lg font-semibold capitalize truncate">
-              {viewMode === 'day' && format(currentDate, "EEEE, d 'de' MMMM", { locale: es })}
-              {viewMode === 'week' &&
-                `${format(weekDays[0], 'd MMM', { locale: es })} - ${format(weekDays[6], 'd MMM', { locale: es })}`}
-              {viewMode === 'month' && format(currentDate, 'MMMM yyyy', { locale: es })}
-            </h2>
           </div>
+        )}
 
-          <div className="flex items-center gap-2 md:gap-3">
-            {/* Barber Filter */}
+        {/* Mobile View Switcher */}
+        {isMobile && (
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card">
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+              <TabsList className="h-9">
+                <TabsTrigger value="day" className="text-xs px-3 min-h-[40px]">
+                  <List className="h-4 w-4 mr-1" />
+                  Día
+                </TabsTrigger>
+                <TabsTrigger value="month" className="text-xs px-3 min-h-[40px]">
+                  <CalendarIcon className="h-4 w-4 mr-1" />
+                  Mes
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {/* Barber Filter on mobile */}
             {barbers.length > 0 && (
               <Select
                 value={selectedBarber || 'all'}
                 onValueChange={(v) => setSelectedBarber(v === 'all' ? null : v)}
               >
-                <SelectTrigger className="w-[130px] md:w-[160px] h-9 min-h-[44px]">
-                  <Filter className="h-4 w-4 mr-1 md:mr-2 shrink-0" />
+                <SelectTrigger className="w-[120px] h-9">
+                  <Filter className="h-4 w-4 mr-1 shrink-0" />
                   <SelectValue placeholder="Barbero" />
                 </SelectTrigger>
                 <SelectContent>
@@ -647,39 +727,8 @@ export default function Calendar() {
                 </SelectContent>
               </Select>
             )}
-
-            {/* View Switcher */}
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-              <TabsList className="h-9">
-                <TabsTrigger value="day" className="text-xs md:text-sm px-2 md:px-3 min-h-[44px] min-w-[44px]">
-                  <List className="h-4 w-4 md:mr-1" />
-                  <span className="hidden md:inline">Día</span>
-                </TabsTrigger>
-                {!isMobile && (
-                  <TabsTrigger value="week" className="text-xs md:text-sm px-2 md:px-3">
-                    <LayoutGrid className="h-4 w-4 md:mr-1" />
-                    <span className="hidden md:inline">Semana</span>
-                  </TabsTrigger>
-                )}
-                <TabsTrigger value="month" className="text-xs md:text-sm px-2 md:px-3 min-h-[44px] min-w-[44px]">
-                  <CalendarIcon className="h-4 w-4 md:mr-1" />
-                  <span className="hidden md:inline">Mes</span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            {/* Refresh Button */}
-            <Button variant="outline" size="icon" onClick={loadData} className="h-9 w-9 min-w-[44px] min-h-[44px]">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-
-            {/* New Booking Button */}
-            <Button onClick={() => openNewBooking()} size="sm" className="h-9 min-h-[44px]">
-              <Plus className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Nueva Cita</span>
-            </Button>
           </div>
-        </div>
+        )}
 
         {/* Mobile Floating Button */}
         <Button
