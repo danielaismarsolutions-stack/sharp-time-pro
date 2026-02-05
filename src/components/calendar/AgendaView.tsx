@@ -79,7 +79,7 @@ export function AgendaView({
   return (
     <div className="flex flex-col h-full">
       {/* Scrollable day list */}
-      <div className="flex-1 overflow-auto pb-20">
+      <div className="flex-1 overflow-auto pb-32">
         {dayGroups.map((group) => (
           <div key={group.dateStr} className="px-4 py-3">
             {/* Date Header */}
@@ -109,8 +109,8 @@ export function AgendaView({
 
       {/* Fixed Weekly Income Section */}
       <div
-        className="fixed bottom-16 left-0 right-0 bg-background border-t border-border px-4 py-3 flex items-center justify-between z-40 md:hidden"
-        style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
+        className="fixed left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 flex items-center justify-between z-40 md:hidden"
+        style={{ bottom: 'calc(56px + env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="flex items-center gap-2 text-muted-foreground">
           <Eye className="h-4 w-4" />

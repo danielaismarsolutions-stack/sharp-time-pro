@@ -756,14 +756,17 @@ export default function Calendar() {
           </div>
         )}
 
-        {/* Mobile Floating Button */}
-        <Button
-          size="icon"
-          className="fixed bottom-20 right-4 md:hidden z-50 h-14 w-14 rounded-full shadow-lg min-w-[56px] min-h-[56px]"
+        {/* Mobile Floating Action Button - Setmore style */}
+        <button
+          className="fixed bottom-20 right-4 md:hidden z-50 h-14 w-14 rounded-full flex items-center justify-center transition-transform active:scale-95"
+          style={{
+            backgroundColor: '#10B981',
+            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4), 0 2px 6px rgba(0, 0, 0, 0.1)',
+          }}
           onClick={() => openNewBooking()}
         >
-          <Plus className="h-6 w-6" />
-        </Button>
+          <Plus className="h-7 w-7 text-white" strokeWidth={2.5} />
+        </button>
 
         {/* Calendar Content */}
         <Card className="flex-1 m-2 md:m-4 mt-0 overflow-hidden border-border flex flex-col">
