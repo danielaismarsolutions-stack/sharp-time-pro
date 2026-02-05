@@ -127,9 +127,10 @@ export function ThreeDayView({
     return days.some(day => isToday(day)) && currentTimePosition !== null;
   }, [days, currentTimePosition]);
 
-  // Format time for display
+  // Format time for display (12-hour format like "1PM", "2PM")
   const formatHour = (hour: number) => {
-    return `${hour}${hour < 12 ? 'AM' : 'PM'}`;
+    const displayHour = hour > 12 ? hour - 12 : hour;
+    return `${displayHour}${hour < 12 ? 'AM' : 'PM'}`;
   };
 
   // Get selection box style
@@ -143,13 +144,14 @@ export function ThreeDayView({
   return (
     <div 
       ref={containerRef}
-      className="flex flex-col flex-1 overflow-hidden bg-background"
+      className="flex flex-col flex-1 overflow-hidden"
+      style={{ backgroundColor: '#f5f5f5' }}
       {...swipeHandlers}
     >
       {/* Column Headers */}
-      <div className="flex border-b border-border bg-card sticky top-0 z-10">
+      <div className="flex border-b bg-white sticky top-0 z-10" style={{ borderColor: '#e0e0e0' }}>
         {/* Time column spacer */}
-        <div className="w-14 shrink-0 border-r border-border" />
+        <div className="w-12 shrink-0" style={{ borderRight: '1px solid #e0e0e0' }} />
         
         {/* Day columns */}
         {days.map((day) => {
@@ -157,20 +159,18 @@ export function ThreeDayView({
           return (
             <div
               key={day.toISOString()}
-              className={cn(
-                'flex-1 py-3 text-center border-r border-border last:border-r-0',
-                dayIsToday && 'bg-primary/5'
-              )}
+              className="flex-1 py-2.5 flex items-center justify-center gap-1.5"
+              style={{ borderRight: '1px solid #e0e0e0' }}
             >
               <span className={cn(
-                'text-sm font-medium',
-                dayIsToday ? 'text-primary' : 'text-foreground'
+                'w-6 h-6 flex items-center justify-center rounded-full text-sm font-medium',
+                dayIsToday ? 'bg-foreground text-background' : 'text-foreground'
               )}>
                 {format(day, 'd')}
               </span>
               <span className={cn(
-                'text-sm ml-1',
-                dayIsToday ? 'text-primary' : 'text-muted-foreground'
+                'text-sm',
+                dayIsToday ? 'text-foreground font-medium' : 'text-muted-foreground'
               )}>
                 {format(day, 'EEE', { locale: es })}
               </span>
@@ -183,14 +183,17 @@ export function ThreeDayView({
       <div className="flex-1 overflow-auto">
         <div className="flex relative">
           {/* Time labels column */}
-          <div className="w-14 shrink-0 border-r border-border">
+          <div className="w-12 shrink-0 bg-white" style={{ borderRight: '1px solid #e0e0e0' }}>
             {HOURS.map((hour) => (
               <div
                 key={hour}
-                className="relative border-b border-border"
+                className="relative"
                 style={{ height: hourHeight }}
               >
-                <span className="absolute -top-2.5 left-2 text-xs text-muted-foreground">
+                <span 
+                  className="absolute -top-2 right-2 text-[11px] text-gray-400 font-normal"
+                  style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                >
                   {formatHour(hour)}
                 </span>
               </div>
@@ -201,35 +204,42 @@ export function ThreeDayView({
           {days.map((day) => {
             const dayBookings = getBookingsForDay(day);
             const dayIsToday = isToday(day);
-            const isWeekend = day.getDay() === 0 || day.getDay() === 6;
 
             return (
               <div
                 key={day.toISOString()}
-                className={cn(
-                  'flex-1 relative border-r border-border last:border-r-0',
-                  dayIsToday && 'bg-primary/5'
-                )}
+                className="flex-1 relative"
+                style={{ 
+                  borderRight: '1px solid #e0e0e0',
+                  backgroundColor: dayIsToday ? '#fafafa' : '#f8f8f8'
+                }}
                 onClick={(e) => handleSlotClick(day, e)}
                 onMouseDown={(e) => handleMouseDown(day, e)}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
               >
-                {/* Hour grid lines */}
-                {HOURS.map((hour) => {
-                  const isNonBusiness = hour < BUSINESS_START || hour >= BUSINESS_END;
-                  return (
-                    <div
-                      key={hour}
-                      className={cn(
-                        'border-b border-border',
-                        isNonBusiness && 'bg-muted/30',
-                        isWeekend && 'bg-muted/20'
-                      )}
-                      style={{ height: hourHeight }}
+                {/* Hour grid lines with half-hour subdivisions */}
+                {HOURS.map((hour) => (
+                  <div
+                    key={hour}
+                    className="relative"
+                    style={{ height: hourHeight }}
+                  >
+                    {/* Full hour line */}
+                    <div 
+                      className="absolute top-0 left-0 right-0 h-px"
+                      style={{ backgroundColor: '#e0e0e0' }}
                     />
-                  );
-                })}
+                    {/* Half hour line */}
+                    <div 
+                      className="absolute left-0 right-0 h-px"
+                      style={{ 
+                        top: hourHeight / 2, 
+                        backgroundColor: '#ebebeb' 
+                      }}
+                    />
+                  </div>
+                ))}
 
                 {/* Bookings */}
                 {dayBookings.map((booking) => {
@@ -278,23 +288,45 @@ export function ThreeDayView({
           {/* Current time indicator */}
           {showCurrentTime && currentTimePosition !== null && (
             <>
-              {/* Time label */}
+              {/* Time label - positioned in the time column */}
               <div
-                className="absolute left-1 z-30 flex items-center"
-                style={{ top: currentTimePosition, transform: 'translateY(-50%)' }}
+                className="absolute z-30 flex items-center justify-end"
+                style={{ 
+                  top: currentTimePosition, 
+                  transform: 'translateY(-50%)',
+                  left: 0,
+                  width: '48px',
+                  paddingRight: '4px'
+                }}
               >
-                <span className="text-[11px] font-bold text-white bg-black px-1.5 py-0.5 rounded font-mono tracking-tight">
+                <span 
+                  className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
+                  style={{ 
+                    backgroundColor: '#1a1a1a',
+                    fontFamily: 'system-ui, -apple-system, sans-serif'
+                  }}
+                >
                   {format(currentTime, 'H:mm')}
                 </span>
               </div>
               
-              {/* Black dot and line */}
+              {/* Dot and line - starts after time column */}
               <div
-                className="absolute left-14 right-0 z-20 flex items-center pointer-events-none"
-                style={{ top: currentTimePosition }}
+                className="absolute z-20 flex items-center pointer-events-none"
+                style={{ 
+                  top: currentTimePosition,
+                  left: '48px',
+                  right: 0
+                }}
               >
-                <div className="w-2 h-2 rounded-full bg-black -ml-1 shrink-0" />
-                <div className="flex-1 h-0.5 bg-black" />
+                <div 
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: '#1a1a1a', marginLeft: '-4px' }}
+                />
+                <div 
+                  className="flex-1"
+                  style={{ height: '1.5px', backgroundColor: '#1a1a1a' }}
+                />
               </div>
             </>
           )}
