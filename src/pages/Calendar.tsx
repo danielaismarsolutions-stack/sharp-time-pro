@@ -68,6 +68,7 @@ import { BookingDetailModal, BookingStatus, MonthView } from '@/components/calen
 import { ServiceLegend } from '@/components/calendar/ServiceLegend';
 import { CurrentTimeIndicator } from '@/components/calendar/CurrentTimeIndicator';
 import { SetmoreHeader } from '@/components/calendar/SetmoreHeader';
+import { ThreeDayView } from '@/components/calendar/ThreeDayView';
 import {
   BookingCard,
   DroppableTimeSlotEnhanced,
@@ -77,7 +78,7 @@ import {
   getBookingPosition,
 } from '@/components/calendar/shared';
 
-type ViewMode = 'day' | 'week' | 'month';
+type ViewMode = 'day' | '3day' | 'week' | 'month';
 
 const HOUR_HEIGHT_DAY = 80;
 const HOUR_HEIGHT_WEEK = 60;
@@ -88,7 +89,7 @@ export default function Calendar() {
   const { toast } = useToast();
   const { user } = useAuth();
   const isMobile = useIsMobile();
-  const [viewMode, setViewMode] = useState<ViewMode>(() => isMobile ? 'day' : 'week');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => isMobile ? '3day' : 'week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState<ApiBooking[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -104,7 +105,7 @@ export default function Calendar() {
   // Set view mode based on screen size
   useEffect(() => {
     if (isMobile && viewMode === 'week') {
-      setViewMode('day');
+      setViewMode('3day');
     }
   }, [isMobile, viewMode]);
 
@@ -253,6 +254,9 @@ export default function Calendar() {
     switch (viewMode) {
       case 'day':
         setCurrentDate((d) => (direction === 'next' ? addDays(d, 1) : subDays(d, 1)));
+        break;
+      case '3day':
+        setCurrentDate((d) => (direction === 'next' ? addDays(d, 3) : subDays(d, 3)));
         break;
       case 'week':
         setCurrentDate((d) => (direction === 'next' ? addWeeks(d, 1) : subWeeks(d, 1)));
@@ -696,11 +700,15 @@ export default function Calendar() {
           <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card">
             <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
               <TabsList className="h-9">
-                <TabsTrigger value="day" className="text-xs px-3 min-h-[40px]">
+                <TabsTrigger value="day" className="text-xs px-2 min-h-[40px]">
                   <List className="h-4 w-4 mr-1" />
                   Día
                 </TabsTrigger>
-                <TabsTrigger value="month" className="text-xs px-3 min-h-[40px]">
+                <TabsTrigger value="3day" className="text-xs px-2 min-h-[40px]">
+                  <LayoutGrid className="h-4 w-4 mr-1" />
+                  3 Días
+                </TabsTrigger>
+                <TabsTrigger value="month" className="text-xs px-2 min-h-[40px]">
                   <CalendarIcon className="h-4 w-4 mr-1" />
                   Mes
                 </TabsTrigger>
@@ -713,7 +721,7 @@ export default function Calendar() {
                 value={selectedBarber || 'all'}
                 onValueChange={(v) => setSelectedBarber(v === 'all' ? null : v)}
               >
-                <SelectTrigger className="w-[120px] h-9">
+                <SelectTrigger className="w-[100px] h-9">
                   <Filter className="h-4 w-4 mr-1 shrink-0" />
                   <SelectValue placeholder="Barbero" />
                 </SelectTrigger>
@@ -743,6 +751,20 @@ export default function Calendar() {
         <Card className="flex-1 m-2 md:m-4 mt-0 overflow-hidden border-border flex flex-col">
           <div className="flex-1 overflow-auto">
             {viewMode === 'day' && renderDayView()}
+            {viewMode === '3day' && (
+              <ThreeDayView
+                currentDate={currentDate}
+                bookings={filteredBookings}
+                services={services}
+                onDateChange={setCurrentDate}
+                onBookingClick={openBookingDetail}
+                onSlotClick={(date, time) => {
+                  setSelectedDate(date);
+                  openNewBooking(date);
+                }}
+                hourHeight={HOUR_HEIGHT_DAY}
+              />
+            )}
             {viewMode === 'week' && renderWeekView()}
             {viewMode === 'month' && renderMonthView()}
           </div>
