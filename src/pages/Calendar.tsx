@@ -65,7 +65,8 @@ import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/bookings/BookingModal';
 import { BookingDetailModal, BookingStatus, MonthView } from '@/components/calendar';
-import { ServiceLegend } from '@/components/calendar/ServiceLegend';
+import { BarberLegend } from '@/components/calendar/BarberLegend';
+import { setBarberList } from '@/components/calendar/shared/colorUtils';
 import { CurrentTimeIndicator } from '@/components/calendar/CurrentTimeIndicator';
 import { SetmoreHeader } from '@/components/calendar/SetmoreHeader';
 import { ThreeDayView } from '@/components/calendar/ThreeDayView';
@@ -245,6 +246,11 @@ export default function Calendar() {
     });
     return Array.from(barberSet).sort();
   }, [bookings]);
+
+  // Set barber list for consistent coloring
+  useEffect(() => {
+    setBarberList(barberNames);
+  }, [barberNames]);
 
   // Filter bookings by barber and exclude cancelled
   const filteredBookings = useMemo(() => {
@@ -798,8 +804,8 @@ export default function Calendar() {
             )}
           </div>
 
-          {/* Service Legend - always visible below calendar (not for agenda) */}
-          {viewMode !== 'agenda' && <ServiceLegend services={services} />}
+          {/* Barber Legend - always visible below calendar (not for agenda) */}
+          {viewMode !== 'agenda' && <BarberLegend barberNames={barberNames} />}
         </Card>
 
         {/* Undo Button */}

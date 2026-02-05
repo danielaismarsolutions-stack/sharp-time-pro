@@ -30,9 +30,13 @@ export const serviceColorMap: Record<string, ColorClasses> = {
   '#f97316': { bg: 'bg-orange-100', hover: 'hover:bg-orange-200', text: 'text-orange-900', border: 'border-l-orange-500' },
 };
 
-// Cache for barber name to color index mapping
-const barberColorCache: Map<string, number> = new Map();
-let nextColorIndex = 0;
+// Sorted barber list for consistent coloring - must be set externally
+let sortedBarberList: string[] = [];
+
+// Set the barber list for consistent color assignment
+export const setBarberList = (barbers: string[]) => {
+  sortedBarberList = [...barbers].sort();
+};
 
 // Get pastel color classes for a booking based on its barber
 export const getBarberPastelColor = (booking: ApiBooking): ColorClasses => {
@@ -43,17 +47,15 @@ export const getBarberPastelColor = (booking: ApiBooking): ColorClasses => {
     return pastelColors[0];
   }
   
-  // Check cache first
-  if (barberColorCache.has(barberName)) {
-    return pastelColors[barberColorCache.get(barberName)!];
+  // Use sorted index for consistent coloring
+  const index = sortedBarberList.indexOf(barberName);
+  if (index >= 0) {
+    return pastelColors[index % pastelColors.length];
   }
   
-  // Assign next color to this barber
-  const colorIndex = nextColorIndex % pastelColors.length;
-  barberColorCache.set(barberName, colorIndex);
-  nextColorIndex++;
-  
-  return pastelColors[colorIndex];
+  // Fallback: hash-based color if barber not in list
+  const hash = barberName.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+  return pastelColors[hash % pastelColors.length];
 };
 
 // Legacy function - now redirects to barber-based coloring
