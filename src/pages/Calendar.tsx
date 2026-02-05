@@ -95,6 +95,8 @@ export default function Calendar() {
   const [viewMode, setViewMode] = useState<ViewMode>(() => isMobile ? 'agenda' : 'week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Main container needs to be a fixed height with overflow hidden, header fixed, content scrolls
   const [bookings, setBookings] = useState<ApiBooking[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -607,26 +609,28 @@ export default function Calendar() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="h-full flex flex-col">
-        {/* Setmore-style Header - All devices */}
-        <SetmoreHeader
-          currentDate={currentDate}
-          onDateChange={(date) => {
-            setCurrentDate(date);
-            if (viewMode === 'agenda') {
-              // In agenda view, clicking a day keeps agenda view
-            } else {
-              setViewMode('day');
-            }
-          }}
-          onMenuClick={() => setIsMobileMenuOpen(true)}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          barberNames={barberNames}
-          selectedBarber={selectedBarber}
-          onBarberChange={setSelectedBarber}
-          isMobile={isMobile}
-        />
+      <div className="h-screen flex flex-col overflow-hidden">
+        {/* Setmore-style Header - Fixed, never scrolls */}
+        <div className="flex-shrink-0">
+          <SetmoreHeader
+            currentDate={currentDate}
+            onDateChange={(date) => {
+              setCurrentDate(date);
+              if (viewMode === 'agenda') {
+                // In agenda view, clicking a day keeps agenda view
+              } else {
+                setViewMode('day');
+              }
+            }}
+            onMenuClick={() => setIsMobileMenuOpen(true)}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            barberNames={barberNames}
+            selectedBarber={selectedBarber}
+            onBarberChange={setSelectedBarber}
+            isMobile={isMobile}
+          />
+        </div>
 
         {/* Mobile Drawer Menu */}
         <MobileDrawerMenu
@@ -636,7 +640,6 @@ export default function Calendar() {
           onViewModeChange={setViewMode}
           showViewModeSelector={isMobile}
         />
-
 
         {/* Mobile Floating Action Button - Setmore style */}
         <button
@@ -650,8 +653,8 @@ export default function Calendar() {
           <Plus className="h-7 w-7 text-white" strokeWidth={2.5} />
         </button>
 
-        {/* Calendar Content */}
-        <Card className="flex-1 m-2 md:m-4 mt-0 overflow-hidden border-border flex flex-col">
+        {/* Calendar Content - This area scrolls */}
+        <Card className="flex-1 m-2 md:m-4 mt-0 overflow-hidden border-border flex flex-col min-h-0">
           <div className="flex-1 overflow-auto">
             {viewMode === 'day' && renderDayView()}
             {viewMode === '3day' && (
