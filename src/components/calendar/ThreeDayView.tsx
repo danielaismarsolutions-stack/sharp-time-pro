@@ -183,15 +183,15 @@ export function ThreeDayView({
       <div className="flex-1 overflow-auto">
         <div className="flex relative">
           {/* Time labels column */}
-          <div className="w-14 shrink-0 border-r border-border">
+          <div className="w-10 shrink-0 border-r border-border">
             {HOURS.map((hour) => (
               <div
                 key={hour}
                 className="relative border-b border-border"
                 style={{ height: hourHeight }}
               >
-                <span className="absolute -top-2.5 left-2 text-xs text-muted-foreground">
-                  {formatHour(hour)}
+                <span className="absolute -top-2 left-1 text-[10px] text-muted-foreground">
+                  {hour}
                 </span>
               </div>
             ))}
@@ -290,7 +290,7 @@ export function ThreeDayView({
               
               {/* Black dot and line */}
               <div
-                className="absolute left-14 right-0 z-20 flex items-center pointer-events-none"
+                className="absolute left-10 right-0 z-20 flex items-center pointer-events-none"
                 style={{ top: currentTimePosition }}
               >
                 <div className="w-2 h-2 rounded-full bg-black -ml-1 shrink-0" />
