@@ -69,6 +69,8 @@ import { ServiceLegend } from '@/components/calendar/ServiceLegend';
 import { CurrentTimeIndicator } from '@/components/calendar/CurrentTimeIndicator';
 import { SetmoreHeader } from '@/components/calendar/SetmoreHeader';
 import { ThreeDayView } from '@/components/calendar/ThreeDayView';
+import { AgendaView } from '@/components/calendar/AgendaView';
+import { MobileDrawerMenu } from '@/components/calendar/MobileDrawerMenu';
 import {
   BookingCard,
   DroppableTimeSlotEnhanced,
@@ -78,7 +80,7 @@ import {
   getBookingPosition,
 } from '@/components/calendar/shared';
 
-type ViewMode = 'day' | '3day' | 'week' | 'month';
+type ViewMode = 'day' | '3day' | 'week' | 'month' | 'agenda';
 
 const HOUR_HEIGHT_DAY = 80;
 const HOUR_HEIGHT_WEEK = 60;
@@ -89,8 +91,9 @@ export default function Calendar() {
   const { toast } = useToast();
   const { user } = useAuth();
   const isMobile = useIsMobile();
-  const [viewMode, setViewMode] = useState<ViewMode>(() => isMobile ? '3day' : 'week');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => isMobile ? 'agenda' : 'week');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [bookings, setBookings] = useState<ApiBooking[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -105,7 +108,7 @@ export default function Calendar() {
   // Set view mode based on screen size
   useEffect(() => {
     if (isMobile && viewMode === 'week') {
-      setViewMode('3day');
+      setViewMode('agenda');
     }
   }, [isMobile, viewMode]);
 
@@ -259,6 +262,7 @@ export default function Calendar() {
         setCurrentDate((d) => (direction === 'next' ? addDays(d, 3) : subDays(d, 3)));
         break;
       case 'week':
+      case 'agenda':
         setCurrentDate((d) => (direction === 'next' ? addWeeks(d, 1) : subWeeks(d, 1)));
         break;
       case 'month':
@@ -604,10 +608,24 @@ export default function Calendar() {
             currentDate={currentDate}
             onDateChange={(date) => {
               setCurrentDate(date);
-              setViewMode('day');
+              if (viewMode === 'agenda') {
+                // In agenda view, clicking a day keeps agenda view
+              } else {
+                setViewMode('day');
+              }
             }}
+            onMenuClick={() => setIsMobileMenuOpen(true)}
           />
         )}
+
+        {/* Mobile Drawer Menu */}
+        <MobileDrawerMenu
+          open={isMobileMenuOpen}
+          onOpenChange={setIsMobileMenuOpen}
+          currentViewMode={viewMode}
+          onViewModeChange={setViewMode}
+          showViewModeSelector={isMobile}
+        />
 
         {/* Desktop Header */}
         {!isMobile && (
@@ -635,7 +653,7 @@ export default function Calendar() {
               </div>
               <h2 className="text-base md:text-lg font-semibold capitalize truncate">
                 {viewMode === 'day' && format(currentDate, "EEEE, d 'de' MMMM", { locale: es })}
-                {viewMode === 'week' &&
+                {(viewMode === 'week' || viewMode === 'agenda') &&
                   `${format(weekDays[0], 'd MMM', { locale: es })} - ${format(weekDays[6], 'd MMM', { locale: es })}`}
                 {viewMode === 'month' && format(currentDate, 'MMMM yyyy', { locale: es })}
               </h2>
@@ -700,17 +718,17 @@ export default function Calendar() {
           <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card">
             <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
               <TabsList className="h-9">
-                <TabsTrigger value="day" className="text-xs px-2 min-h-[40px]">
+                <TabsTrigger value="agenda" className="text-xs px-2 min-h-[40px]">
                   <List className="h-4 w-4 mr-1" />
+                  Agenda
+                </TabsTrigger>
+                <TabsTrigger value="day" className="text-xs px-2 min-h-[40px]">
+                  <LayoutGrid className="h-4 w-4 mr-1" />
                   Día
                 </TabsTrigger>
                 <TabsTrigger value="3day" className="text-xs px-2 min-h-[40px]">
-                  <LayoutGrid className="h-4 w-4 mr-1" />
-                  3 Días
-                </TabsTrigger>
-                <TabsTrigger value="month" className="text-xs px-2 min-h-[40px]">
                   <CalendarIcon className="h-4 w-4 mr-1" />
-                  Mes
+                  3 Días
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -767,10 +785,18 @@ export default function Calendar() {
             )}
             {viewMode === 'week' && renderWeekView()}
             {viewMode === 'month' && renderMonthView()}
+            {viewMode === 'agenda' && (
+              <AgendaView
+                currentDate={currentDate}
+                bookings={filteredBookings}
+                services={services}
+                onBookingClick={openBookingDetail}
+              />
+            )}
           </div>
-          
-          {/* Service Legend - always visible below calendar */}
-          <ServiceLegend services={services} />
+
+          {/* Service Legend - always visible below calendar (not for agenda) */}
+          {viewMode !== 'agenda' && <ServiceLegend services={services} />}
         </Card>
 
         {/* Undo Button */}
