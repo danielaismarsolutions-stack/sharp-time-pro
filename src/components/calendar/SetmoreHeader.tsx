@@ -1,20 +1,35 @@
 import { useState, useMemo } from 'react';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Menu, ChevronDown, Bell } from 'lucide-react';
+import { Menu, ChevronDown, Bell, List, LayoutGrid, Calendar as CalendarIcon, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
 import { MonthPickerOverlay } from './MonthPickerOverlay';
+
+type ViewMode = 'day' | '3day' | 'week' | 'month' | 'agenda';
 
 interface SetmoreHeaderProps {
   currentDate: Date;
   onDateChange: (date: Date) => void;
   onMenuClick?: () => void;
   onNotificationClick?: () => void;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
+  barberNames: string[];
+  selectedBarber: string | null;
+  onBarberChange: (barber: string | null) => void;
 }
 
 export function SetmoreHeader({
@@ -22,6 +37,11 @@ export function SetmoreHeader({
   onDateChange,
   onMenuClick,
   onNotificationClick,
+  viewMode,
+  onViewModeChange,
+  barberNames,
+  selectedBarber,
+  onBarberChange,
 }: SetmoreHeaderProps) {
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
@@ -58,7 +78,7 @@ export function SetmoreHeader({
   };
 
   return (
-    <div className="bg-background border-b border-border relative">
+    <div className="bg-background border-b border-border sticky top-0 z-30">
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 h-14">
         {/* Left: Hamburger menu */}
@@ -66,7 +86,7 @@ export function SetmoreHeader({
           variant="ghost"
           size="icon"
           onClick={onMenuClick}
-          className="h-10 w-10 md:hidden"
+          className="h-10 w-10"
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -161,6 +181,47 @@ export function SetmoreHeader({
             </button>
           );
         })}
+      </div>
+
+      {/* View Switcher + Barber Filter Row */}
+      <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-card">
+        <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)}>
+          <TabsList className="h-9">
+            <TabsTrigger value="agenda" className="text-xs px-2 min-h-[40px]">
+              <List className="h-4 w-4 mr-1" />
+              Agenda
+            </TabsTrigger>
+            <TabsTrigger value="day" className="text-xs px-2 min-h-[40px]">
+              <LayoutGrid className="h-4 w-4 mr-1" />
+              Día
+            </TabsTrigger>
+            <TabsTrigger value="3day" className="text-xs px-2 min-h-[40px]">
+              <CalendarIcon className="h-4 w-4 mr-1" />
+              3 Días
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {/* Barber Filter */}
+        {barberNames.length > 0 && (
+          <Select
+            value={selectedBarber || 'all'}
+            onValueChange={(v) => onBarberChange(v === 'all' ? null : v)}
+          >
+            <SelectTrigger className="w-[100px] h-9">
+              <Filter className="h-4 w-4 mr-1 shrink-0" />
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {barberNames.map((barberName) => (
+                <SelectItem key={barberName} value={barberName}>
+                  {barberName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
     </div>
   );
