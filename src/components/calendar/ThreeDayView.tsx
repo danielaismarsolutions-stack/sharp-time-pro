@@ -280,10 +280,10 @@ export function ThreeDayView({
             <>
               {/* Time label */}
               <div
-                className="absolute left-0 z-30 flex items-center"
-                style={{ top: currentTimePosition - 8 }}
+                className="absolute left-1 z-30 flex items-center"
+                style={{ top: currentTimePosition, transform: 'translateY(-50%)' }}
               >
-                <span className="text-[10px] font-medium text-white bg-black px-1 rounded">
+                <span className="text-[11px] font-bold text-white bg-black px-1.5 py-0.5 rounded font-mono tracking-tight">
                   {format(currentTime, 'H:mm')}
                 </span>
               </div>
