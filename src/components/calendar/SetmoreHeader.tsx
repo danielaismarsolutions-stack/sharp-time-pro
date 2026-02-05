@@ -1,19 +1,14 @@
 import { useState, useMemo } from 'react';
-import { format, startOfWeek, addDays, isSameDay, addMonths, subMonths } from 'date-fns';
+import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Menu, ChevronDown, Bell, User } from 'lucide-react';
+import { Menu, ChevronDown, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
+import { MonthPickerOverlay } from './MonthPickerOverlay';
 
 interface SetmoreHeaderProps {
   currentDate: Date;
@@ -31,7 +26,6 @@ export function SetmoreHeader({
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
-  const [pickerMonth, setPickerMonth] = useState(currentDate);
 
   // Get user initials
   const initials = user?.name
@@ -54,15 +48,17 @@ export function SetmoreHeader({
     onDateChange(date);
   };
 
-  const handleMonthSelect = (date: Date | undefined) => {
-    if (date) {
-      onDateChange(date);
-      setIsMonthPickerOpen(false);
-    }
+  const handleMonthSelect = (date: Date) => {
+    onDateChange(date);
+    setIsMonthPickerOpen(false);
+  };
+
+  const toggleMonthPicker = () => {
+    setIsMonthPickerOpen(!isMonthPickerOpen);
   };
 
   return (
-    <div className="bg-background border-b border-border">
+    <div className="bg-background border-b border-border relative">
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 h-14">
         {/* Left: Hamburger menu */}
@@ -76,30 +72,19 @@ export function SetmoreHeader({
         </Button>
 
         {/* Center: Month/Year with dropdown */}
-        <Popover open={isMonthPickerOpen} onOpenChange={setIsMonthPickerOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              className="font-medium text-base md:text-lg gap-1 px-2"
-            >
-              <span className="capitalize">
-                {format(currentDate, 'MMMM yyyy', { locale: es })}
-              </span>
-              <ChevronDown className="h-4 w-4 opacity-60" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="center">
-            <Calendar
-              mode="single"
-              selected={currentDate}
-              onSelect={handleMonthSelect}
-              month={pickerMonth}
-              onMonthChange={setPickerMonth}
-              locale={es}
-              className="rounded-md border-0"
-            />
-          </PopoverContent>
-        </Popover>
+        <Button
+          variant="ghost"
+          onClick={toggleMonthPicker}
+          className="font-medium text-base md:text-lg gap-1 px-2"
+        >
+          <span className="capitalize">
+            {format(currentDate, 'MMMM yyyy', { locale: es })}
+          </span>
+          <ChevronDown className={cn(
+            "h-4 w-4 opacity-60 transition-transform duration-200",
+            isMonthPickerOpen && "rotate-180"
+          )} />
+        </Button>
 
         {/* Right: Notifications + Avatar */}
         <div className="flex items-center gap-2">
@@ -126,6 +111,15 @@ export function SetmoreHeader({
           </Avatar>
         </div>
       </div>
+
+      {/* Month Picker Overlay */}
+      <MonthPickerOverlay
+        currentDate={currentDate}
+        isOpen={isMonthPickerOpen}
+        onDateSelect={handleMonthSelect}
+        onClose={() => setIsMonthPickerOpen(false)}
+        onToggle={toggleMonthPicker}
+      />
 
       {/* Week day strip */}
       <div className="flex items-center justify-around px-2 py-2 overflow-x-auto scrollbar-hide">
