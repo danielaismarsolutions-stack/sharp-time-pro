@@ -62,6 +62,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCalendarDragDropEnhanced, snapToQuarterHour } from '@/hooks/useCalendarDragDropEnhanced';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
+import { useTimeSlotSelection } from '@/hooks/useTimeSlotSelection';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/bookings/BookingModal';
 import { BookingDetailModal, BookingStatus, MonthView } from '@/components/calendar';
@@ -73,10 +74,12 @@ import {
   BookingCard,
   DroppableTimeSlotEnhanced,
   DragOverlayCard,
+  TimeSlotSelectionBox,
   getServicePastelColor,
   getOverlapInfo,
   getBookingPosition,
 } from '@/components/calendar/shared';
+import { NewAppointmentBottomSheet, AppointmentType } from '@/components/mobile/NewAppointmentBottomSheet';
 
 type ViewMode = 'day' | '3day' | 'week' | 'month';
 
@@ -101,6 +104,12 @@ export default function Calendar() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
+  const [isNewAppointmentSheetOpen, setIsNewAppointmentSheetOpen] = useState(false);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<{
+    date: Date;
+    startTime: string;
+    endTime: string;
+  } | null>(null);
 
   // Set view mode based on screen size
   useEffect(() => {
@@ -212,6 +221,46 @@ export default function Calendar() {
     hourHeight: currentHourHeight,
     startHour: START_HOUR,
   });
+
+  // Time slot selection for DayView/WeekView
+  const {
+    selection: daySelection,
+    containerRef: daySelectionRef,
+    getSelectionStyle: getDaySelectionStyle,
+    startSelection: startDaySelection,
+    startDraggingHandle: startDayDraggingHandle,
+    updateSelection: updateDaySelection,
+    endSelection: endDaySelection,
+    completeSelection: completeDaySelection,
+    cancelSelection: cancelDaySelection,
+  } = useTimeSlotSelection({
+    hourHeight: currentHourHeight,
+    startHour: START_HOUR,
+    minDuration: 15,
+    snapInterval: 15,
+    onSelectionComplete: (date, startTime, endTime) => {
+      setSelectedTimeSlot({ date, startTime, endTime });
+      setIsNewAppointmentSheetOpen(true);
+    },
+  });
+
+  // Handle appointment type selection from bottom sheet
+  const handleAppointmentTypeSelect = useCallback((type: AppointmentType) => {
+    if (selectedTimeSlot && type === 'service') {
+      setSelectedDate(selectedTimeSlot.date);
+      openNewBooking(selectedTimeSlot.date);
+    }
+    setIsNewAppointmentSheetOpen(false);
+    setSelectedTimeSlot(null);
+    cancelDaySelection();
+  }, [selectedTimeSlot, cancelDaySelection]);
+
+  // Handle bottom sheet close
+  const handleNewAppointmentSheetClose = useCallback(() => {
+    setIsNewAppointmentSheetOpen(false);
+    setSelectedTimeSlot(null);
+    cancelDaySelection();
+  }, [cancelDaySelection]);
 
   // Configure sensors for drag-drop with long-press on mobile
   const sensors = useSensors(
@@ -372,7 +421,34 @@ export default function Calendar() {
           </div>
 
           {/* Day content */}
-          <div className="flex-1 relative min-w-[200px]">
+          <div
+            ref={daySelectionRef}
+            className="flex-1 relative min-w-[200px] touch-none"
+            onPointerDown={(e) => {
+              if ((e.target as HTMLElement).closest('[data-booking-card]')) return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              startDaySelection(currentDate, e.clientY, rect);
+            }}
+            onPointerMove={(e) => {
+              if (!daySelection?.isActive) return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              updateDaySelection(e.clientY, rect);
+            }}
+            onPointerUp={endDaySelection}
+            onTouchStart={(e) => {
+              if ((e.target as HTMLElement).closest('[data-booking-card]')) return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              const touch = e.touches[0];
+              startDaySelection(currentDate, touch.clientY, rect);
+            }}
+            onTouchMove={(e) => {
+              if (!daySelection?.isActive) return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              const touch = e.touches[0];
+              updateDaySelection(touch.clientY, rect);
+            }}
+            onTouchEnd={endDaySelection}
+          >
             {HOURS.map((hour) => (
               <DroppableTimeSlotEnhanced
                 key={hour}
@@ -384,12 +460,7 @@ export default function Calendar() {
                 previewTime={dropPreview?.date === dateStr ? dropPreview?.time : null}
                 hasConflict={dropPreview?.hasConflict}
                 className="hover:bg-muted/30 cursor-pointer"
-              >
-                <div 
-                  className="absolute inset-0"
-                  onClick={() => openNewBooking(currentDate)} 
-                />
-              </DroppableTimeSlotEnhanced>
+              />
             ))}
 
             {/* Bookings overlay */}
@@ -421,6 +492,16 @@ export default function Calendar() {
                 />
               );
             })}
+
+            {/* Selection overlay for DayView */}
+            {daySelection && isSameDay(daySelection.date, currentDate) && (
+              <TimeSlotSelectionBox
+                selection={daySelection}
+                style={getDaySelectionStyle()}
+                onStartDragHandle={startDayDraggingHandle}
+                onComplete={completeDaySelection}
+              />
+            )}
 
             {/* Current time indicator */}
             {isToday(currentDate) && (
@@ -495,7 +576,33 @@ export default function Calendar() {
               </div>
 
               {/* Hours grid */}
-              <div className="relative">
+              <div
+                className="relative touch-none"
+                onPointerDown={(e) => {
+                  if ((e.target as HTMLElement).closest('[data-booking-card]')) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  startDaySelection(day, e.clientY, rect);
+                }}
+                onPointerMove={(e) => {
+                  if (!daySelection?.isActive) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  updateDaySelection(e.clientY, rect);
+                }}
+                onPointerUp={endDaySelection}
+                onTouchStart={(e) => {
+                  if ((e.target as HTMLElement).closest('[data-booking-card]')) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const touch = e.touches[0];
+                  startDaySelection(day, touch.clientY, rect);
+                }}
+                onTouchMove={(e) => {
+                  if (!daySelection?.isActive) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const touch = e.touches[0];
+                  updateDaySelection(touch.clientY, rect);
+                }}
+                onTouchEnd={endDaySelection}
+              >
                 {HOURS.map((hour) => (
                   <DroppableTimeSlotEnhanced
                     key={hour}
@@ -507,13 +614,18 @@ export default function Calendar() {
                     previewTime={dropPreview?.date === dateStr ? dropPreview?.time : null}
                     hasConflict={dropPreview?.hasConflict}
                     className="hover:bg-muted/30 cursor-pointer"
-                  >
-                    <div 
-                      className="absolute inset-0"
-                      onClick={() => openNewBooking(day)}
-                    />
-                  </DroppableTimeSlotEnhanced>
+                  />
                 ))}
+
+                {/* Selection overlay for WeekView */}
+                {daySelection && isSameDay(daySelection.date, day) && (
+                  <TimeSlotSelectionBox
+                    selection={daySelection}
+                    style={getDaySelectionStyle()}
+                    onStartDragHandle={startDayDraggingHandle}
+                    onComplete={completeDaySelection}
+                  />
+                )}
 
                 {/* Current time indicator - only on today's column */}
                 {isCurrentDay && (
@@ -530,16 +642,16 @@ export default function Calendar() {
                   const style = getBookingPosition(booking, HOUR_HEIGHT_WEEK);
                   const overlapInfo = getOverlapInfo(dayBookings, booking);
                   const colorClasses = getServicePastelColor(booking, services);
-                  
+
                   const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 2px)`;
                   const widthCalc = `calc(${100 / overlapInfo.total}% - 4px)`;
-                  
+
                   return (
                     <BookingCard
                       key={booking.id}
                       booking={booking}
-                      style={{ 
-                        top: style.top, 
+                      style={{
+                        top: style.top,
                         height: style.height,
                         left: leftCalc,
                         width: widthCalc,
@@ -957,6 +1069,14 @@ export default function Calendar() {
             }
           }}
           selectedDate={selectedDate}
+        />
+
+        {/* New Appointment Bottom Sheet */}
+        <NewAppointmentBottomSheet
+          isOpen={isNewAppointmentSheetOpen}
+          onClose={handleNewAppointmentSheetClose}
+          onSelectType={handleAppointmentTypeSelect}
+          selectedTime={selectedTimeSlot || undefined}
         />
       </div>
     </DndContext>

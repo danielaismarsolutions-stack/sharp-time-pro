@@ -5,8 +5,10 @@ import { ApiBooking } from '@/types/api';
 import { Service } from '@/types';
 import { cn } from '@/lib/utils';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
-import { getServicePastelColor, getOverlapInfo, getBookingPosition } from '@/components/calendar/shared';
+import { useTimeSlotSelection } from '@/hooks/useTimeSlotSelection';
+import { getServicePastelColor, getOverlapInfo, getBookingPosition, TimeSlotSelectionBox } from '@/components/calendar/shared';
 import { BookingCard } from '@/components/calendar/shared/BookingCard';
+import { NewAppointmentBottomSheet, AppointmentType } from '@/components/mobile/NewAppointmentBottomSheet';
 
 interface ThreeDayViewProps {
   currentDate: Date;
@@ -35,9 +37,34 @@ export function ThreeDayView({
 }: ThreeDayViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [selectionStart, setSelectionStart] = useState<{ date: Date; y: number } | null>(null);
-  const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<{
+    date: Date;
+    startTime: string;
+    endTime: string;
+  } | null>(null);
+
+  // Time slot selection hook
+  const {
+    selection,
+    containerRef: selectionContainerRef,
+    getSelectionStyle,
+    startSelection,
+    startDraggingHandle,
+    updateSelection,
+    endSelection,
+    completeSelection,
+    cancelSelection,
+  } = useTimeSlotSelection({
+    hourHeight,
+    startHour: START_HOUR,
+    minDuration: 15,
+    snapInterval: 15,
+    onSelectionComplete: (date, startTime, endTime) => {
+      setSelectedTimeSlot({ date, startTime, endTime });
+      setIsBottomSheetOpen(true);
+    },
+  });
 
   // Update current time every minute
   useState(() => {
@@ -64,55 +91,62 @@ export function ThreeDayView({
       .sort((a, b) => a.start_time.localeCompare(b.start_time));
   }, [bookings]);
 
-  // Calculate Y position to time
-  const yToTime = useCallback((y: number): string => {
-    const hourFloat = START_HOUR + (y / hourHeight);
-    const hours = Math.floor(hourFloat);
-    const minutes = Math.round((hourFloat - hours) * 60 / 15) * 15;
-    const adjustedMinutes = minutes >= 60 ? 0 : minutes;
-    const adjustedHours = minutes >= 60 ? hours + 1 : hours;
-    return `${adjustedHours.toString().padStart(2, '0')}:${adjustedMinutes.toString().padStart(2, '0')}`;
-  }, [hourHeight]);
+  // Handle pointer down to start selection
+  const handlePointerDown = useCallback((date: Date, e: React.PointerEvent<HTMLDivElement>) => {
+    // Don't start selection if clicking on a booking card
+    if ((e.target as HTMLElement).closest('[data-booking-card]')) return;
 
-  // Handle slot click
-  const handleSlotClick = (date: Date, e: React.MouseEvent<HTMLDivElement>) => {
-    if (isDragging) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    const time = yToTime(y);
-    onSlotClick(date, time);
-  };
+    startSelection(date, e.clientY, rect);
+  }, [startSelection]);
 
-  // Handle drag selection start
-  const handleMouseDown = (date: Date, e: React.MouseEvent<HTMLDivElement>) => {
+  // Handle touch start for mobile
+  const handleTouchStart = useCallback((date: Date, e: React.TouchEvent<HTMLDivElement>) => {
+    // Don't start selection if touching a booking card
+    if ((e.target as HTMLElement).closest('[data-booking-card]')) return;
+
     const rect = e.currentTarget.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    setSelectionStart({ date, y });
-    setSelectionEnd(y);
-    setIsDragging(true);
-  };
+    const touch = e.touches[0];
+    startSelection(date, touch.clientY, rect);
+  }, [startSelection]);
 
-  // Handle drag selection move
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging || !selectionStart) return;
+  // Handle pointer move
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!selection?.isActive) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    setSelectionEnd(y);
-  };
+    updateSelection(e.clientY, rect);
+  }, [selection?.isActive, updateSelection]);
 
-  // Handle drag selection end
-  const handleMouseUp = () => {
-    if (isDragging && selectionStart && selectionEnd !== null) {
-      const startTime = yToTime(Math.min(selectionStart.y, selectionEnd));
-      const endTime = yToTime(Math.max(selectionStart.y, selectionEnd));
-      if (startTime !== endTime) {
-        onSlotClick(selectionStart.date, startTime);
-      }
+  // Handle touch move
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    if (!selection?.isActive) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const touch = e.touches[0];
+    updateSelection(touch.clientY, rect);
+  }, [selection?.isActive, updateSelection]);
+
+  // Handle pointer up
+  const handlePointerUp = useCallback(() => {
+    endSelection();
+  }, [endSelection]);
+
+  // Handle bottom sheet close
+  const handleBottomSheetClose = useCallback(() => {
+    setIsBottomSheetOpen(false);
+    setSelectedTimeSlot(null);
+    cancelSelection();
+  }, [cancelSelection]);
+
+  // Handle appointment type selection
+  const handleAppointmentTypeSelect = useCallback((type: AppointmentType) => {
+    if (selectedTimeSlot && type === 'service') {
+      // Open the booking modal with selected time
+      onSlotClick(selectedTimeSlot.date, selectedTimeSlot.startTime);
     }
-    setSelectionStart(null);
-    setSelectionEnd(null);
-    setIsDragging(false);
-  };
+    setIsBottomSheetOpen(false);
+    setSelectedTimeSlot(null);
+    cancelSelection();
+  }, [selectedTimeSlot, onSlotClick, cancelSelection]);
 
   // Current time position
   const currentTimePosition = useMemo(() => {
@@ -131,14 +165,6 @@ export function ThreeDayView({
   const formatHour = (hour: number) => {
     const displayHour = hour > 12 ? hour - 12 : hour;
     return `${displayHour}${hour < 12 ? 'AM' : 'PM'}`;
-  };
-
-  // Get selection box style
-  const getSelectionStyle = () => {
-    if (!selectionStart || selectionEnd === null) return null;
-    const top = Math.min(selectionStart.y, selectionEnd);
-    const height = Math.abs(selectionEnd - selectionStart.y);
-    return { top, height };
   };
 
   return (
@@ -208,15 +234,18 @@ export function ThreeDayView({
             return (
               <div
                 key={day.toISOString()}
-                className="flex-1 relative"
-                style={{ 
+                ref={isSameDay(day, selection?.date || new Date()) ? selectionContainerRef : undefined}
+                className="flex-1 relative touch-none"
+                style={{
                   borderRight: '1px solid #e0e0e0',
                   backgroundColor: dayIsToday ? '#fafafa' : '#f8f8f8'
                 }}
-                onClick={(e) => handleSlotClick(day, e)}
-                onMouseDown={(e) => handleMouseDown(day, e)}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
+                onPointerDown={(e) => handlePointerDown(day, e)}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onTouchStart={(e) => handleTouchStart(day, e)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handlePointerUp}
               >
                 {/* Hour grid lines with half-hour subdivisions */}
                 {HOURS.map((hour) => (
@@ -271,15 +300,13 @@ export function ThreeDayView({
                 })}
 
                 {/* Selection overlay */}
-                {isDragging && selectionStart && isSameDay(selectionStart.date, day) && getSelectionStyle() && (
-                  <div
-                    className="absolute left-1 right-1 bg-primary/20 border-2 border-primary border-dashed rounded-md z-20 pointer-events-none"
-                    style={getSelectionStyle()!}
-                  >
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded whitespace-nowrap">
-                      {yToTime(Math.min(selectionStart.y, selectionEnd!))} - {yToTime(Math.max(selectionStart.y, selectionEnd!))}
-                    </div>
-                  </div>
+                {selection && isSameDay(selection.date, day) && (
+                  <TimeSlotSelectionBox
+                    selection={selection}
+                    style={getSelectionStyle()}
+                    onStartDragHandle={startDraggingHandle}
+                    onComplete={completeSelection}
+                  />
                 )}
               </div>
             );
@@ -332,6 +359,14 @@ export function ThreeDayView({
           )}
         </div>
       </div>
+
+      {/* New Appointment Bottom Sheet */}
+      <NewAppointmentBottomSheet
+        isOpen={isBottomSheetOpen}
+        onClose={handleBottomSheetClose}
+        onSelectType={handleAppointmentTypeSelect}
+        selectedTime={selectedTimeSlot || undefined}
+      />
     </div>
   );
 }

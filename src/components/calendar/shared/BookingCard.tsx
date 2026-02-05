@@ -106,6 +106,7 @@ const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
       <button
         ref={ref}
         onClick={onClick}
+        data-booking-card="true"
         className={cn(
           // Base styling
           'absolute rounded-lg border border-border/40 border-l-4 cursor-pointer',
