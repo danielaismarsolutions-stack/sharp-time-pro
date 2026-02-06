@@ -245,8 +245,12 @@ export function ThreeDayView({
               >
                 {hour !== START_HOUR && (
                   <span
-                    className="absolute -top-2 right-2 text-[11px] text-gray-400 font-normal"
-                    style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                    className="absolute right-2 text-[11px] text-gray-400 font-normal leading-none"
+                    style={{ 
+                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      top: 0,
+                      transform: 'translateY(-50%)',
+                    }}
                   >
                     {formatHour(hour)}
                   </span>
