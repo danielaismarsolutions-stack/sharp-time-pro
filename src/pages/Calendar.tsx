@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   format,
   startOfWeek,
@@ -62,6 +62,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCalendarDragDropEnhanced, snapToQuarterHour } from '@/hooks/useCalendarDragDropEnhanced';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
+import { useAutoScrollToNow } from '@/hooks/useAutoScrollToNow';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/bookings/BookingModal';
 import { BookingDetailModal, BookingStatus, MonthView } from '@/components/calendar';
@@ -95,6 +96,14 @@ export default function Calendar() {
   const [viewMode, setViewMode] = useState<ViewMode>(() => isMobile ? 'agenda' : 'week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Auto-scroll to current time
+  const currentHourHeightForScroll = viewMode === 'day' || viewMode === '3day' ? HOUR_HEIGHT_DAY : HOUR_HEIGHT_WEEK;
+  const scrollContainerRef = useAutoScrollToNow(
+    viewMode === '3day' ? 7 : START_HOUR,
+    currentHourHeightForScroll,
+    [viewMode]
+  );
   
   // Main container needs to be a fixed height with overflow hidden, header fixed, content scrolls
   const [bookings, setBookings] = useState<ApiBooking[]>([]);
@@ -657,7 +666,7 @@ export default function Calendar() {
 
         {/* Calendar Content - This area scrolls */}
         <Card className="flex-1 m-2 md:m-4 mt-0 overflow-hidden border-border flex flex-col min-h-0">
-          <div className="flex-1 overflow-auto">
+          <div ref={scrollContainerRef} className="flex-1 overflow-auto">
             {viewMode === 'day' && renderDayView()}
             {viewMode === '3day' && (
               <ThreeDayView
