@@ -160,52 +160,51 @@ export function ThreeDayView({
       style={{ backgroundColor: '#f5f5f5' }}
       {...swipeHandlers}
     >
-      {/* Column Headers */}
-      <div className="flex border-b bg-white sticky top-0 z-40" style={{ borderColor: '#e0e0e0' }}>
-        {/* Time column spacer */}
-        <div className="w-12 shrink-0" style={{ borderRight: '1px solid #e0e0e0' }} />
-        
-        {/* Day columns */}
-        {days.map((day) => {
-          const dayIsToday = isToday(day);
-          return (
-            <div
-              key={day.toISOString()}
-              className="flex-1 py-2.5 flex items-center justify-center gap-1.5"
-              style={{ borderRight: '1px solid #e0e0e0' }}
-            >
-              <span className={cn(
-                'w-6 h-6 flex items-center justify-center rounded-full text-sm font-medium',
-                dayIsToday ? 'bg-foreground text-background' : 'text-foreground'
-              )}>
-                {format(day, 'd')}
-              </span>
-              <span className={cn(
-                'text-sm',
-                dayIsToday ? 'text-foreground font-medium' : 'text-muted-foreground'
-              )}>
-                {format(day, 'EEE', { locale: es })}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+      {/* Sticky header: Column Headers + Barber Legend */}
+      <div className="sticky top-0 z-40 bg-white">
+        {/* Column Headers */}
+        <div className="flex border-b" style={{ borderColor: '#e0e0e0' }}>
+          {/* Time column spacer */}
+          <div className="w-12 shrink-0" style={{ borderRight: '1px solid #e0e0e0' }} />
 
-      {/* Scrollable content */}
-      <div className="flex-1">
-        <div className="flex relative">
-          {/* Floating barber legend */}
-          {barberColors.length > 0 && (
-            <div
-              className="absolute z-30 flex justify-center pointer-events-none"
-              style={{ top: 8, left: '48px', right: 0 }}
-            >
+          {/* Day columns */}
+          {days.map((day) => {
+            const dayIsToday = isToday(day);
+            return (
               <div
-                className="pointer-events-auto inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.92)',
-                  boxShadow: '0 1px 6px rgba(0, 0, 0, 0.1)',
-                }}
+                key={day.toISOString()}
+                className="flex-1 py-2.5 flex items-center justify-center gap-1.5"
+                style={{ borderRight: '1px solid #e0e0e0' }}
+              >
+                <span className={cn(
+                  'w-6 h-6 flex items-center justify-center rounded-full text-sm font-medium',
+                  dayIsToday ? 'bg-foreground text-background' : 'text-foreground'
+                )}>
+                  {format(day, 'd')}
+                </span>
+                <span className={cn(
+                  'text-sm',
+                  dayIsToday ? 'text-foreground font-medium' : 'text-muted-foreground'
+                )}>
+                  {format(day, 'EEE', { locale: es })}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Barber legend - sticky below date headers, constrained to grid width */}
+        {barberColors.length > 0 && (
+          <div
+            className="flex border-b"
+            style={{ borderColor: '#e0e0e0' }}
+          >
+            {/* Time column spacer */}
+            <div className="w-12 shrink-0" />
+            {/* Legend content - constrained to the day columns area */}
+            <div className="flex-1 min-w-0 flex justify-center py-1.5 px-2">
+              <div
+                className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1"
               >
                 {barberColors.map(({ name, colors }) => (
                   <div key={name} className="flex items-center gap-1">
@@ -215,7 +214,13 @@ export function ThreeDayView({
                 ))}
               </div>
             </div>
-          )}
+          </div>
+        )}
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1">
+        <div className="flex relative">
           {/* Time labels column */}
           <div className="w-12 shrink-0 bg-white" style={{ borderRight: '1px solid #e0e0e0' }}>
             {HOURS.map((hour) => (
