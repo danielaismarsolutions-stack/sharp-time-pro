@@ -144,12 +144,12 @@ export function ThreeDayView({
   return (
     <div 
       ref={containerRef}
-      className="flex flex-col flex-1 overflow-hidden"
+      className="flex flex-col flex-1"
       style={{ backgroundColor: '#f5f5f5' }}
       {...swipeHandlers}
     >
       {/* Column Headers */}
-      <div className="flex border-b bg-white sticky top-0 z-10" style={{ borderColor: '#e0e0e0' }}>
+      <div className="flex border-b bg-white sticky top-0 z-40" style={{ borderColor: '#e0e0e0' }}>
         {/* Time column spacer */}
         <div className="w-12 shrink-0" style={{ borderRight: '1px solid #e0e0e0' }} />
         
@@ -180,7 +180,7 @@ export function ThreeDayView({
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1">
         <div className="flex relative">
           {/* Time labels column */}
           <div className="w-12 shrink-0 bg-white" style={{ borderRight: '1px solid #e0e0e0' }}>
@@ -190,12 +190,14 @@ export function ThreeDayView({
                 className="relative"
                 style={{ height: hourHeight }}
               >
-                <span 
-                  className="absolute -top-2 right-2 text-[11px] text-gray-400 font-normal"
-                  style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
-                >
-                  {formatHour(hour)}
-                </span>
+                {hour !== START_HOUR && (
+                  <span
+                    className="absolute -top-2 right-2 text-[11px] text-gray-400 font-normal"
+                    style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                  >
+                    {formatHour(hour)}
+                  </span>
+                )}
               </div>
             ))}
           </div>
