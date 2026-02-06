@@ -302,7 +302,7 @@ export function ThreeDayView({
 
                 {/* Bookings */}
                 {dayBookings.map((booking) => {
-                  const style = getBookingPosition(booking, hourHeight);
+                  const style = getBookingPosition(booking, hourHeight, START_HOUR);
                   const overlapInfo = getOverlapInfo(dayBookings, booking);
                   const colorClasses = getServicePastelColor(booking, services);
                   
