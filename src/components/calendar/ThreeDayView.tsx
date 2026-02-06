@@ -31,7 +31,7 @@ export function ThreeDayView({
   onDateChange,
   onBookingClick,
   onSlotClick,
-  hourHeight = 100,
+  hourHeight = 120,
 }: ThreeDayViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());

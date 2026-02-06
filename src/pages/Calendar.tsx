@@ -83,8 +83,8 @@ import {
 
 type ViewMode = 'day' | '3day' | 'week' | 'month' | 'agenda';
 
-const HOUR_HEIGHT_DAY = 80;
-const HOUR_HEIGHT_WEEK = 60;
+const HOUR_HEIGHT_DAY = 120;
+const HOUR_HEIGHT_WEEK = 80;
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8:00 - 20:00
 const START_HOUR = 8;
 
