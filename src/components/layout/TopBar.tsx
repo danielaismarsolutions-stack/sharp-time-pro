@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { Search, Command, Settings, HelpCircle, User } from 'lucide-react';
+import { Bell, Search, Command, Check, Trash2, Settings, HelpCircle, User, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
@@ -11,9 +11,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { 
+  useNotifications, 
+  formatNotificationTime, 
+  getNotificationIcon,
+  getNotificationIconColor,
+  getNotificationPath
+} from '@/contexts/NotificationContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { NotificationSheet } from '@/components/notifications/NotificationSheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 interface TopBarProps {
   onSearchOpen?: () => void;
@@ -23,6 +32,14 @@ interface TopBarProps {
 export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { 
+    notifications, 
+    unreadCount, 
+    isLoading,
+    markAsRead, 
+    markAllAsRead, 
+    clearAll 
+  } = useNotifications();
 
   const initials = user?.name
     ?.split(' ')
@@ -63,7 +80,106 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
         </div>
 
         {/* Notifications */}
-        <NotificationSheet />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative h-10 w-10 min-h-[44px] min-w-[44px]">
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
+                >
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Badge>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80">
+            <div className="flex items-center justify-between px-2">
+              <DropdownMenuLabel className="flex items-center gap-2">
+                Notificaciones
+                {isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+              </DropdownMenuLabel>
+              {notifications.length > 0 && (
+                <div className="flex gap-1">
+                  {unreadCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        markAllAsRead();
+                      }}
+                    >
+                      <Check className="h-3 w-3 mr-1" />
+                      Marcar leídas
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-muted-foreground"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      clearAll();
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+            <DropdownMenuSeparator />
+            <ScrollArea className="h-[300px]">
+              {notifications.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground text-sm">
+                  {isLoading ? 'Cargando...' : 'No hay notificaciones'}
+                </div>
+              ) : (
+                notifications.map((notif) => {
+                  const IconComponent = getNotificationIcon(notif.type);
+                  const iconColor = getNotificationIconColor(notif.type);
+                  
+                  return (
+                    <DropdownMenuItem
+                      key={notif.id}
+                      className={cn(
+                        "flex items-start gap-3 py-3 min-h-[44px] cursor-pointer",
+                        !notif.read && "bg-primary/5"
+                      )}
+                      onClick={() => {
+                        markAsRead(notif.id);
+                        const path = getNotificationPath(notif);
+                        if (path) {
+                          navigate(path);
+                        }
+                      }}
+                    >
+                      <div className={cn("flex-shrink-0 mt-0.5", iconColor)}>
+                        <IconComponent className="h-5 w-5" />
+                      </div>
+                      <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                        <span className={cn("text-sm", !notif.read && "font-medium")}>
+                          {notif.title}
+                        </span>
+                        <span className="text-xs text-muted-foreground line-clamp-2">
+                          {notif.message}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatNotificationTime(notif.createdAt)}
+                        </span>
+                      </div>
+                      {!notif.read && (
+                        <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-1" />
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })
+              )}
+            </ScrollArea>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* User menu */}
         <DropdownMenu>

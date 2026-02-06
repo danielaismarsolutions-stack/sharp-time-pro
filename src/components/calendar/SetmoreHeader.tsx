@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Menu, ChevronDown, List, LayoutGrid, Calendar as CalendarIcon, Filter } from 'lucide-react';
+import { Menu, ChevronDown, Bell, List, LayoutGrid, Calendar as CalendarIcon, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -13,9 +14,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
 import { MonthPickerOverlay } from './MonthPickerOverlay';
-import { NotificationSheet } from '@/components/notifications/NotificationSheet';
 
 type ViewMode = 'day' | '3day' | 'week' | 'month' | 'agenda';
 
@@ -23,6 +24,7 @@ interface SetmoreHeaderProps {
   currentDate: Date;
   onDateChange: (date: Date) => void;
   onMenuClick?: () => void;
+  onNotificationClick?: () => void;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   barberNames: string[];
@@ -35,6 +37,7 @@ export function SetmoreHeader({
   currentDate,
   onDateChange,
   onMenuClick,
+  onNotificationClick,
   viewMode,
   onViewModeChange,
   barberNames,
@@ -43,6 +46,7 @@ export function SetmoreHeader({
   isMobile = false,
 }: SetmoreHeaderProps) {
   const { user } = useAuth();
+  const { unreadCount } = useNotifications();
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
 
   // Get user initials
@@ -106,7 +110,22 @@ export function SetmoreHeader({
 
         {/* Right: Notifications + Avatar */}
         <div className="flex items-center gap-2">
-          <NotificationSheet />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onNotificationClick}
+            className="h-10 w-10 relative"
+          >
+            <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <Badge
+                variant="destructive"
+                className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
+              >
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </Badge>
+            )}
+          </Button>
           <Avatar className="h-9 w-9">
             <AvatarFallback className="bg-foreground text-background text-sm font-medium">
               {initials}
