@@ -107,7 +107,7 @@ export default function BottomNav() {
               key={item.id}
               to={item.path}
               className={cn(
-                'flex flex-col items-center justify-center gap-1 flex-1 h-full min-h-[56px] transition-colors',
+                'flex flex-col items-center justify-start gap-0.5 flex-1 h-full transition-colors',
                 'active:bg-gray-50'
               )}
             >
