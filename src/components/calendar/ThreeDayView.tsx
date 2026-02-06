@@ -208,7 +208,6 @@ export function ThreeDayView({
         {legendRows.length > 0 && (
           <div
             className="flex"
-            style={{ backgroundColor: '#f5f5f5' }}
           >
             {/* Time column spacer */}
             <div className="w-12 shrink-0" />
