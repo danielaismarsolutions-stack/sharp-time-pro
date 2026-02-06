@@ -153,6 +153,17 @@ export function ThreeDayView({
     }));
   }, [barberNames]);
 
+  // Split barber legend items into balanced rows (e.g., 5→3+2, 4→2+2, 3→2+1)
+  const legendRows = useMemo(() => {
+    if (barberColors.length === 0) return [];
+    if (barberColors.length <= 3) return [barberColors];
+    const firstRowCount = Math.ceil(barberColors.length / 2);
+    return [
+      barberColors.slice(0, firstRowCount),
+      barberColors.slice(firstRowCount),
+    ];
+  }, [barberColors]);
+
   return (
     <div 
       ref={containerRef}
@@ -193,25 +204,35 @@ export function ThreeDayView({
           })}
         </div>
 
-        {/* Barber legend - sticky below date headers, constrained to grid width */}
-        {barberColors.length > 0 && (
+        {/* Floating barber legend card - positioned between date headers and grid */}
+        {legendRows.length > 0 && (
           <div
-            className="flex border-b"
-            style={{ borderColor: '#e0e0e0' }}
+            className="flex"
+            style={{ backgroundColor: '#f5f5f5' }}
           >
             {/* Time column spacer */}
             <div className="w-12 shrink-0" />
-            {/* Legend content - constrained to the day columns area */}
-            <div className="flex-1 min-w-0 flex justify-center py-1.5 px-2">
+            {/* Legend card - constrained to the day columns area */}
+            <div className="flex-1 min-w-0 flex justify-center py-2 px-2">
               <div
-                className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1"
+                className="rounded-xl px-4 py-2 max-w-full"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.88)',
+                  boxShadow: '0 1px 8px rgba(0, 0, 0, 0.08)',
+                }}
               >
-                {barberColors.map(({ name, colors }) => (
-                  <div key={name} className="flex items-center gap-1">
-                    <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
-                    <span className="text-[11px] font-medium text-gray-700 whitespace-nowrap">{name}</span>
-                  </div>
-                ))}
+                <div className="flex flex-col items-center gap-1.5">
+                  {legendRows.map((row, rowIndex) => (
+                    <div key={rowIndex} className="flex items-center justify-center gap-3">
+                      {row.map(({ name, colors }) => (
+                        <div key={name} className="flex items-center gap-1">
+                          <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
+                          <span className="text-[11px] font-medium text-gray-700 whitespace-nowrap">{name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
