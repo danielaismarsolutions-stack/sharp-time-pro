@@ -51,14 +51,14 @@ export default function DashboardLayout() {
         {!isCalendarPage && <TopBar isMobile={isMobile} />}
         <main className={cn(
           'flex-1 overflow-auto scrollbar-dark',
-          isMobile ? 'pb-20' : ''
+          isMobile && 'pb-20'
         )}>
           <Outlet />
         </main>
       </div>
 
-      {/* Bottom Navigation - mobile only, hidden on calendar page */}
-      {isMobile && !isCalendarPage && <BottomNav />}
+      {/* Bottom Navigation - mobile only */}
+      {isMobile && <BottomNav />}
     </div>
   );
 }
