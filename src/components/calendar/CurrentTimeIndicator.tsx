@@ -1,23 +1,19 @@
 import { useEffect, useState } from 'react';
+import { format } from 'date-fns';
 import { isToday } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface CurrentTimeIndicatorProps {
   currentDate: Date;
-  startHour?: number; // Default 8
-  endHour?: number;   // Default 21
-  hourHeight: number; // pixels per hour
+  startHour?: number;
+  endHour?: number;
+  hourHeight: number;
 }
 
 // Get current time in Madrid timezone
 const getMadridTime = () => {
   const now = new Date();
   const madridTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
-  return {
-    hours: madridTime.getHours(),
-    minutes: madridTime.getMinutes(),
-  };
+  return madridTime;
 };
 
 export function CurrentTimeIndicator({
@@ -26,65 +22,64 @@ export function CurrentTimeIndicator({
   endHour = 21,
   hourHeight,
 }: CurrentTimeIndicatorProps) {
-  const isMobile = useIsMobile();
   const [time, setTime] = useState(getMadridTime);
 
-  // Update every minute
   useEffect(() => {
     const interval = setInterval(() => {
       setTime(getMadridTime());
-    }, 60000); // 1 minute
-
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Only show if viewing today
-  if (!isToday(currentDate)) {
-    return null;
-  }
+  if (!isToday(currentDate)) return null;
 
-  const { hours, minutes } = time;
-  
-  // Check if current time is within displayed hours
+  const hours = time.getHours();
+  const minutes = time.getMinutes();
   const totalMinutes = hours * 60 + minutes;
   const startMinutes = startHour * 60;
   const endMinutes = endHour * 60;
-  
-  if (totalMinutes < startMinutes || totalMinutes > endMinutes) {
-    return null;
-  }
 
-  // Calculate position from start hour
-  const minutesFromStart = totalMinutes - startMinutes;
-  const top = (minutesFromStart / 60) * hourHeight;
+  if (totalMinutes < startMinutes || totalMinutes > endMinutes) return null;
+
+  const top = ((totalMinutes - startMinutes) / 60) * hourHeight;
 
   return (
-    <div
-      className="absolute left-0 right-0 z-20 pointer-events-none"
-      style={{ top }}
-    >
-      {/* Circle indicator */}
+    <>
+      {/* Time label pill */}
       <div
-        className={cn(
-          'absolute rounded-full bg-red-500',
-          isMobile ? 'w-1.5 h-1.5 -left-0.5' : 'w-2 h-2 -left-1'
-        )}
-        style={{ 
-          top: isMobile ? '-2px' : '-3px',
-          boxShadow: '0 0 4px rgba(239, 68, 68, 0.5)'
-        }}
-      />
-      
-      {/* Horizontal line */}
-      <div
-        className={cn(
-          'w-full bg-red-500/80',
-          isMobile ? 'h-[1.5px]' : 'h-[2px]'
-        )}
+        className="absolute z-30 pointer-events-none"
         style={{
-          boxShadow: '0 0 4px rgba(239, 68, 68, 0.3)'
+          top,
+          transform: 'translate(-100%, -50%)',
+          left: 0,
+          paddingRight: '2px',
         }}
-      />
-    </div>
+      >
+        <span
+          className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
+          style={{
+            backgroundColor: '#1a1a1a',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+          }}
+        >
+          {format(time, 'H:mm')}
+        </span>
+      </div>
+
+      {/* Dot and line */}
+      <div
+        className="absolute left-0 right-0 z-20 flex items-center pointer-events-none"
+        style={{ top }}
+      >
+        <div
+          className="w-2 h-2 rounded-full shrink-0"
+          style={{ backgroundColor: '#1a1a1a', marginLeft: '-4px' }}
+        />
+        <div
+          className="flex-1"
+          style={{ height: '1.5px', backgroundColor: '#1a1a1a' }}
+        />
+      </div>
+    </>
   );
 }
