@@ -671,6 +671,7 @@ export default function Calendar() {
                   openNewBooking(date);
                 }}
                 hourHeight={HOUR_HEIGHT_DAY}
+                barberNames={barberNames}
               />
             )}
             {viewMode === 'week' && renderWeekView()}
@@ -686,7 +687,7 @@ export default function Calendar() {
           </div>
 
           {/* Barber Legend - always visible below calendar (not for agenda) */}
-          {viewMode !== 'agenda' && <BarberLegend barberNames={barberNames} />}
+          {viewMode !== 'agenda' && viewMode !== '3day' && <BarberLegend barberNames={barberNames} />}
         </Card>
 
         {/* Undo Button */}

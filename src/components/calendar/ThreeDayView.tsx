@@ -6,6 +6,7 @@ import { Service } from '@/types';
 import { cn } from '@/lib/utils';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { getServicePastelColor, getOverlapInfo, getBookingPosition } from '@/components/calendar/shared';
+import { pastelColors } from '@/components/calendar/shared/colorUtils';
 import { BookingCard } from '@/components/calendar/shared/BookingCard';
 
 interface ThreeDayViewProps {
@@ -16,6 +17,7 @@ interface ThreeDayViewProps {
   onBookingClick: (booking: ApiBooking) => void;
   onSlotClick: (date: Date, time: string) => void;
   hourHeight?: number;
+  barberNames?: string[];
 }
 
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 7); // 7:00 - 23:00
@@ -32,6 +34,7 @@ export function ThreeDayView({
   onBookingClick,
   onSlotClick,
   hourHeight = 140,
+  barberNames = [],
 }: ThreeDayViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -141,6 +144,15 @@ export function ThreeDayView({
     return { top, height };
   };
 
+  // Barber colors for floating legend
+  const barberColors = useMemo(() => {
+    const sorted = [...barberNames].sort();
+    return sorted.map((name, i) => ({
+      name,
+      colors: pastelColors[i % pastelColors.length],
+    }));
+  }, [barberNames]);
+
   return (
     <div 
       ref={containerRef}
@@ -182,6 +194,28 @@ export function ThreeDayView({
       {/* Scrollable content */}
       <div className="flex-1">
         <div className="flex relative">
+          {/* Floating barber legend */}
+          {barberColors.length > 0 && (
+            <div
+              className="absolute z-30 flex justify-center pointer-events-none"
+              style={{ top: 8, left: '48px', right: 0 }}
+            >
+              <div
+                className="pointer-events-auto inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                  boxShadow: '0 1px 6px rgba(0, 0, 0, 0.1)',
+                }}
+              >
+                {barberColors.map(({ name, colors }) => (
+                  <div key={name} className="flex items-center gap-1">
+                    <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
+                    <span className="text-[11px] font-medium text-gray-700 whitespace-nowrap">{name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {/* Time labels column */}
           <div className="w-12 shrink-0 bg-white" style={{ borderRight: '1px solid #e0e0e0' }}>
             {HOURS.map((hour) => (
