@@ -171,8 +171,8 @@ export function ThreeDayView({
       style={{ backgroundColor: '#f5f5f5' }}
       {...swipeHandlers}
     >
-      {/* Sticky header: Column Headers + Barber Legend */}
-      <div className="sticky top-0 z-40 bg-white">
+      {/* Sticky header: Column Headers + Legend overlay */}
+      <div className="sticky top-0 z-40 bg-white relative">
         {/* Column Headers */}
         <div className="flex border-b" style={{ borderColor: '#e0e0e0' }}>
           {/* Time column spacer */}
@@ -204,38 +204,36 @@ export function ThreeDayView({
           })}
         </div>
 
-      </div>
-
-      {/* Scrollable content */}
-      <div className="flex-1 relative overflow-auto">
-        {/* Sticky barber legend - stays visible on scroll, no vertical space */}
+        {/* Legend - hangs below sticky header, overlays grid */}
         {legendRows.length > 0 && (
-          <div className="sticky top-0 z-30 h-0 overflow-visible" style={{ marginLeft: '48px' }}>
-            <div className="flex justify-center pointer-events-none pt-1.5 px-2">
-              <div
-                className="rounded-xl px-4 py-1.5 max-w-full pointer-events-auto"
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.92)',
-                  boxShadow: '0 1px 8px rgba(0, 0, 0, 0.08)',
-                  backdropFilter: 'blur(8px)',
-                }}
-              >
-                <div className="flex flex-col items-center gap-1">
-                  {legendRows.map((row, rowIndex) => (
-                    <div key={rowIndex} className="flex items-center justify-center gap-3">
-                      {row.map(({ name, colors }) => (
-                        <div key={name} className="flex items-center gap-1">
-                          <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
-                          <span className="text-[11px] font-medium text-gray-700 whitespace-nowrap">{name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
+          <div className="absolute left-12 right-0 top-full z-30 flex justify-center pointer-events-none pt-1.5 px-2">
+            <div
+              className="rounded-xl px-4 py-1.5 max-w-full pointer-events-auto"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                boxShadow: '0 1px 8px rgba(0, 0, 0, 0.08)',
+                backdropFilter: 'blur(8px)',
+              }}
+            >
+              <div className="flex flex-col items-center gap-1">
+                {legendRows.map((row, rowIndex) => (
+                  <div key={rowIndex} className="flex items-center justify-center gap-3">
+                    {row.map(({ name, colors }) => (
+                      <div key={name} className="flex items-center gap-1">
+                        <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
+                        <span className="text-[11px] font-medium text-gray-700 whitespace-nowrap">{name}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         )}
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1">
         <div className="flex relative">
           {/* Time labels column */}
           <div className="w-12 shrink-0 bg-white" style={{ borderRight: '1px solid #e0e0e0' }}>
