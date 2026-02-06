@@ -70,10 +70,10 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { id: 'calendar', icon: 'calendar', label: 'Calendar', path: '/calendar' },
-  { id: 'services', icon: 'services', label: 'Services', path: '/services' },
-  { id: 'customers', icon: 'customers', label: 'Customers', path: '/clients' },
-  { id: 'settings', icon: 'settings', label: 'Settings', path: '/settings' },
+  { id: 'calendar', icon: 'calendar', label: 'Agenda', path: '/calendar' },
+  { id: 'services', icon: 'services', label: 'Servicios', path: '/services' },
+  { id: 'customers', icon: 'customers', label: 'Clientes', path: '/clients' },
+  { id: 'settings', icon: 'settings', label: 'Ajustes', path: '/settings' },
 ];
 
 export default function BottomNav() {
