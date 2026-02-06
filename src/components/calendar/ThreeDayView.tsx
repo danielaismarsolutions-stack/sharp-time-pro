@@ -208,18 +208,18 @@ export function ThreeDayView({
 
       {/* Scrollable content */}
       <div className="flex-1 relative">
-        {/* Floating barber legend - overlays the grid */}
+        {/* Floating barber legend - overlays the grid without taking space */}
         {legendRows.length > 0 && (
-          <div className="sticky top-[42px] z-30 flex justify-center pointer-events-none py-2 px-2" style={{ marginLeft: '48px' }}>
+          <div className="absolute top-0 left-12 right-0 z-30 flex justify-center pointer-events-none pt-1.5 px-2">
             <div
-              className="rounded-xl px-4 py-2 max-w-full pointer-events-auto"
+              className="rounded-xl px-4 py-1.5 max-w-full pointer-events-auto"
               style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.92)',
                 boxShadow: '0 1px 8px rgba(0, 0, 0, 0.08)',
                 backdropFilter: 'blur(8px)',
               }}
             >
-              <div className="flex flex-col items-center gap-1.5">
+              <div className="flex flex-col items-center gap-1">
                 {legendRows.map((row, rowIndex) => (
                   <div key={rowIndex} className="flex items-center justify-center gap-3">
                     {row.map(({ name, colors }) => (
