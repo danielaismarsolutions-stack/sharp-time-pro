@@ -202,44 +202,27 @@ export function ThreeDayView({
               </div>
             );
           })}
-        </div>
-
-        {/* Floating barber legend card - positioned between date headers and grid */}
-        {legendRows.length > 0 && (
-          <div
-            className="flex"
-          >
-            {/* Time column spacer */}
-            <div className="w-12 shrink-0" />
-            {/* Legend card - constrained to the day columns area */}
-            <div className="flex-1 min-w-0 flex justify-center py-2 px-2">
-              <div
-                className="rounded-xl px-4 py-2 max-w-full"
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.88)',
-                  boxShadow: '0 1px 8px rgba(0, 0, 0, 0.08)',
-                }}
-              >
-                <div className="flex flex-col items-center gap-1.5">
-                  {legendRows.map((row, rowIndex) => (
-                    <div key={rowIndex} className="flex items-center justify-center gap-3">
-                      {row.map(({ name, colors }) => (
-                        <div key={name} className="flex items-center gap-1">
-                          <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
-                          <span className="text-[11px] font-medium text-gray-700 whitespace-nowrap">{name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1">
+      <div className="flex-1 relative">
+        {/* Floating barber legend - overlays the grid with no background */}
+        {legendRows.length > 0 && (
+          <div className="sticky top-0 left-12 right-0 z-30 flex justify-center py-2 px-2 pointer-events-none" style={{ marginLeft: '48px' }}>
+            <div className="flex flex-col items-center gap-1.5 pointer-events-auto">
+              {legendRows.map((row, rowIndex) => (
+                <div key={rowIndex} className="flex items-center justify-center gap-3">
+                  {row.map(({ name, colors }) => (
+                    <div key={name} className="flex items-center gap-1">
+                      <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
+                      <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">{name}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="flex relative">
           {/* Time labels column */}
           <div className="w-12 shrink-0 bg-white" style={{ borderRight: '1px solid #e0e0e0' }}>
@@ -391,6 +374,7 @@ export function ThreeDayView({
               </div>
             </>
           )}
+        </div>
         </div>
       </div>
     </div>
