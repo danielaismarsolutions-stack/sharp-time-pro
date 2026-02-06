@@ -83,8 +83,8 @@ import {
 
 type ViewMode = 'day' | '3day' | 'week' | 'month' | 'agenda';
 
-const HOUR_HEIGHT_DAY = 120;
-const HOUR_HEIGHT_WEEK = 80;
+const HOUR_HEIGHT_DAY = 140;
+const HOUR_HEIGHT_WEEK = 100;
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8:00 - 20:00
 const START_HOUR = 8;
 
@@ -376,7 +376,8 @@ export default function Calendar() {
             {HOURS.map((hour) => (
               <div
                 key={hour}
-                className="h-20 border-b border-border px-2 text-xs md:text-sm text-muted-foreground flex items-start pt-1"
+                className="border-b border-border px-2 text-xs md:text-sm text-muted-foreground flex items-start pt-1"
+                style={{ height: HOUR_HEIGHT_DAY }}
               >
                 {hour.toString().padStart(2, '0')}:00
               </div>
@@ -468,7 +469,8 @@ export default function Calendar() {
         {HOURS.map((hour) => (
           <div
             key={hour}
-            className="h-[60px] border-b border-border px-1 md:px-2 text-[10px] md:text-xs text-muted-foreground flex items-start pt-1"
+            className="border-b border-border px-1 md:px-2 text-[10px] md:text-xs text-muted-foreground flex items-start pt-1"
+            style={{ height: HOUR_HEIGHT_WEEK }}
           >
             {hour.toString().padStart(2, '0')}:00
           </div>
