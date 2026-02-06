@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useMemo, useRef, useCallback, useState } from 'react';
 import { format, addDays, isToday, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ApiBooking } from '@/types/api';
@@ -8,6 +8,16 @@ import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { getServicePastelColor, getOverlapInfo, getBookingPosition } from '@/components/calendar/shared';
 import { pastelColors } from '@/components/calendar/shared/colorUtils';
 import { BookingCard } from '@/components/calendar/shared/BookingCard';
+import { DroppableTimeSlotEnhanced } from '@/components/calendar/shared/DroppableTimeSlotEnhanced';
+import { isWithinBusinessHours } from '@/hooks/useCalendarDragDropEnhanced';
+
+interface DropPreview {
+  date: string;
+  time: string;
+  hasConflict: boolean;
+  conflictingBookings: string[];
+  scheduleError?: string;
+}
 
 interface ThreeDayViewProps {
   currentDate: Date;
@@ -18,13 +28,15 @@ interface ThreeDayViewProps {
   onSlotClick: (date: Date, time: string) => void;
   hourHeight?: number;
   barberNames?: string[];
+  isDragging?: boolean;
+  dropPreview?: DropPreview | null;
+  businessOpenHour?: number;
+  businessCloseHour?: number;
 }
 
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 7); // 7:00 - 23:00
 const START_HOUR = 7;
 const END_HOUR = 23;
-const BUSINESS_START = 9;
-const BUSINESS_END = 21;
 
 export function ThreeDayView({
   currentDate,
@@ -35,12 +47,16 @@ export function ThreeDayView({
   onSlotClick,
   hourHeight = 140,
   barberNames = [],
+  isDragging = false,
+  dropPreview = null,
+  businessOpenHour = 9,
+  businessCloseHour = 21,
 }: ThreeDayViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectionStart, setSelectionStart] = useState<{ date: Date; y: number } | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isSelecting, setIsSelecting] = useState(false);
 
   // Update current time every minute
   useState(() => {
@@ -53,10 +69,10 @@ export function ThreeDayView({
     return [currentDate, addDays(currentDate, 1), addDays(currentDate, 2)];
   }, [currentDate]);
 
-  // Swipe handlers for navigation
+  // Swipe handlers for navigation - disabled when dragging a booking card
   const swipeHandlers = useSwipeGesture({
-    onSwipeLeft: () => onDateChange(addDays(currentDate, 3)),
-    onSwipeRight: () => onDateChange(addDays(currentDate, -3)),
+    onSwipeLeft: () => !isDragging && onDateChange(addDays(currentDate, 3)),
+    onSwipeRight: () => !isDragging && onDateChange(addDays(currentDate, -3)),
   });
 
   // Get bookings for a specific day
@@ -77,9 +93,9 @@ export function ThreeDayView({
     return `${adjustedHours.toString().padStart(2, '0')}:${adjustedMinutes.toString().padStart(2, '0')}`;
   }, [hourHeight]);
 
-  // Handle slot click
+  // Handle slot click - only if not dragging a booking card
   const handleSlotClick = (date: Date, e: React.MouseEvent<HTMLDivElement>) => {
-    if (isDragging) return;
+    if (isSelecting || isDragging) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
     const time = yToTime(y);
@@ -88,16 +104,17 @@ export function ThreeDayView({
 
   // Handle drag selection start
   const handleMouseDown = (date: Date, e: React.MouseEvent<HTMLDivElement>) => {
+    if (isDragging) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
     setSelectionStart({ date, y });
     setSelectionEnd(y);
-    setIsDragging(true);
+    setIsSelecting(true);
   };
 
   // Handle drag selection move
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging || !selectionStart) return;
+    if (!isSelecting || !selectionStart || isDragging) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
     setSelectionEnd(y);
@@ -105,7 +122,7 @@ export function ThreeDayView({
 
   // Handle drag selection end
   const handleMouseUp = () => {
-    if (isDragging && selectionStart && selectionEnd !== null) {
+    if (isSelecting && selectionStart && selectionEnd !== null) {
       const startTime = yToTime(Math.min(selectionStart.y, selectionEnd));
       const endTime = yToTime(Math.max(selectionStart.y, selectionEnd));
       if (startTime !== endTime) {
@@ -114,7 +131,7 @@ export function ThreeDayView({
     }
     setSelectionStart(null);
     setSelectionEnd(null);
-    setIsDragging(false);
+    setIsSelecting(false);
   };
 
   // Current time position
@@ -130,7 +147,7 @@ export function ThreeDayView({
     return days.some(day => isToday(day)) && currentTimePosition !== null;
   }, [days, currentTimePosition]);
 
-  // Format time for display (12-hour format like "1PM", "2PM")
+  // Format time for display
   const formatHour = (hour: number) => {
     const displayHour = hour > 12 ? hour - 12 : hour;
     return `${displayHour}${hour < 12 ? 'AM' : 'PM'}`;
@@ -153,7 +170,7 @@ export function ThreeDayView({
     }));
   }, [barberNames]);
 
-  // Split barber legend items into balanced rows (e.g., 5→3+2, 4→2+2, 3→2+1)
+  // Split barber legend items into balanced rows
   const legendRows = useMemo(() => {
     if (barberColors.length === 0) return [];
     if (barberColors.length <= 3) return [barberColors];
@@ -165,7 +182,7 @@ export function ThreeDayView({
   }, [barberColors]);
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="flex flex-col flex-1"
       style={{ backgroundColor: '#f5f5f5' }}
@@ -246,7 +263,7 @@ export function ThreeDayView({
                 {hour !== START_HOUR && (
                   <span
                     className="absolute right-2 text-[11px] text-gray-400 font-normal leading-none"
-                    style={{ 
+                    style={{
                       fontFamily: 'system-ui, -apple-system, sans-serif',
                       top: 0,
                       transform: 'translateY(-50%)',
@@ -263,12 +280,13 @@ export function ThreeDayView({
           {days.map((day) => {
             const dayBookings = getBookingsForDay(day);
             const dayIsToday = isToday(day);
+            const dateStr = format(day, 'yyyy-MM-dd');
 
             return (
               <div
                 key={day.toISOString()}
                 className="flex-1 relative"
-                style={{ 
+                style={{
                   borderRight: '1px solid #e0e0e0',
                   backgroundColor: dayIsToday ? '#fafafa' : '#f8f8f8'
                 }}
@@ -277,35 +295,47 @@ export function ThreeDayView({
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
               >
-                {/* Hour grid lines with half-hour subdivisions */}
+                {/* Hour grid with DroppableTimeSlotEnhanced for drag-drop support */}
                 {HOURS.map((hour) => (
-                  <div
+                  <DroppableTimeSlotEnhanced
                     key={hour}
-                    className="relative"
-                    style={{ height: hourHeight }}
+                    id={`3day-${dateStr}-${hour}`}
+                    hour={hour}
+                    date={dateStr}
+                    hourHeight={hourHeight}
+                    isDropTarget={dropPreview?.date === dateStr && dropPreview?.time?.startsWith(hour.toString().padStart(2, '0'))}
+                    previewTime={dropPreview?.date === dateStr ? dropPreview?.time : null}
+                    hasConflict={dropPreview?.hasConflict}
+                    scheduleError={dropPreview?.scheduleError}
+                    isOutsideBusinessHours={!isWithinBusinessHours(hour, businessOpenHour, businessCloseHour)}
+                    isDragging={isDragging}
+                    className={cn(
+                      'border-b-0',
+                      !isDragging && 'hover:bg-muted/10'
+                    )}
                   >
-                    {/* Full hour line */}
-                    <div 
-                      className="absolute top-0 left-0 right-0 h-px"
+                    {/* Full hour line at top */}
+                    <div
+                      className="absolute top-0 left-0 right-0 h-px pointer-events-none"
                       style={{ backgroundColor: '#e0e0e0' }}
                     />
                     {/* Half hour line */}
-                    <div 
-                      className="absolute left-0 right-0 h-px"
-                      style={{ 
-                        top: hourHeight / 2, 
-                        backgroundColor: '#ebebeb' 
+                    <div
+                      className="absolute left-0 right-0 h-px pointer-events-none"
+                      style={{
+                        top: hourHeight / 2,
+                        backgroundColor: '#ebebeb'
                       }}
                     />
-                  </div>
+                  </DroppableTimeSlotEnhanced>
                 ))}
 
-                {/* Bookings */}
+                {/* Bookings - drag enabled for mobile */}
                 {dayBookings.map((booking) => {
                   const style = getBookingPosition(booking, hourHeight, START_HOUR);
                   const overlapInfo = getOverlapInfo(dayBookings, booking);
                   const colorClasses = getServicePastelColor(booking, services);
-                  
+
                   const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 2px)`;
                   const widthCalc = `calc(${100 / overlapInfo.total}% - 4px)`;
 
@@ -322,7 +352,7 @@ export function ThreeDayView({
                       colorClasses={colorClasses}
                       overlapInfo={overlapInfo}
                       onClick={() => onBookingClick(booking)}
-                      isDraggable={false}
+                      isDraggable={true}
                       viewMode="day"
                       isMobile={true}
                     />
@@ -330,7 +360,7 @@ export function ThreeDayView({
                 })}
 
                 {/* Selection overlay */}
-                {isDragging && selectionStart && isSameDay(selectionStart.date, day) && getSelectionStyle() && (
+                {isSelecting && selectionStart && isSameDay(selectionStart.date, day) && getSelectionStyle() && (
                   <div
                     className="absolute left-1 right-1 bg-primary/20 border-2 border-primary border-dashed rounded-md z-20 pointer-events-none"
                     style={getSelectionStyle()!}
@@ -350,17 +380,17 @@ export function ThreeDayView({
               {/* Time label - positioned in the time column */}
               <div
                 className="absolute z-30 flex items-center justify-end"
-                style={{ 
-                  top: currentTimePosition, 
+                style={{
+                  top: currentTimePosition,
                   transform: 'translateY(-50%)',
                   left: 0,
                   width: '48px',
                   paddingRight: '4px'
                 }}
               >
-                <span 
+                <span
                   className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
-                  style={{ 
+                  style={{
                     backgroundColor: '#1a1a1a',
                     fontFamily: 'system-ui, -apple-system, sans-serif'
                   }}
@@ -368,21 +398,21 @@ export function ThreeDayView({
                   {format(currentTime, 'H:mm')}
                 </span>
               </div>
-              
+
               {/* Dot and line - starts after time column */}
               <div
                 className="absolute z-20 flex items-center pointer-events-none"
-                style={{ 
+                style={{
                   top: currentTimePosition,
                   left: '48px',
                   right: 0
                 }}
               >
-                <div 
+                <div
                   className="w-2 h-2 rounded-full shrink-0"
                   style={{ backgroundColor: '#1a1a1a', marginLeft: '-4px' }}
                 />
-                <div 
+                <div
                   className="flex-1"
                   style={{ height: '1.5px', backgroundColor: '#1a1a1a' }}
                 />

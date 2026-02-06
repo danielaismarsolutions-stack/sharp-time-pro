@@ -60,7 +60,7 @@ import { BUSINESS_ID } from '@/config/api';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useCalendarDragDropEnhanced, snapToQuarterHour } from '@/hooks/useCalendarDragDropEnhanced';
+import { useCalendarDragDropEnhanced, snapToQuarterHour, isWithinBusinessHours } from '@/hooks/useCalendarDragDropEnhanced';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useAutoScrollToNow } from '@/hooks/useAutoScrollToNow';
 import { cn } from '@/lib/utils';
@@ -88,6 +88,8 @@ const HOUR_HEIGHT_DAY = 140;
 const HOUR_HEIGHT_WEEK = 100;
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8:00 - 20:00
 const START_HOUR = 8;
+const BUSINESS_OPEN_HOUR = 9;
+const BUSINESS_CLOSE_HOUR = 21;
 
 export default function Calendar() {
   const { toast } = useToast();
@@ -229,6 +231,7 @@ export default function Calendar() {
   });
 
   // Configure sensors for drag-drop with long-press on mobile
+  // Touch delay of 300ms prevents conflicts with scrolling on mobile
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -237,8 +240,8 @@ export default function Calendar() {
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 200,
-        tolerance: 5,
+        delay: 300,
+        tolerance: 8,
       },
     })
   );
@@ -405,11 +408,14 @@ export default function Calendar() {
                 isDropTarget={dropPreview?.date === dateStr && dropPreview?.time?.startsWith(hour.toString().padStart(2, '0'))}
                 previewTime={dropPreview?.date === dateStr ? dropPreview?.time : null}
                 hasConflict={dropPreview?.hasConflict}
+                scheduleError={dropPreview?.scheduleError}
+                isOutsideBusinessHours={!isWithinBusinessHours(hour, BUSINESS_OPEN_HOUR, BUSINESS_CLOSE_HOUR)}
+                isDragging={!!activeId}
                 className="hover:bg-muted/30 cursor-pointer"
               >
-                <div 
+                <div
                   className="absolute inset-0"
-                  onClick={() => openNewBooking(currentDate)} 
+                  onClick={() => openNewBooking(currentDate)}
                 />
               </DroppableTimeSlotEnhanced>
             ))}
@@ -529,9 +535,12 @@ export default function Calendar() {
                     isDropTarget={dropPreview?.date === dateStr && dropPreview?.time?.startsWith(hour.toString().padStart(2, '0'))}
                     previewTime={dropPreview?.date === dateStr ? dropPreview?.time : null}
                     hasConflict={dropPreview?.hasConflict}
+                    scheduleError={dropPreview?.scheduleError}
+                    isOutsideBusinessHours={!isWithinBusinessHours(hour, BUSINESS_OPEN_HOUR, BUSINESS_CLOSE_HOUR)}
+                    isDragging={!!activeId}
                     className="hover:bg-muted/30 cursor-pointer"
                   >
-                    <div 
+                    <div
                       className="absolute inset-0"
                       onClick={() => openNewBooking(day)}
                     />
@@ -681,6 +690,10 @@ export default function Calendar() {
                 }}
                 hourHeight={HOUR_HEIGHT_DAY}
                 barberNames={barberNames}
+                isDragging={!!activeId}
+                dropPreview={dropPreview}
+                businessOpenHour={BUSINESS_OPEN_HOUR}
+                businessCloseHour={BUSINESS_CLOSE_HOUR}
               />
             )}
             {viewMode === 'week' && renderWeekView()}
