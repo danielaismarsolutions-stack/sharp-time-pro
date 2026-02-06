@@ -207,29 +207,31 @@ export function ThreeDayView({
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 relative">
-        {/* Floating barber legend - overlays the grid without taking space */}
+      <div className="flex-1 relative overflow-auto">
+        {/* Sticky barber legend - stays visible on scroll, no vertical space */}
         {legendRows.length > 0 && (
-          <div className="absolute top-0 left-12 right-0 z-30 flex justify-center pointer-events-none pt-1.5 px-2">
-            <div
-              className="rounded-xl px-4 py-1.5 max-w-full pointer-events-auto"
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.92)',
-                boxShadow: '0 1px 8px rgba(0, 0, 0, 0.08)',
-                backdropFilter: 'blur(8px)',
-              }}
-            >
-              <div className="flex flex-col items-center gap-1">
-                {legendRows.map((row, rowIndex) => (
-                  <div key={rowIndex} className="flex items-center justify-center gap-3">
-                    {row.map(({ name, colors }) => (
-                      <div key={name} className="flex items-center gap-1">
-                        <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
-                        <span className="text-[11px] font-medium text-gray-700 whitespace-nowrap">{name}</span>
-                      </div>
-                    ))}
-                  </div>
-                ))}
+          <div className="sticky top-0 z-30 h-0 overflow-visible" style={{ marginLeft: '48px' }}>
+            <div className="flex justify-center pointer-events-none pt-1.5 px-2">
+              <div
+                className="rounded-xl px-4 py-1.5 max-w-full pointer-events-auto"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                  boxShadow: '0 1px 8px rgba(0, 0, 0, 0.08)',
+                  backdropFilter: 'blur(8px)',
+                }}
+              >
+                <div className="flex flex-col items-center gap-1">
+                  {legendRows.map((row, rowIndex) => (
+                    <div key={rowIndex} className="flex items-center justify-center gap-3">
+                      {row.map(({ name, colors }) => (
+                        <div key={name} className="flex items-center gap-1">
+                          <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
+                          <span className="text-[11px] font-medium text-gray-700 whitespace-nowrap">{name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
