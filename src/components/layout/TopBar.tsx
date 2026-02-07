@@ -80,13 +80,13 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
         </div>
 
         {/* Notifications */}
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative h-10 w-10 min-h-[44px] min-w-[44px]">
               <Bell className="h-5 w-5" />
               {unreadCount > 0 && (
-                <Badge 
-                  variant="destructive" 
+                <Badge
+                  variant="destructive"
                   className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
                 >
                   {unreadCount > 9 ? '9+' : unreadCount}
@@ -94,7 +94,7 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
+          <DropdownMenuContent align="end" className="w-80 max-w-[calc(100vw-2rem)]">
             <div className="flex items-center justify-between px-2">
               <DropdownMenuLabel className="flex items-center gap-2">
                 Notificaciones
@@ -182,7 +182,7 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
         </DropdownMenu>
 
         {/* User menu */}
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 min-h-[44px] min-w-[44px] rounded-full">
               <Avatar>
