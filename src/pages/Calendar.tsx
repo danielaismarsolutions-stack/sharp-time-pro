@@ -264,10 +264,31 @@ export default function Calendar() {
     })
   );
 
-  // Snap modifier: snaps drag movement to 15-minute grid intervals
+  // Calculate column width for horizontal snapping
+  const [calendarColumnWidth, setCalendarColumnWidth] = useState(0);
+  const calendarContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const measure = () => {
+      if (!calendarContainerRef.current) return;
+      const containerWidth = calendarContainerRef.current.offsetWidth;
+      const timeLabelWidth = 48; // w-12 = 48px
+      const contentWidth = containerWidth - timeLabelWidth;
+      const numCols = viewMode === '3day' ? 3 : viewMode === 'week' ? 7 : 1;
+      setCalendarColumnWidth(contentWidth / numCols);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [viewMode]);
+
+  // Snap modifier: snaps drag movement to 15-min grid (Y) and day columns (X)
   const snapModifier = useMemo(
-    () => createSnapTo15MinModifier(currentHourHeight / 4),
-    [currentHourHeight]
+    () => createSnapTo15MinModifier(
+      currentHourHeight / 4,
+      viewMode !== 'day' && viewMode !== 'month' && viewMode !== 'agenda' ? calendarColumnWidth : undefined
+    ),
+    [currentHourHeight, calendarColumnWidth, viewMode]
   );
   const modifiers = useMemo(() => [snapModifier], [snapModifier]);
 
@@ -661,7 +682,7 @@ export default function Calendar() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="h-screen flex flex-col overflow-hidden">
+      <div ref={calendarContainerRef} className="h-screen flex flex-col overflow-hidden">
         {/* Setmore-style Header - Fixed, never scrolls */}
         <div className="flex-shrink-0">
           <SetmoreHeader
