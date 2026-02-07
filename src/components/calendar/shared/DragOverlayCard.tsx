@@ -26,13 +26,14 @@ export function DragOverlayCard({
   return (
     <div
       className={cn(
-        'bg-card rounded-xl shadow-2xl p-3 border-l-4 min-w-[180px] max-w-[250px]',
+        'bg-card/90 backdrop-blur-sm rounded-xl shadow-2xl p-3 border-l-4 min-w-[180px] max-w-[250px]',
         'scale-105 rotate-1',
         hasError
           ? 'border-destructive ring-2 ring-destructive/30'
           : 'border-primary ring-2 ring-primary/30'
       )}
       style={{
+        opacity: 0.85,
         filter: 'drop-shadow(0 20px 25px rgba(0,0,0,0.15)) drop-shadow(0 8px 10px rgba(0,0,0,0.1))',
       }}
     >
@@ -42,6 +43,7 @@ export function DragOverlayCard({
           className={cn(
             'absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold shadow-lg',
             'flex items-center gap-1.5',
+            'animate-in fade-in-0 zoom-in-95 duration-150',
             hasError
               ? 'bg-destructive text-destructive-foreground'
               : 'bg-primary text-primary-foreground'

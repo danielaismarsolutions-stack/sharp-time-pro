@@ -108,8 +108,8 @@ const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
           !isDragging && 'hover:brightness-95 hover:scale-[1.01]',
           // Smooth transitions for snap-to-grid animation
           'transition-[box-shadow,filter,transform] duration-200',
-          // Dragging state - elevated, slightly transparent, scaled
-          isDragging && 'opacity-40 scale-[0.97] shadow-none z-0',
+          // Dragging state - ghosted appearance at original position
+          isDragging && 'opacity-30 scale-[0.97] shadow-none z-0 ring-2 ring-primary/20 ring-dashed',
           // Draggable indicator
           isDraggable && 'touch-none',
           // Padding based on height

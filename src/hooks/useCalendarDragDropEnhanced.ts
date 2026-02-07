@@ -1,4 +1,5 @@
 // Enhanced drag-and-drop hook with 15-minute snapping, barber schedule validation, and business hours
+// Supports confirmation dialog flow: drop -> show dialog -> confirm/cancel
 import { useState, useCallback, useMemo } from 'react';
 import { DragEndEvent, DragStartEvent, DragMoveEvent } from '@dnd-kit/core';
 import { parse, format, addMinutes, differenceInMinutes, getDay } from 'date-fns';
@@ -10,6 +11,7 @@ import { createNotification } from '@/services/supabaseNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { BUSINESS_ID } from '@/config/api';
 import { useToast } from '@/hooks/use-toast';
+import type { MoveBookingDetails } from '@/components/calendar/MoveBookingConfirmDialog';
 
 interface UseCalendarDragDropEnhancedOptions {
   bookings: ApiBooking[];
@@ -200,6 +202,12 @@ export function useCalendarDragDropEnhanced({
   const [undoStack, setUndoStack] = useState<UndoAction[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // Confirmation dialog state
+  const [pendingMove, setPendingMove] = useState<MoveBookingDetails | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  // Store pre-move bookings for revert on cancel
+  const [preMoveBookings, setPreMoveBookings] = useState<ApiBooking[] | null>(null);
+
   // Get active booking
   const activeBooking = useMemo(() => {
     if (!activeId) return null;
@@ -328,7 +336,8 @@ export function useCalendarDragDropEnhanced({
     }
   }, [bookings, onBookingsChange, toast]);
 
-  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+  // Called when user drops the booking card - shows confirmation dialog
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     const savedDropPreview = dropPreview; // Capture before resetting
     setActiveId(null);
@@ -377,7 +386,6 @@ export function useCalendarDragDropEnhanced({
         description: `El negocio opera de ${businessOpenHour}:00 a ${businessCloseHour}:00`,
         variant: 'destructive',
       });
-      // Haptic feedback for error
       if ('vibrate' in navigator) {
         navigator.vibrate([50, 30, 50]);
       }
@@ -427,14 +435,10 @@ export function useCalendarDragDropEnhanced({
       return;
     }
 
-    // Store previous state for undo
-    const previousState = {
-      booking_date: booking.booking_date,
-      start_time: booking.start_time,
-      end_time: booking.end_time,
-    };
+    // Store pre-move state for reverting if cancelled
+    setPreMoveBookings([...bookings]);
 
-    // Optimistic update
+    // Optimistic update - move the card immediately (visually)
     const optimisticBooking: ApiBooking = {
       ...booking,
       booking_date: newDate,
@@ -446,7 +450,40 @@ export function useCalendarDragDropEnhanced({
       b.id === bookingId ? optimisticBooking : b
     );
     onBookingsChange(updatedBookings);
+
+    // Set pending move details and show confirmation dialog
+    setPendingMove({
+      booking,
+      oldDate: booking.booking_date,
+      oldStartTime: booking.start_time,
+      oldEndTime: booking.end_time,
+      newDate,
+      newStartTime,
+      newEndTime,
+    });
+    setShowConfirmDialog(true);
+
+    // Haptic feedback
+    if ('vibrate' in navigator) {
+      navigator.vibrate([10, 50, 10]);
+    }
+  }, [bookings, barbers, onBookingsChange, toast, getBookingDuration, dropPreview, businessOpenHour, businessCloseHour]);
+
+  // Confirm the pending move - persist to backend
+  const confirmMove = useCallback(async () => {
+    if (!pendingMove) return;
+
+    const { booking, newDate, newStartTime, newEndTime } = pendingMove;
+    const bookingId = booking.id;
+
     setIsUpdating(true);
+
+    // Store previous state for undo
+    const previousState = {
+      booking_date: pendingMove.oldDate,
+      start_time: pendingMove.oldStartTime,
+      end_time: pendingMove.oldEndTime,
+    };
 
     try {
       const updated = await supabaseBookingsApi.update(bookingId, {
@@ -480,7 +517,7 @@ export function useCalendarDragDropEnhanced({
         }
       }
 
-      // Haptic feedback on success - double tap pattern
+      // Haptic feedback on success
       if ('vibrate' in navigator) {
         navigator.vibrate([10, 50, 10]);
       }
@@ -490,7 +527,10 @@ export function useCalendarDragDropEnhanced({
         description: `${booking.client_name} → ${format(new Date(newDate), 'dd/MM')} a las ${newStartTime.substring(0, 5)}`,
       });
     } catch (error) {
-      onBookingsChange(bookings);
+      // Revert to pre-move state on backend error
+      if (preMoveBookings) {
+        onBookingsChange(preMoveBookings);
+      }
       toast({
         title: 'Error al mover cita',
         description: 'No se pudo actualizar la cita',
@@ -498,8 +538,21 @@ export function useCalendarDragDropEnhanced({
       });
     } finally {
       setIsUpdating(false);
+      setPendingMove(null);
+      setShowConfirmDialog(false);
+      setPreMoveBookings(null);
     }
-  }, [bookings, barbers, onBookingUpdate, onBookingsChange, toast, getBookingDuration, dropPreview, user?.id, businessOpenHour, businessCloseHour]);
+  }, [pendingMove, preMoveBookings, onBookingUpdate, onBookingsChange, toast, user?.id]);
+
+  // Cancel the pending move - revert the optimistic update
+  const cancelMove = useCallback(() => {
+    if (preMoveBookings) {
+      onBookingsChange(preMoveBookings);
+    }
+    setPendingMove(null);
+    setShowConfirmDialog(false);
+    setPreMoveBookings(null);
+  }, [preMoveBookings, onBookingsChange]);
 
   return {
     activeId,
@@ -512,6 +565,11 @@ export function useCalendarDragDropEnhanced({
     handleDragCancel,
     handleUndo,
     undoStack,
+    // Confirmation dialog state
+    showConfirmDialog,
+    pendingMove,
+    confirmMove,
+    cancelMove,
   };
 }
 

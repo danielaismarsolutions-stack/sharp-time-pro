@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   format,
+  parse,
   startOfWeek,
   endOfWeek,
   eachDayOfInterval,
@@ -15,6 +16,7 @@ import {
   setMinutes,
   isToday,
   isSameDay,
+  differenceInMinutes,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -67,6 +69,7 @@ import { cn } from '@/lib/utils';
 import BookingModal from '@/components/bookings/BookingModal';
 import { BookingDetailModal, BookingStatus, MonthView } from '@/components/calendar';
 import { BarberLegend } from '@/components/calendar/BarberLegend';
+import { MoveBookingConfirmDialog } from '@/components/calendar/MoveBookingConfirmDialog';
 import { setBarberList } from '@/components/calendar/shared/colorUtils';
 import { CurrentTimeIndicator } from '@/components/calendar/CurrentTimeIndicator';
 import { SetmoreHeader } from '@/components/calendar/SetmoreHeader';
@@ -219,6 +222,11 @@ export default function Calendar() {
     handleDragCancel,
     handleUndo,
     undoStack,
+    isUpdating,
+    showConfirmDialog,
+    pendingMove,
+    confirmMove,
+    cancelMove,
   } = useCalendarDragDropEnhanced({
     bookings,
     barbers,
@@ -229,6 +237,15 @@ export default function Calendar() {
     hourHeight: currentHourHeight,
     startHour: START_HOUR,
   });
+
+  // Compute active booking duration and client name for ghost preview cards
+  const activeBookingDuration = useMemo(() => {
+    if (!activeBooking) return undefined;
+    const start = parse(activeBooking.start_time, 'HH:mm:ss', new Date());
+    const end = parse(activeBooking.end_time, 'HH:mm:ss', new Date());
+    return differenceInMinutes(end, start);
+  }, [activeBooking]);
+  const activeBookingClientName = activeBooking?.client_name;
 
   // Configure sensors for drag-drop with long-press on mobile
   // Touch delay of 300ms prevents conflicts with scrolling on mobile
@@ -411,6 +428,8 @@ export default function Calendar() {
                 scheduleError={dropPreview?.scheduleError}
                 isOutsideBusinessHours={!isWithinBusinessHours(hour, BUSINESS_OPEN_HOUR, BUSINESS_CLOSE_HOUR)}
                 isDragging={!!activeId}
+                draggedBookingDuration={activeBookingDuration}
+                draggedBookingClientName={activeBookingClientName}
                 className="hover:bg-muted/30 cursor-pointer"
               >
                 <div
@@ -538,6 +557,8 @@ export default function Calendar() {
                     scheduleError={dropPreview?.scheduleError}
                     isOutsideBusinessHours={!isWithinBusinessHours(hour, BUSINESS_OPEN_HOUR, BUSINESS_CLOSE_HOUR)}
                     isDragging={!!activeId}
+                    draggedBookingDuration={activeBookingDuration}
+                    draggedBookingClientName={activeBookingClientName}
                     className="hover:bg-muted/30 cursor-pointer"
                   >
                     <div
@@ -694,6 +715,8 @@ export default function Calendar() {
                 dropPreview={dropPreview}
                 businessOpenHour={BUSINESS_OPEN_HOUR}
                 businessCloseHour={BUSINESS_CLOSE_HOUR}
+                draggedBookingDuration={activeBookingDuration}
+                draggedBookingClientName={activeBookingClientName}
               />
             )}
             {viewMode === 'week' && renderWeekView()}
@@ -896,6 +919,15 @@ export default function Calendar() {
             }
           }}
           selectedDate={selectedDate}
+        />
+
+        {/* Move Booking Confirmation Dialog */}
+        <MoveBookingConfirmDialog
+          open={showConfirmDialog}
+          details={pendingMove}
+          onConfirm={confirmMove}
+          onCancel={cancelMove}
+          isLoading={isUpdating}
         />
       </div>
     </DndContext>
