@@ -3,11 +3,13 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
+import { MobileDrawerMenu } from '@/components/calendar/MobileDrawerMenu';
 import { cn } from '@/lib/utils';
 
 export default function DashboardLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
   // Check if we're on the calendar page - it has its own header
@@ -48,7 +50,7 @@ export default function DashboardLayout() {
         )}
       >
         {/* Hide TopBar on calendar page - it has its own header */}
-        {!isCalendarPage && <TopBar isMobile={isMobile} />}
+        {!isCalendarPage && <TopBar isMobile={isMobile} onMenuClick={() => setIsMobileMenuOpen(true)} />}
         <main className={cn(
           'flex-1 scrollbar-dark',
           isCalendarPage ? 'overflow-hidden' : 'overflow-auto',
@@ -57,6 +59,14 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Mobile Drawer Menu - available on all non-calendar pages */}
+      {isMobile && !isCalendarPage && (
+        <MobileDrawerMenu
+          open={isMobileMenuOpen}
+          onOpenChange={setIsMobileMenuOpen}
+        />
+      )}
 
       {/* Bottom Navigation - mobile only */}
       {isMobile && <BottomNav />}
