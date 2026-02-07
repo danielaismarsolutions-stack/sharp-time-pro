@@ -1,4 +1,4 @@
-import { useMemo, useRef, useCallback, useState } from 'react';
+import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import { format, addDays, isToday, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ApiBooking } from '@/types/api';
@@ -65,7 +65,7 @@ export function ThreeDayView({
   const [isSelecting, setIsSelecting] = useState(false);
 
   // Update current time every minute
-  useState(() => {
+  useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(interval);
   });
