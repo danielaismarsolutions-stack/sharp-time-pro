@@ -473,6 +473,7 @@ export default function Calendar() {
                   isDraggable={true}
                   viewMode="day"
                   isMobile={isMobile}
+                  isPendingMove={pendingMove?.booking.id === booking.id}
                 />
               );
             })}
@@ -610,6 +611,7 @@ export default function Calendar() {
                       onClick={() => openBookingDetail(booking)}
                       isDraggable={true}
                       viewMode="week"
+                      isPendingMove={pendingMove?.booking.id === booking.id}
                     />
                   );
                 })}
@@ -725,6 +727,7 @@ export default function Calendar() {
                 businessCloseHour={BUSINESS_CLOSE_HOUR}
                 draggedBookingDuration={activeBookingDuration}
                 draggedBookingClientName={activeBookingClientName}
+                pendingMoveBookingId={pendingMove?.booking.id}
               />
             )}
             {viewMode === 'week' && renderWeekView()}
