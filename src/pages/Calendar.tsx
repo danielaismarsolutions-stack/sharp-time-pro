@@ -724,8 +724,9 @@ export default function Calendar() {
 
         {/* Mobile Floating Action Button - Setmore style */}
         <button
-          className="fixed bottom-20 right-4 md:hidden z-50 h-14 w-14 rounded-full flex items-center justify-center transition-transform active:scale-95 bg-primary"
+          className="fixed right-4 md:hidden z-50 h-14 w-14 rounded-full flex items-center justify-center transition-transform active:scale-95 bg-primary"
           style={{
+            bottom: 'calc(56px + env(safe-area-inset-bottom, 0px) + 16px)',
             boxShadow: '0 4px 14px hsl(217 91% 60% / 0.4), 0 2px 6px rgba(0, 0, 0, 0.1)',
           }}
           onClick={() => openNewBooking()}
