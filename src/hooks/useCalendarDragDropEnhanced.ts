@@ -205,8 +205,6 @@ export function useCalendarDragDropEnhanced({
   // Confirmation dialog state
   const [pendingMove, setPendingMove] = useState<MoveBookingDetails | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  // Store pre-move bookings for revert on cancel
-  const [preMoveBookings, setPreMoveBookings] = useState<ApiBooking[] | null>(null);
 
   // Get active booking
   const activeBooking = useMemo(() => {
@@ -435,21 +433,8 @@ export function useCalendarDragDropEnhanced({
       return;
     }
 
-    // Store pre-move state for reverting if cancelled
-    setPreMoveBookings([...bookings]);
-
-    // Optimistic update - move the card immediately (visually)
-    const optimisticBooking: ApiBooking = {
-      ...booking,
-      booking_date: newDate,
-      start_time: newStartTime,
-      end_time: newEndTime,
-    };
-
-    const updatedBookings = bookings.map(b =>
-      b.id === bookingId ? optimisticBooking : b
-    );
-    onBookingsChange(updatedBookings);
+    // Don't move the card yet - just show confirmation dialog
+    // The card stays in its original position (attenuated) until confirmed
 
     // Set pending move details and show confirmation dialog
     setPendingMove({
@@ -467,9 +452,9 @@ export function useCalendarDragDropEnhanced({
     if ('vibrate' in navigator) {
       navigator.vibrate([10, 50, 10]);
     }
-  }, [bookings, barbers, onBookingsChange, toast, getBookingDuration, dropPreview, businessOpenHour, businessCloseHour]);
+  }, [bookings, barbers, toast, getBookingDuration, dropPreview, businessOpenHour, businessCloseHour]);
 
-  // Confirm the pending move - persist to backend
+  // Confirm the pending move - move card and persist to backend
   const confirmMove = useCallback(async () => {
     if (!pendingMove) return;
 
@@ -484,6 +469,18 @@ export function useCalendarDragDropEnhanced({
       start_time: pendingMove.oldStartTime,
       end_time: pendingMove.oldEndTime,
     };
+
+    // Move the card visually now (optimistic on confirm)
+    const optimisticBooking: ApiBooking = {
+      ...booking,
+      booking_date: newDate,
+      start_time: newStartTime,
+      end_time: newEndTime,
+    };
+    const updatedBookings = bookings.map(b =>
+      b.id === bookingId ? optimisticBooking : b
+    );
+    onBookingsChange(updatedBookings);
 
     try {
       const updated = await supabaseBookingsApi.update(bookingId, {
@@ -527,10 +524,8 @@ export function useCalendarDragDropEnhanced({
         description: `${booking.client_name} → ${format(new Date(newDate), 'dd/MM')} a las ${newStartTime.substring(0, 5)}`,
       });
     } catch (error) {
-      // Revert to pre-move state on backend error
-      if (preMoveBookings) {
-        onBookingsChange(preMoveBookings);
-      }
+      // Revert on backend error - put booking back
+      onBookingUpdate(bookingId, booking);
       toast({
         title: 'Error al mover cita',
         description: 'No se pudo actualizar la cita',
@@ -540,19 +535,14 @@ export function useCalendarDragDropEnhanced({
       setIsUpdating(false);
       setPendingMove(null);
       setShowConfirmDialog(false);
-      setPreMoveBookings(null);
     }
-  }, [pendingMove, preMoveBookings, onBookingUpdate, onBookingsChange, toast, user?.id]);
+  }, [pendingMove, bookings, onBookingUpdate, onBookingsChange, toast, user?.id]);
 
-  // Cancel the pending move - revert the optimistic update
+  // Cancel the pending move - card stays where it is (no revert needed)
   const cancelMove = useCallback(() => {
-    if (preMoveBookings) {
-      onBookingsChange(preMoveBookings);
-    }
     setPendingMove(null);
     setShowConfirmDialog(false);
-    setPreMoveBookings(null);
-  }, [preMoveBookings, onBookingsChange]);
+  }, []);
 
   return {
     activeId,

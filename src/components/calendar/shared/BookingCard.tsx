@@ -22,6 +22,8 @@ interface BookingCardProps {
   isDraggable?: boolean;
   viewMode?: 'day' | 'week' | 'month';
   isMobile?: boolean;
+  /** When true, card is attenuated (pending move confirmation) */
+  isPendingMove?: boolean;
 }
 
 // Get spacing based on card height - text size is ALWAYS the same
@@ -87,10 +89,11 @@ interface CardButtonProps {
   dragListeners: Record<string, any> | undefined;
   onClick: () => void;
   isMobile?: boolean;
+  isPendingMove?: boolean;
 }
 
 const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
-  ({ booking, style, colorClasses, spacingStyles, widthPercent, leftPercent, gap, isDragging, isDraggable, dragStyle, dragAttributes, dragListeners, onClick, isMobile }, ref) => {
+  ({ booking, style, colorClasses, spacingStyles, widthPercent, leftPercent, gap, isDragging, isDraggable, dragStyle, dragAttributes, dragListeners, onClick, isMobile, isPendingMove }, ref) => {
     const startTime = booking.start_time.substring(0, 5);
     const endTime = booking.end_time.substring(0, 5);
 
@@ -110,7 +113,8 @@ const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
           'transition-[box-shadow,filter,transform] duration-200',
           // Dragging state - ghosted appearance at original position
           isDragging && 'opacity-30 scale-[0.97] shadow-none z-0 ring-2 ring-primary/20 ring-dashed',
-          // Draggable indicator
+          // Pending move confirmation - attenuated
+          isPendingMove && !isDragging && 'opacity-30 ring-2 ring-primary/30 ring-dashed',
           isDraggable && 'touch-none',
           // Padding based on height
           spacingStyles.padding,
@@ -168,6 +172,7 @@ export function BookingCard({
   isDraggable = true,
   viewMode = 'day',
   isMobile = false,
+  isPendingMove = false,
 }: BookingCardProps) {
   const { total, index } = overlapInfo;
 
@@ -213,6 +218,7 @@ export function BookingCard({
     dragListeners: listeners,
     onClick,
     isMobile,
+    isPendingMove,
   };
 
   // Wrap with tooltip for compact cards

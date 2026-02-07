@@ -34,6 +34,7 @@ interface ThreeDayViewProps {
   businessCloseHour?: number;
   draggedBookingDuration?: number;
   draggedBookingClientName?: string;
+  pendingMoveBookingId?: string;
 }
 
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 7); // 7:00 - 23:00
@@ -55,6 +56,7 @@ export function ThreeDayView({
   businessCloseHour = 21,
   draggedBookingDuration,
   draggedBookingClientName,
+  pendingMoveBookingId,
 }: ThreeDayViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -361,6 +363,7 @@ export function ThreeDayView({
                       isDraggable={true}
                       viewMode="day"
                       isMobile={true}
+                      isPendingMove={pendingMoveBookingId === booking.id}
                     />
                   );
                 })}
