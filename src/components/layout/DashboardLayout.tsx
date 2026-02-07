@@ -50,8 +50,9 @@ export default function DashboardLayout() {
         {/* Hide TopBar on calendar page - it has its own header */}
         {!isCalendarPage && <TopBar isMobile={isMobile} />}
         <main className={cn(
-          'flex-1 overflow-auto scrollbar-dark',
-          isMobile && 'pb-16'
+          'flex-1 scrollbar-dark',
+          isCalendarPage ? 'overflow-hidden' : 'overflow-auto',
+          isMobile && !isCalendarPage && 'pb-16'
         )}>
           <Outlet />
         </main>
