@@ -183,11 +183,9 @@ export function BookingCard({
     disabled: !isDraggable,
   });
 
-  const dragStyle = transform ? {
-    transform: CSS.Translate.toString(transform),
-    zIndex: 100,
-    opacity: 0.8,
-  } : undefined;
+  // Don't apply transform to the original card - it stays in place.
+  // The DragOverlay component handles the moving visual.
+  const dragStyle = undefined;
 
   // Calculate width based on overlaps
   const widthPercent = 100 / total;
