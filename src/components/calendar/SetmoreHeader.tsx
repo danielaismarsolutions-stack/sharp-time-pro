@@ -80,7 +80,7 @@ export function SetmoreHeader({
   };
 
   return (
-    <div className="bg-background border-b border-border sticky top-0 z-30">
+    <div className="bg-background border-b border-border sticky top-0 z-30" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 h-14">
         {/* Left: Hamburger menu */}
