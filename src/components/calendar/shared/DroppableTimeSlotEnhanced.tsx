@@ -22,6 +22,10 @@ interface DroppableTimeSlotEnhancedProps {
   draggedBookingDuration?: number;
   /** Client name of the dragged booking, for preview card */
   draggedBookingClientName?: string;
+  /** Service name of the dragged booking */
+  draggedBookingServiceName?: string;
+  /** Color classes for the dragged booking's barber */
+  draggedBookingColorClasses?: { bg: string; border: string; text: string };
 }
 
 export function DroppableTimeSlotEnhanced({
@@ -39,6 +43,8 @@ export function DroppableTimeSlotEnhanced({
   isDragging = false,
   draggedBookingDuration,
   draggedBookingClientName,
+  draggedBookingServiceName,
+  draggedBookingColorClasses,
 }: DroppableTimeSlotEnhancedProps) {
   const { isOver, setNodeRef } = useDroppable({
     id,
@@ -174,7 +180,44 @@ export function DroppableTimeSlotEnhanced({
             </div>
           </div>
 
-          {/* Ghost preview removed - DragOverlay handles the visual */}
+          {/* Ghost preview card aligned with the snap line */}
+          {!hasError && (
+            <div
+              className={cn(
+                'absolute left-1 right-1 rounded-lg pointer-events-none z-15 overflow-hidden',
+                'border border-border/40 border-l-4',
+                'transition-all duration-150 ease-out',
+                draggedBookingColorClasses?.bg || 'bg-primary/10',
+                draggedBookingColorClasses?.border || 'border-l-primary/60',
+              )}
+              style={{
+                top: previewLineTop,
+                height: Math.min(previewCardHeight, hourHeight - previewLineTop),
+                minHeight: 20,
+                opacity: 0.7,
+              }}
+            >
+              {previewCardHeight > 24 && (
+                <div className="px-2 py-1 truncate">
+                  {previewTime && (
+                    <p className="text-[10px] font-bold text-foreground/70">
+                      {previewTime}
+                    </p>
+                  )}
+                  {draggedBookingClientName && (
+                    <p className="text-[10px] font-medium text-foreground/60 truncate">
+                      {draggedBookingClientName}
+                    </p>
+                  )}
+                  {draggedBookingServiceName && previewCardHeight > 48 && (
+                    <p className="text-[9px] text-muted-foreground truncate">
+                      {draggedBookingServiceName}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 

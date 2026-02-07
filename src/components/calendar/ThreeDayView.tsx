@@ -34,6 +34,8 @@ interface ThreeDayViewProps {
   businessCloseHour?: number;
   draggedBookingDuration?: number;
   draggedBookingClientName?: string;
+  draggedBookingServiceName?: string;
+  draggedBookingColorClasses?: { bg: string; border: string; text: string };
   pendingMoveBookingId?: string;
 }
 
@@ -56,6 +58,8 @@ export function ThreeDayView({
   businessCloseHour = 21,
   draggedBookingDuration,
   draggedBookingClientName,
+  draggedBookingServiceName,
+  draggedBookingColorClasses,
   pendingMoveBookingId,
 }: ThreeDayViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -317,6 +321,8 @@ export function ThreeDayView({
                     isDragging={isDragging}
                     draggedBookingDuration={draggedBookingDuration}
                     draggedBookingClientName={draggedBookingClientName}
+                    draggedBookingServiceName={draggedBookingServiceName}
+                    draggedBookingColorClasses={draggedBookingColorClasses}
                     className={cn(
                       'border-b-0',
                       !isDragging && 'hover:bg-muted/10'

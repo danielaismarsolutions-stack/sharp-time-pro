@@ -21,7 +21,6 @@ import {
 import { es } from 'date-fns/locale';
 import {
   DndContext,
-  DragOverlay,
   PointerSensor,
   TouchSensor,
   useSensor,
@@ -79,8 +78,8 @@ import { MobileDrawerMenu } from '@/components/calendar/MobileDrawerMenu';
 import {
   BookingCard,
   DroppableTimeSlotEnhanced,
-  DragOverlayCard,
   getServicePastelColor,
+  getBarberPastelColor,
   getOverlapInfo,
   getBookingPosition,
 } from '@/components/calendar/shared';
@@ -247,6 +246,11 @@ export default function Calendar() {
     return differenceInMinutes(end, start);
   }, [activeBooking]);
   const activeBookingClientName = activeBooking?.client_name;
+  const activeBookingServiceName = activeBooking?.service_name;
+  const activeBookingColorClasses = useMemo(() => {
+    if (!activeBooking) return undefined;
+    return getBarberPastelColor(activeBooking);
+  }, [activeBooking]);
 
   // Configure sensors for drag-drop with long-press on mobile
   // Touch delay of 300ms prevents conflicts with scrolling on mobile
@@ -459,6 +463,8 @@ export default function Calendar() {
                 isDragging={!!activeId}
                 draggedBookingDuration={activeBookingDuration}
                 draggedBookingClientName={activeBookingClientName}
+                draggedBookingServiceName={activeBookingServiceName}
+                draggedBookingColorClasses={activeBookingColorClasses}
                 className="hover:bg-muted/30 cursor-pointer"
               >
                 <div
@@ -589,6 +595,8 @@ export default function Calendar() {
                     isDragging={!!activeId}
                     draggedBookingDuration={activeBookingDuration}
                     draggedBookingClientName={activeBookingClientName}
+                    draggedBookingServiceName={activeBookingServiceName}
+                    draggedBookingColorClasses={activeBookingColorClasses}
                     className="hover:bg-muted/30 cursor-pointer"
                   >
                     <div
@@ -748,6 +756,8 @@ export default function Calendar() {
                 businessCloseHour={BUSINESS_CLOSE_HOUR}
                 draggedBookingDuration={activeBookingDuration}
                 draggedBookingClientName={activeBookingClientName}
+                draggedBookingServiceName={activeBookingServiceName}
+                draggedBookingColorClasses={activeBookingColorClasses}
                 pendingMoveBookingId={pendingMove?.booking.id}
               />
             )}
@@ -811,18 +821,7 @@ export default function Calendar() {
           </div>
         </div>
 
-        {/* Drag Overlay with time preview */}
-        <DragOverlay>
-          {activeBooking && (
-            <DragOverlayCard
-              booking={activeBooking}
-              previewTime={dropPreview?.time}
-              hasConflict={dropPreview?.hasConflict}
-              conflictingNames={dropPreview?.conflictingBookings}
-              scheduleError={dropPreview?.scheduleError}
-            />
-          )}
-        </DragOverlay>
+        {/* DragOverlay removed - ghost card is rendered inside DroppableTimeSlotEnhanced */}
 
         {/* Booking Detail Modal */}
         <BookingDetailModal
