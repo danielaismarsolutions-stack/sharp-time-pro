@@ -72,7 +72,7 @@ export function MobileDrawerMenu({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="w-[280px] p-0 flex flex-col">
+      <SheetContent side="left" className="w-[280px] p-0 flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {/* Header with logo */}
         <SheetHeader className="p-4 border-b border-border">
           <div className="flex items-center gap-3">

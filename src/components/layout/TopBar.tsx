@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { Bell, Search, Command, Check, Trash2, Settings, HelpCircle, User, Loader2 } from 'lucide-react';
+import { Bell, Search, Command, Check, Trash2, Settings, HelpCircle, User, Loader2, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
@@ -27,9 +27,10 @@ import { cn } from '@/lib/utils';
 interface TopBarProps {
   onSearchOpen?: () => void;
   isMobile?: boolean;
+  onMenuClick?: () => void;
 }
 
-export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
+export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { 
@@ -53,7 +54,17 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
       {/* Left side - Search */}
       <div className="flex items-center gap-2 md:gap-4 flex-1 max-w-md">
         {isMobile && (
-          <h1 className="font-bold text-lg">BarberPro</h1>
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onMenuClick}
+              className="h-10 w-10 min-h-[44px] min-w-[44px] -ml-1"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+            <h1 className="font-bold text-lg">BarberPro</h1>
+          </>
         )}
         {!isMobile && (
           <div className="relative flex-1">
