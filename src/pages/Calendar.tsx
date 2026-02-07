@@ -735,7 +735,7 @@ export default function Calendar() {
 
         {/* Calendar Content - This area scrolls */}
         <Card className="flex-1 m-2 md:m-4 mt-0 overflow-hidden border-border flex flex-col min-h-0">
-          <div ref={scrollContainerRef} className="flex-1 overflow-auto">
+          <div ref={scrollContainerRef} className={cn("flex-1", viewMode === 'agenda' ? 'overflow-hidden' : 'overflow-auto')}>
             {viewMode === 'day' && renderDayView()}
             {viewMode === '3day' && (
               <ThreeDayView
