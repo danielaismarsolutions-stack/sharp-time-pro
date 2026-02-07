@@ -174,30 +174,7 @@ export function DroppableTimeSlotEnhanced({
             </div>
           </div>
 
-          {/* Ghost preview card at the drop position */}
-          {!hasError && (
-            <div
-              className={cn(
-                'absolute left-1 right-1 rounded-lg pointer-events-none z-15',
-                'border-2 border-dashed border-primary/40',
-                'bg-primary/8',
-                'transition-all duration-150 ease-out',
-              )}
-              style={{
-                top: previewLineTop,
-                height: Math.min(previewCardHeight, hourHeight - previewLineTop),
-                minHeight: 20,
-              }}
-            >
-              {draggedBookingClientName && previewCardHeight > 24 && (
-                <div className="px-2 py-1 truncate">
-                  <span className="text-[10px] font-medium text-primary/60">
-                    {draggedBookingClientName}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Ghost preview removed - DragOverlay handles the visual */}
         </>
       )}
 
