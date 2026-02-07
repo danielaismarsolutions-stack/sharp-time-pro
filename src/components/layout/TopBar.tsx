@@ -49,7 +49,7 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
     .slice(0, 2) || 'U';
 
   return (
-    <header className="h-14 md:h-16 bg-card border-b border-border flex items-center justify-between px-3 md:px-6 sticky top-0 z-30">
+    <header className="bg-card border-b border-border flex items-center justify-between px-3 md:px-6 sticky top-0 z-30" style={{ paddingTop: 'env(safe-area-inset-top, 0px)', minHeight: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
       {/* Left side - Search */}
       <div className="flex items-center gap-2 md:gap-4 flex-1 max-w-md">
         {isMobile && (
