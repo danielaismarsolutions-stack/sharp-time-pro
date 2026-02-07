@@ -192,7 +192,7 @@ export function DroppableTimeSlotEnhanced({
               )}
               style={{
                 top: previewLineTop,
-                height: Math.min(previewCardHeight, hourHeight - previewLineTop),
+                height: previewCardHeight,
                 minHeight: 20,
                 opacity: 0.7,
               }}
