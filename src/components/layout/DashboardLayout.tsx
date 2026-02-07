@@ -51,7 +51,7 @@ export default function DashboardLayout() {
         {!isCalendarPage && <TopBar isMobile={isMobile} />}
         <main className={cn(
           'flex-1 overflow-auto scrollbar-dark',
-          isMobile && 'pb-20'
+          isMobile && 'pb-16'
         )}>
           <Outlet />
         </main>
