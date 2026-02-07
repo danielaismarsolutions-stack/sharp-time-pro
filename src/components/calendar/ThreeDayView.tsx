@@ -32,6 +32,8 @@ interface ThreeDayViewProps {
   dropPreview?: DropPreview | null;
   businessOpenHour?: number;
   businessCloseHour?: number;
+  draggedBookingDuration?: number;
+  draggedBookingClientName?: string;
 }
 
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 7); // 7:00 - 23:00
@@ -51,6 +53,8 @@ export function ThreeDayView({
   dropPreview = null,
   businessOpenHour = 9,
   businessCloseHour = 21,
+  draggedBookingDuration,
+  draggedBookingClientName,
 }: ThreeDayViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -309,6 +313,8 @@ export function ThreeDayView({
                     scheduleError={dropPreview?.scheduleError}
                     isOutsideBusinessHours={!isWithinBusinessHours(hour, businessOpenHour, businessCloseHour)}
                     isDragging={isDragging}
+                    draggedBookingDuration={draggedBookingDuration}
+                    draggedBookingClientName={draggedBookingClientName}
                     className={cn(
                       'border-b-0',
                       !isDragging && 'hover:bg-muted/10'

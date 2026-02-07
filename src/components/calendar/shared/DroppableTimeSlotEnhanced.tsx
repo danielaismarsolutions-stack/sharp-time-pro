@@ -1,4 +1,5 @@
 // Enhanced droppable time slot with 15-minute visual guides, business hours validation, and drop zone feedback
+// Shows time snap indicators and a ghost preview card at the drop target
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
@@ -17,6 +18,10 @@ interface DroppableTimeSlotEnhancedProps {
   scheduleError?: string;
   isOutsideBusinessHours?: boolean;
   isDragging?: boolean;
+  /** Duration of the dragged booking in minutes, for preview card sizing */
+  draggedBookingDuration?: number;
+  /** Client name of the dragged booking, for preview card */
+  draggedBookingClientName?: string;
 }
 
 export function DroppableTimeSlotEnhanced({
@@ -32,6 +37,8 @@ export function DroppableTimeSlotEnhanced({
   scheduleError,
   isOutsideBusinessHours = false,
   isDragging = false,
+  draggedBookingDuration,
+  draggedBookingClientName,
 }: DroppableTimeSlotEnhancedProps) {
   const { isOver, setNodeRef } = useDroppable({
     id,
@@ -55,6 +62,11 @@ export function DroppableTimeSlotEnhanced({
   const previewLineTop = getPreviewLineTop();
   const showPreviewLine = isDropTarget && previewTime && previewLineTop >= 0;
 
+  // Calculate ghost preview card height based on duration
+  const previewCardHeight = draggedBookingDuration
+    ? (draggedBookingDuration / 60) * hourHeight
+    : quarterHeight * 2; // default 30 min
+
   return (
     <div
       ref={setNodeRef}
@@ -70,28 +82,35 @@ export function DroppableTimeSlotEnhanced({
       )}
       style={{ height: hourHeight }}
     >
-      {/* 15-minute interval guide lines - more visible during drag */}
-      <div
-        className={cn(
-          'absolute left-0 right-0 border-t border-dashed pointer-events-none transition-opacity duration-200',
-          isDragging ? 'border-border/40 opacity-100' : 'border-border/20 opacity-60'
-        )}
-        style={{ top: quarterHeight }}
-      />
-      <div
-        className={cn(
-          'absolute left-0 right-0 border-t border-dashed pointer-events-none transition-opacity duration-200',
-          isDragging ? 'border-border/50 opacity-100' : 'border-border/40 opacity-60'
-        )}
-        style={{ top: quarterHeight * 2 }}
-      />
-      <div
-        className={cn(
-          'absolute left-0 right-0 border-t border-dashed pointer-events-none transition-opacity duration-200',
-          isDragging ? 'border-border/40 opacity-100' : 'border-border/20 opacity-60'
-        )}
-        style={{ top: quarterHeight * 3 }}
-      />
+      {/* 15-minute interval guide lines with time labels */}
+      {[1, 2, 3].map((q) => {
+        const minuteLabel = q * 15;
+        const labelTime = `${hour.toString().padStart(2, '0')}:${minuteLabel.toString().padStart(2, '0')}`;
+        return (
+          <React.Fragment key={q}>
+            <div
+              className={cn(
+                'absolute left-0 right-0 border-t border-dashed pointer-events-none transition-opacity duration-200',
+                q === 2
+                  ? (isDragging ? 'border-border/50 opacity-100' : 'border-border/40 opacity-60')
+                  : (isDragging ? 'border-border/40 opacity-100' : 'border-border/20 opacity-60')
+              )}
+              style={{ top: quarterHeight * q }}
+            />
+            {/* Time label at each 15-min mark - only visible while dragging */}
+            {isDragging && !isOutsideBusinessHours && (
+              <div
+                className="absolute left-0 pointer-events-none z-10 transition-opacity duration-200"
+                style={{ top: quarterHeight * q, transform: 'translateY(-50%)' }}
+              >
+                <span className="text-[8px] text-muted-foreground/60 font-medium pl-0.5 select-none">
+                  {labelTime}
+                </span>
+              </div>
+            )}
+          </React.Fragment>
+        );
+      })}
 
       {/* Outside business hours overlay */}
       {isDragging && isOutsideBusinessHours && (
@@ -121,37 +140,65 @@ export function DroppableTimeSlotEnhanced({
         </div>
       )}
 
-      {/* Drop preview indicator line with smooth snapping */}
+      {/* Drop preview: ghost card + snap line at drop position */}
       {showPreviewLine && (
-        <div
-          className={cn(
-            'absolute left-0 right-0 h-0.5 pointer-events-none z-20',
-            'transition-all duration-150 ease-out',
-            hasError
-              ? 'bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.5)]'
-              : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
-          )}
-          style={{ top: previewLineTop }}
-        >
-          {/* Time label badge */}
+        <>
+          {/* Snap indicator line */}
           <div
             className={cn(
-              'absolute -top-6 left-2 px-2 py-0.5 rounded text-xs font-bold shadow-md whitespace-nowrap',
-              'transition-colors duration-150',
+              'absolute left-0 right-0 h-0.5 pointer-events-none z-20',
+              'transition-all duration-150 ease-out',
               hasError
-                ? 'bg-destructive text-destructive-foreground'
-                : 'bg-emerald-500 text-white'
+                ? 'bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.5)]'
+                : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
             )}
+            style={{ top: previewLineTop }}
           >
-            {hasError ? '⚠ ' : '✓ '}
-            {previewTime}
-            {scheduleError && (
-              <span className="ml-1 font-normal text-[10px] opacity-90">
-                - {scheduleError}
-              </span>
-            )}
+            {/* Time label badge */}
+            <div
+              className={cn(
+                'absolute -top-6 left-2 px-2 py-0.5 rounded text-xs font-bold shadow-md whitespace-nowrap',
+                'transition-colors duration-150',
+                hasError
+                  ? 'bg-destructive text-destructive-foreground'
+                  : 'bg-emerald-500 text-white'
+              )}
+            >
+              {hasError ? '\u26A0 ' : '\u2713 '}
+              {previewTime}
+              {scheduleError && (
+                <span className="ml-1 font-normal text-[10px] opacity-90">
+                  - {scheduleError}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+
+          {/* Ghost preview card at the drop position */}
+          {!hasError && (
+            <div
+              className={cn(
+                'absolute left-1 right-1 rounded-lg pointer-events-none z-15',
+                'border-2 border-dashed border-primary/40',
+                'bg-primary/8',
+                'transition-all duration-150 ease-out',
+              )}
+              style={{
+                top: previewLineTop,
+                height: Math.min(previewCardHeight, hourHeight - previewLineTop),
+                minHeight: 20,
+              }}
+            >
+              {draggedBookingClientName && previewCardHeight > 24 && (
+                <div className="px-2 py-1 truncate">
+                  <span className="text-[10px] font-medium text-primary/60">
+                    {draggedBookingClientName}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {children}
