@@ -1,6 +1,6 @@
 // Enhanced drag-and-drop hook with 15-minute snapping, barber schedule validation, and business hours
 // Supports confirmation dialog flow: drop -> show dialog -> confirm/cancel
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { DragEndEvent, DragStartEvent, DragMoveEvent } from '@dnd-kit/core';
 import { parse, format, addMinutes, differenceInMinutes, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -200,7 +200,21 @@ export function useCalendarDragDropEnhanced({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [undoStack, setUndoStack] = useState<UndoAction[]>([]);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Auto-dismiss undo stack after 2 seconds
+  useEffect(() => {
+    if (undoStack.length > 0) {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = setTimeout(() => {
+        setUndoStack([]);
+      }, 2000);
+    }
+    return () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    };
+  }, [undoStack.length]);
 
   // Confirmation dialog state
   const [pendingMove, setPendingMove] = useState<MoveBookingDetails | null>(null);
@@ -522,6 +536,7 @@ export function useCalendarDragDropEnhanced({
       toast({
         title: 'Cita movida',
         description: `${booking.client_name} → ${format(new Date(newDate), 'dd/MM')} a las ${newStartTime.substring(0, 5)}`,
+        duration: 2000,
       });
     } catch (error) {
       // Revert on backend error - put booking back
