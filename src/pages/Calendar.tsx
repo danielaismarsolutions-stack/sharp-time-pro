@@ -84,6 +84,7 @@ import {
   getOverlapInfo,
   getBookingPosition,
 } from '@/components/calendar/shared';
+import { createSnapTo15MinModifier } from '@/components/calendar/shared/snapModifier';
 
 type ViewMode = 'day' | '3day' | 'week' | 'month' | 'agenda';
 
@@ -262,6 +263,13 @@ export default function Calendar() {
       },
     })
   );
+
+  // Snap modifier: snaps drag movement to 15-minute grid intervals
+  const snapModifier = useMemo(
+    () => createSnapTo15MinModifier(currentHourHeight / 4),
+    [currentHourHeight]
+  );
+  const modifiers = useMemo(() => [snapModifier], [snapModifier]);
 
   // Swipe gesture for mobile navigation
   const swipeHandlers = useSwipeGesture({
@@ -645,6 +653,7 @@ export default function Calendar() {
   return (
     <DndContext
       sensors={sensors}
+      modifiers={modifiers}
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
