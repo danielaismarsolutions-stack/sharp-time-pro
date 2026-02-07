@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Menu, ChevronDown, Bell, List, LayoutGrid, Calendar as CalendarIcon, Filter } from 'lucide-react';
+import { Menu, ChevronDown, Bell, List, LayoutGrid, Calendar as CalendarIcon, Filter, Settings, HelpCircle, User, Check, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -13,8 +13,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNotifications } from '@/contexts/NotificationContext';
+import {
+  useNotifications,
+  formatNotificationTime,
+  getNotificationIcon,
+  getNotificationIconColor,
+  getNotificationPath
+} from '@/contexts/NotificationContext';
 import { cn } from '@/lib/utils';
 import { MonthPickerOverlay } from './MonthPickerOverlay';
 
@@ -24,7 +40,6 @@ interface SetmoreHeaderProps {
   currentDate: Date;
   onDateChange: (date: Date) => void;
   onMenuClick?: () => void;
-  onNotificationClick?: () => void;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   barberNames: string[];
@@ -37,7 +52,6 @@ export function SetmoreHeader({
   currentDate,
   onDateChange,
   onMenuClick,
-  onNotificationClick,
   viewMode,
   onViewModeChange,
   barberNames,
@@ -45,8 +59,16 @@ export function SetmoreHeader({
   onBarberChange,
   isMobile = false,
 }: SetmoreHeaderProps) {
-  const { user } = useAuth();
-  const { unreadCount } = useNotifications();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    markAsRead,
+    markAllAsRead,
+    clearAll,
+  } = useNotifications();
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
 
   // Get user initials
@@ -110,27 +132,155 @@ export function SetmoreHeader({
 
         {/* Right: Notifications + Avatar */}
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onNotificationClick}
-            className="h-10 w-10 relative"
-          >
-            <Bell className="h-5 w-5" />
-            {unreadCount > 0 && (
-              <Badge
-                variant="destructive"
-                className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
+          {/* Notifications Dropdown */}
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 min-h-[44px] min-w-[44px] relative"
               >
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </Badge>
-            )}
-          </Button>
-          <Avatar className="h-9 w-9">
-            <AvatarFallback className="bg-foreground text-background text-sm font-medium">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
+                  >
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Badge>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80 max-w-[calc(100vw-2rem)]">
+              <div className="flex items-center justify-between px-2">
+                <DropdownMenuLabel className="flex items-center gap-2">
+                  Notificaciones
+                  {isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                </DropdownMenuLabel>
+                {notifications.length > 0 && (
+                  <div className="flex gap-1">
+                    {unreadCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          markAllAsRead();
+                        }}
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        Marcar leídas
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-muted-foreground"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        clearAll();
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <DropdownMenuSeparator />
+              <ScrollArea className="h-[300px]">
+                {notifications.length === 0 ? (
+                  <div className="py-8 text-center text-muted-foreground text-sm">
+                    {isLoading ? 'Cargando...' : 'No hay notificaciones'}
+                  </div>
+                ) : (
+                  notifications.map((notif) => {
+                    const IconComponent = getNotificationIcon(notif.type);
+                    const iconColor = getNotificationIconColor(notif.type);
+
+                    return (
+                      <DropdownMenuItem
+                        key={notif.id}
+                        className={cn(
+                          "flex items-start gap-3 py-3 min-h-[44px] cursor-pointer",
+                          !notif.read && "bg-primary/5"
+                        )}
+                        onClick={() => {
+                          markAsRead(notif.id);
+                          const path = getNotificationPath(notif);
+                          if (path) {
+                            navigate(path);
+                          }
+                        }}
+                      >
+                        <div className={cn("flex-shrink-0 mt-0.5", iconColor)}>
+                          <IconComponent className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                          <span className={cn("text-sm", !notif.read && "font-medium")}>
+                            {notif.title}
+                          </span>
+                          <span className="text-xs text-muted-foreground line-clamp-2">
+                            {notif.message}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatNotificationTime(notif.createdAt)}
+                          </span>
+                        </div>
+                        {!notif.read && (
+                          <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-1" />
+                        )}
+                      </DropdownMenuItem>
+                    );
+                  })
+                )}
+              </ScrollArea>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* User Menu Dropdown */}
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-10 w-10 min-h-[44px] min-w-[44px] rounded-full p-0">
+                <Avatar className="h-9 w-9">
+                  <AvatarFallback className="bg-foreground text-background text-sm font-medium">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium">{user?.name}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="min-h-[44px] cursor-pointer"
+                onClick={() => navigate('/settings')}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Ajustes
+              </DropdownMenuItem>
+              <DropdownMenuItem className="min-h-[44px] cursor-pointer">
+                <User className="h-4 w-4 mr-2" />
+                Mi perfil
+              </DropdownMenuItem>
+              <DropdownMenuItem className="min-h-[44px] cursor-pointer">
+                <HelpCircle className="h-4 w-4 mr-2" />
+                Ayuda y soporte
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={logout}
+                className="text-destructive focus:text-destructive min-h-[44px] cursor-pointer"
+              >
+                Cerrar sesión
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
