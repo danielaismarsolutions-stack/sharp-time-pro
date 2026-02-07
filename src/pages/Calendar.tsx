@@ -724,7 +724,7 @@ export default function Calendar() {
 
         {/* Mobile Floating Action Button - Setmore style */}
         <button
-          className="fixed bottom-24 right-4 md:hidden z-50 h-14 w-14 rounded-full flex items-center justify-center transition-transform active:scale-95 bg-primary"
+          className="fixed bottom-20 right-4 md:hidden z-50 h-14 w-14 rounded-full flex items-center justify-center transition-transform active:scale-95 bg-primary"
           style={{
             boxShadow: '0 4px 14px hsl(217 91% 60% / 0.4), 0 2px 6px rgba(0, 0, 0, 0.1)',
           }}
@@ -779,7 +779,7 @@ export default function Calendar() {
 
         {/* Undo Button */}
         {undoStack.length > 0 && (
-          <div className="fixed bottom-24 left-4 md:bottom-4 z-50">
+          <div className="fixed bottom-20 left-4 md:bottom-4 z-50">
             <Button
               variant="outline"
               size="sm"
