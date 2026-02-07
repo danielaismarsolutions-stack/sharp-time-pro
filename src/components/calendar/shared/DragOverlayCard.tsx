@@ -26,15 +26,14 @@ export function DragOverlayCard({
   return (
     <div
       className={cn(
-        'bg-card/90 backdrop-blur-sm rounded-xl shadow-2xl p-3 border-l-4 min-w-[180px] max-w-[250px]',
-        'scale-105 rotate-1',
+        'bg-card backdrop-blur-md rounded-xl p-3 border-l-4 min-w-[180px] max-w-[250px]',
+        'scale-[1.08]',
         hasError
-          ? 'border-destructive ring-2 ring-destructive/30'
-          : 'border-primary ring-2 ring-primary/30'
+          ? 'border-destructive ring-2 ring-destructive/40'
+          : 'border-primary ring-2 ring-primary/40'
       )}
       style={{
-        opacity: 0.85,
-        filter: 'drop-shadow(0 20px 25px rgba(0,0,0,0.15)) drop-shadow(0 8px 10px rgba(0,0,0,0.1))',
+        filter: 'drop-shadow(0 30px 40px rgba(0,0,0,0.35)) drop-shadow(0 15px 20px rgba(0,0,0,0.2))',
       }}
     >
       {/* Preview time badge - floating above the card */}

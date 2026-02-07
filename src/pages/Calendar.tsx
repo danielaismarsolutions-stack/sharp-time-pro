@@ -752,6 +752,32 @@ export default function Calendar() {
           </div>
         )}
 
+        {/* Background dim overlay during drag */}
+        <div
+          className={cn(
+            'fixed inset-0 bg-black/30 pointer-events-none z-[100]',
+            'transition-opacity duration-300 ease-in-out',
+            activeId ? 'opacity-100' : 'opacity-0'
+          )}
+        />
+
+        {/* Time slot indicator - left side of screen */}
+        <div
+          className={cn(
+            'fixed left-0 top-1/2 -translate-y-1/2 z-[110] pointer-events-none',
+            'transition-all duration-200 ease-out',
+            activeId && dropPreview?.time
+              ? 'opacity-100 translate-x-0'
+              : 'opacity-0 -translate-x-full'
+          )}
+        >
+          <div className="bg-primary text-primary-foreground pl-4 pr-5 py-2.5 rounded-r-2xl shadow-2xl flex items-center gap-2">
+            <span className="text-xl font-bold tabular-nums tracking-wide">
+              {dropPreview?.time || ''}
+            </span>
+          </div>
+        </div>
+
         {/* Drag Overlay with time preview */}
         <DragOverlay>
           {activeBooking && (
