@@ -396,14 +396,14 @@ export default function BookingModal({
                   <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start" side="bottom" avoidCollisions={false}>
                 <Command shouldFilter={false}>
                   <CommandInput
                     placeholder="Buscar por nombre, teléfono..."
                     value={clientSearch}
                     onValueChange={setClientSearch}
                   />
-                  <CommandList>
+                  <CommandList className="max-h-[160px]">
                     <CommandEmpty>No se encontraron clientes</CommandEmpty>
 
                     {/* Create New Client Option */}

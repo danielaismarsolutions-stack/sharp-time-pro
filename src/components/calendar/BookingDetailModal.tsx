@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -58,19 +59,28 @@ export function BookingDetailModal({
   onDelete,
 }: BookingDetailModalProps) {
   const navigate = useNavigate();
-  
-  if (!booking) return null;
 
-  const source = sourceConfig[booking.source] || sourceConfig.online;
+  // Preserve last valid booking for smooth close animation.
+  // Without this, setting booking to null unmounts DialogContent
+  // and kills the exit transition (overlay fade + content zoom-out).
+  const lastBookingRef = useRef<ApiBooking | null>(null);
+  if (booking) {
+    lastBookingRef.current = booking;
+  }
+  const currentBooking = booking || lastBookingRef.current;
+
+  if (!currentBooking) return null;
+
+  const source = sourceConfig[currentBooking.source] || sourceConfig.online;
   const SourceIcon = source.icon;
-  const startTime = booking.start_time.substring(0, 5);
-  const endTime = booking.end_time.substring(0, 5);
-  const bookingDate = parseISO(booking.booking_date);
+  const startTime = currentBooking.start_time.substring(0, 5);
+  const endTime = currentBooking.end_time.substring(0, 5);
+  const bookingDate = parseISO(currentBooking.booking_date);
 
   const handleClientClick = () => {
-    if (booking.client_id) {
+    if (currentBooking.client_id) {
       onClose();
-      navigate(`/clients/${booking.client_id}`);
+      navigate(`/clients/${currentBooking.client_id}`);
     }
   };
   return (
@@ -83,7 +93,7 @@ export function BookingDetailModal({
         <div className="space-y-3">
           {/* Status & Source */}
           <div className="flex items-center justify-between">
-            <StatusBadge status={booking.status as BookingStatus} />
+            <StatusBadge status={currentBooking.status as BookingStatus} />
             <div className={cn('flex items-center gap-1 text-[10px]', source.color)}>
               <SourceIcon className="h-3 w-3" />
               {source.label}
@@ -116,9 +126,9 @@ export function BookingDetailModal({
             <div
               className={cn(
                 "bg-muted/30 rounded-lg p-2.5 space-y-2",
-                booking.client_id && "cursor-pointer hover:bg-muted/50 transition-colors group"
+                currentBooking.client_id && "cursor-pointer hover:bg-muted/50 transition-colors group"
               )}
-              onClick={booking.client_id ? handleClientClick : undefined}
+              onClick={currentBooking.client_id ? handleClientClick : undefined}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -126,28 +136,28 @@ export function BookingDetailModal({
                     <User className="h-3.5 w-3.5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-xs font-medium group-hover:text-primary transition-colors">{booking.client_name}</p>
+                    <p className="text-xs font-medium group-hover:text-primary transition-colors">{currentBooking.client_name}</p>
                   </div>
                 </div>
-                {booking.client_id && (
+                {currentBooking.client_id && (
                   <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
                 )}
               </div>
               <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
                 <a
-                  href={`tel:${booking.client_phone}`}
+                  href={`tel:${currentBooking.client_phone}`}
                   className="flex items-center gap-1.5 text-[11px] hover:text-primary transition-colors"
                 >
                   <Phone className="h-3 w-3 text-muted-foreground" />
-                  <span>{booking.client_phone}</span>
+                  <span>{currentBooking.client_phone}</span>
                 </a>
-                {booking.client_email && (
+                {currentBooking.client_email && (
                   <a
-                    href={`mailto:${booking.client_email}`}
+                    href={`mailto:${currentBooking.client_email}`}
                     className="flex items-center gap-1.5 text-[11px] hover:text-primary transition-colors"
                   >
                     <Mail className="h-3 w-3 text-muted-foreground" />
-                    <span>{booking.client_email}</span>
+                    <span>{currentBooking.client_email}</span>
                   </a>
                 )}
               </div>
@@ -168,25 +178,25 @@ export function BookingDetailModal({
                     <Scissors className="h-3 w-3 text-primary" />
                   </div>
                   <div>
-                    <p className="text-xs font-medium">{booking.service_name}</p>
+                    <p className="text-xs font-medium">{currentBooking.service_name}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {booking.service_duration} min
+                      {currentBooking.service_duration} min
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-0.5 text-sm font-semibold text-primary">
                   <Euro className="h-3.5 w-3.5" />
-                  {booking.service_price}
+                  {currentBooking.service_price}
                 </div>
               </div>
 
-              {booking.barber && (
+              {currentBooking.barber && (
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-md bg-secondary flex items-center justify-center">
                     <UserCheck className="h-3 w-3 text-primary" />
                   </div>
                   <div>
-                    <p className="text-xs font-medium">{booking.barber}</p>
+                    <p className="text-xs font-medium">{currentBooking.barber}</p>
                     <p className="text-[10px] text-muted-foreground">Barbero</p>
                   </div>
                 </div>
@@ -195,7 +205,7 @@ export function BookingDetailModal({
           </div>
 
           {/* Notes */}
-          {booking.notes && (
+          {currentBooking.notes && (
             <>
               <Separator />
               <div className="space-y-1">
@@ -203,7 +213,7 @@ export function BookingDetailModal({
                   <MessageSquare className="h-3 w-3" />
                   Notas
                 </h4>
-                <p className="text-[11px] bg-muted/30 rounded-lg p-2">{booking.notes}</p>
+                <p className="text-[11px] bg-muted/30 rounded-lg p-2">{currentBooking.notes}</p>
               </div>
             </>
           )}
@@ -216,45 +226,45 @@ export function BookingDetailModal({
               Acciones Rápidas
             </h4>
             <div className="grid grid-cols-2 gap-1.5">
-              {booking.status !== 'completed' && (
+              {currentBooking.status !== 'completed' && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="justify-start h-7 text-[11px] px-2"
-                  onClick={() => onStatusChange(booking.id, 'completed')}
+                  onClick={() => onStatusChange(currentBooking.id, 'completed')}
                 >
                   <CheckCircle className="h-3 w-3 mr-1.5 text-emerald-400" />
                   Completar
                 </Button>
               )}
-              {booking.status !== 'no_show' && (
+              {currentBooking.status !== 'no_show' && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="justify-start h-7 text-[11px] px-2"
-                  onClick={() => onStatusChange(booking.id, 'no_show')}
+                  onClick={() => onStatusChange(currentBooking.id, 'no_show')}
                 >
                   <AlertCircle className="h-3 w-3 mr-1.5 text-purple-400" />
                   No presentado
                 </Button>
               )}
-              {booking.status !== 'cancelled' && (
+              {currentBooking.status !== 'cancelled' && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="justify-start h-7 text-[11px] px-2"
-                  onClick={() => onStatusChange(booking.id, 'cancelled')}
+                  onClick={() => onStatusChange(currentBooking.id, 'cancelled')}
                 >
                   <XCircle className="h-3 w-3 mr-1.5 text-rose-400" />
                   Cancelar
                 </Button>
               )}
-              {booking.status !== 'confirmed' && (
+              {currentBooking.status !== 'confirmed' && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="justify-start h-7 text-[11px] px-2"
-                  onClick={() => onStatusChange(booking.id, 'confirmed')}
+                  onClick={() => onStatusChange(currentBooking.id, 'confirmed')}
                 >
                   <CheckCircle className="h-3 w-3 mr-1.5 text-blue-400" />
                   Confirmar
@@ -269,7 +279,7 @@ export function BookingDetailModal({
               variant="outline"
               size="sm"
               className="flex-1 h-8 text-xs"
-              onClick={() => onEdit(booking)}
+              onClick={() => onEdit(currentBooking)}
             >
               <Edit className="h-3.5 w-3.5 mr-1.5" />
               Editar
@@ -278,7 +288,7 @@ export function BookingDetailModal({
               variant="destructive"
               size="sm"
               className="h-8 w-8 p-0"
-              onClick={() => onDelete(booking.id)}
+              onClick={() => onDelete(currentBooking.id)}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -286,8 +296,8 @@ export function BookingDetailModal({
 
           {/* Metadata */}
           <div className="text-[9px] text-muted-foreground space-y-0.5">
-            <p>Creado: {format(parseISO(booking.created_at), "d MMM yyyy, HH:mm", { locale: es })}</p>
-            <p>Actualizado: {format(parseISO(booking.updated_at), "d MMM yyyy, HH:mm", { locale: es })}</p>
+            <p>Creado: {format(parseISO(currentBooking.created_at), "d MMM yyyy, HH:mm", { locale: es })}</p>
+            <p>Actualizado: {format(parseISO(currentBooking.updated_at), "d MMM yyyy, HH:mm", { locale: es })}</p>
           </div>
         </div>
       </DialogContent>
