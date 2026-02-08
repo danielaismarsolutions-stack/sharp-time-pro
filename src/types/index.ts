@@ -108,6 +108,22 @@ export interface AnalyticsData {
   };
 }
 
+export type EventRepeat = 'none' | 'daily' | 'weekly' | 'monthly';
+
+export interface CalendarEvent {
+  id: string;
+  name: string;
+  date: string; // ISO format YYYY-MM-DD
+  startTime: string; // HH:mm format
+  endTime: string; // HH:mm format
+  repeat: EventRepeat;
+  location: string;
+  notes: string;
+  barber: string | null;
+  color: string; // hex color for the event card
+  createdAt: string;
+}
+
 export interface User {
   id: string;
   email: string;

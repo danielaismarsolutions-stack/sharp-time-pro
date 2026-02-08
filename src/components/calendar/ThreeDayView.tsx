@@ -1,13 +1,14 @@
 import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import { format, addDays, isToday, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ApiBooking } from '@/types/api';
+import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 import { cn } from '@/lib/utils';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
-import { getServicePastelColor, getOverlapInfo, getBookingPosition } from '@/components/calendar/shared';
+import { getServicePastelColor, getOverlapInfo, getBookingPosition, getEventPosition } from '@/components/calendar/shared';
 import { pastelColors } from '@/components/calendar/shared/colorUtils';
 import { BookingCard } from '@/components/calendar/shared/BookingCard';
+import { EventCard } from '@/components/calendar/shared/EventCard';
 import { DroppableTimeSlotEnhanced } from '@/components/calendar/shared/DroppableTimeSlotEnhanced';
 import { isWithinBusinessHours } from '@/hooks/useCalendarDragDropEnhanced';
 
@@ -37,6 +38,9 @@ interface ThreeDayViewProps {
   draggedBookingServiceName?: string;
   draggedBookingColorClasses?: { bg: string; border: string; text: string };
   pendingMoveBookingId?: string;
+  events?: ApiCalendarEvent[];
+  getEventsForDay?: (date: Date) => ApiCalendarEvent[];
+  onEventClick?: (event: ApiCalendarEvent) => void;
 }
 
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 7); // 7:00 - 23:00
@@ -61,6 +65,9 @@ export function ThreeDayView({
   draggedBookingServiceName,
   draggedBookingColorClasses,
   pendingMoveBookingId,
+  events = [],
+  getEventsForDay: getEventsForDayProp,
+  onEventClick,
 }: ThreeDayViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -466,6 +473,26 @@ export function ThreeDayView({
                       viewMode="day"
                       isMobile={true}
                       isPendingMove={pendingMoveBookingId === booking.id}
+                    />
+                  );
+                })}
+
+                {/* Events */}
+                {getEventsForDayProp && onEventClick && getEventsForDayProp(day).map((event) => {
+                  const evtStyle = getEventPosition(event, hourHeight, START_HOUR);
+                  return (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      style={{
+                        top: evtStyle.top,
+                        height: evtStyle.height,
+                        left: '2px',
+                        width: 'calc(100% - 4px)',
+                      }}
+                      onClick={() => onEventClick(event)}
+                      viewMode="day"
+                      isMobile={true}
                     />
                   );
                 })}
