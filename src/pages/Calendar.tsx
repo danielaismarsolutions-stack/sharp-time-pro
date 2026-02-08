@@ -50,11 +50,12 @@ import {
 } from '@/components/ui/select';
 import { Client, Service } from '@/types';
 import { Barber } from '@/types/barber';
-import { ApiBooking, ApiBookingStatus } from '@/types/api';
+import { ApiBooking, ApiBookingStatus, ApiCalendarEvent } from '@/types/api';
 import { supabaseClientsApi } from '@/services/supabaseClients';
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBookingsApi } from '@/services/supabaseBookings';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
+import { eventsStorageApi } from '@/services/eventsStorage';
 import { createNotification } from '@/services/supabaseNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { BUSINESS_ID } from '@/config/api';
@@ -69,6 +70,9 @@ import BookingModal from '@/components/bookings/BookingModal';
 import { BookingDetailModal, BookingStatus, MonthView } from '@/components/calendar';
 import { BarberLegend } from '@/components/calendar/BarberLegend';
 import { MoveBookingConfirmDialog } from '@/components/calendar/MoveBookingConfirmDialog';
+import { CreateChoiceDialog } from '@/components/calendar/CreateChoiceDialog';
+import { EventModal, type EventFormData } from '@/components/calendar/EventModal';
+import { EventDetailModal } from '@/components/calendar/EventDetailModal';
 import { setBarberList } from '@/components/calendar/shared/colorUtils';
 import { CurrentTimeIndicator } from '@/components/calendar/CurrentTimeIndicator';
 import { SetmoreHeader } from '@/components/calendar/SetmoreHeader';
@@ -77,11 +81,13 @@ import { AgendaView } from '@/components/calendar/AgendaView';
 import { MobileDrawerMenu } from '@/components/calendar/MobileDrawerMenu';
 import {
   BookingCard,
+  EventCard,
   DroppableTimeSlotEnhanced,
   getServicePastelColor,
   getBarberPastelColor,
   getOverlapInfo,
   getBookingPosition,
+  getEventPosition,
 } from '@/components/calendar/shared';
 import { createSnapTo15MinModifier } from '@/components/calendar/shared/snapModifier';
 
@@ -122,6 +128,13 @@ export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
 
+  // Event state
+  const [calendarEvents, setCalendarEvents] = useState<ApiCalendarEvent[]>([]);
+  const [isChoiceDialogOpen, setIsChoiceDialogOpen] = useState(false);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [isEventDetailOpen, setIsEventDetailOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<ApiCalendarEvent | null>(null);
+
   // Set view mode based on screen size
   useEffect(() => {
     if (isMobile && viewMode === 'week') {
@@ -133,16 +146,18 @@ export default function Calendar() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [bookingsData, clientsData, servicesData, barbersData] = await Promise.all([
+      const [bookingsData, clientsData, servicesData, barbersData, eventsData] = await Promise.all([
         supabaseBookingsApi.getAll(),
         supabaseClientsApi.getAll(),
         supabaseServicesApi.getAll(),
         supabaseBarbersApi.getAll(false),
+        eventsStorageApi.getAll(),
       ]);
       setBookings(bookingsData);
       setClients(clientsData);
       setServices(servicesData);
       setBarbers(barbersData);
+      setCalendarEvents(eventsData);
       console.log('✅ Calendar data loaded from Supabase');
     } catch (error) {
       console.error('Error loading data:', error);
@@ -415,15 +430,118 @@ export default function Calendar() {
     setIsModalOpen(true);
   };
 
+  // Open choice dialog (booking vs event) for new creation
+  const openCreateChoice = (date?: Date) => {
+    setSelectedDate(date);
+    setSelectedBooking(null);
+    setSelectedEvent(null);
+    setIsChoiceDialogOpen(true);
+  };
+
   const openNewBooking = (date?: Date) => {
     setSelectedDate(date);
     setIsModalOpen(true);
+  };
+
+  const openNewEvent = (date?: Date) => {
+    setSelectedDate(date);
+    setSelectedEvent(null);
+    setIsEventModalOpen(true);
   };
 
   const openBookingDetail = (booking: ApiBooking) => {
     setSelectedBooking(booking);
     setIsDetailOpen(true);
   };
+
+  const openEventDetail = (event: ApiCalendarEvent) => {
+    setSelectedEvent(event);
+    setIsEventDetailOpen(true);
+  };
+
+  const handleEditEvent = (event: ApiCalendarEvent) => {
+    setSelectedEvent(event);
+    setIsEventDetailOpen(false);
+    setIsEventModalOpen(true);
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    const previous = [...calendarEvents];
+    setCalendarEvents((prev) => prev.filter((e) => e.id !== eventId));
+    setIsEventDetailOpen(false);
+    setSelectedEvent(null);
+    try {
+      await eventsStorageApi.delete(eventId);
+      toast({ title: 'Evento eliminado correctamente' });
+    } catch {
+      setCalendarEvents(previous);
+      toast({ title: 'Error al eliminar el evento', variant: 'destructive' });
+    }
+  };
+
+  const handleSaveEvent = async (data: EventFormData) => {
+    try {
+      if (selectedEvent) {
+        const updated = await eventsStorageApi.update(selectedEvent.id, {
+          name: data.name,
+          event_date: data.date,
+          start_time: data.startTime,
+          end_time: data.endTime,
+          repeat: data.repeat,
+          location: data.location || null,
+          notes: data.notes || null,
+          barber: data.barber,
+          color: data.color,
+        });
+        setCalendarEvents((prev) =>
+          prev.map((e) => (e.id === selectedEvent.id ? updated : e))
+        );
+        toast({ title: 'Evento actualizado correctamente' });
+      } else {
+        const created = await eventsStorageApi.create({
+          name: data.name,
+          event_date: data.date,
+          start_time: data.startTime,
+          end_time: data.endTime,
+          repeat: data.repeat,
+          location: data.location || null,
+          notes: data.notes || null,
+          barber: data.barber,
+          color: data.color,
+        });
+        setCalendarEvents((prev) => [...prev, created]);
+        toast({ title: 'Evento creado correctamente' });
+      }
+      setIsEventModalOpen(false);
+      setSelectedEvent(null);
+    } catch {
+      toast({ title: 'Error al guardar el evento', variant: 'destructive' });
+      throw new Error('Failed to save event');
+    }
+  };
+
+  // Get events for a specific day (including repeated events)
+  const getEventsForDay = useCallback((date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const dayOfWeek = date.getDay();
+    const dayOfMonth = date.getDate();
+
+    return calendarEvents.filter((event) => {
+      // Exact date match
+      if (event.event_date === dateStr) return true;
+      // Repeated events
+      if (event.repeat === 'daily' && event.event_date <= dateStr) return true;
+      if (event.repeat === 'weekly' && event.event_date <= dateStr) {
+        const eventDate = new Date(event.event_date + 'T00:00:00');
+        return eventDate.getDay() === dayOfWeek;
+      }
+      if (event.repeat === 'monthly' && event.event_date <= dateStr) {
+        const eventDate = new Date(event.event_date + 'T00:00:00');
+        return eventDate.getDate() === dayOfMonth;
+      }
+      return false;
+    });
+  }, [calendarEvents]);
 
   // Render Day View
   const renderDayView = () => {
@@ -469,7 +587,7 @@ export default function Calendar() {
               >
                 <div
                   className="absolute inset-0"
-                  onClick={() => openNewBooking(currentDate)}
+                  onClick={() => openCreateChoice(currentDate)}
                 />
               </DroppableTimeSlotEnhanced>
             ))}
@@ -505,6 +623,26 @@ export default function Calendar() {
               );
             })}
 
+            {/* Events overlay */}
+            {getEventsForDay(currentDate).map((event) => {
+              const evtStyle = getEventPosition(event, HOUR_HEIGHT_DAY);
+              return (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  style={{
+                    top: evtStyle.top,
+                    height: evtStyle.height,
+                    left: '4px',
+                    width: 'calc(100% - 8px)',
+                  }}
+                  onClick={() => openEventDetail(event)}
+                  viewMode="day"
+                  isMobile={isMobile}
+                />
+              );
+            })}
+
             {/* Current time indicator */}
             {isToday(currentDate) && (
               <CurrentTimeIndicator
@@ -516,7 +654,7 @@ export default function Calendar() {
             )}
 
             {/* Empty state */}
-            {dayBookings.length === 0 && (
+            {dayBookings.length === 0 && getEventsForDay(currentDate).length === 0 && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="text-center text-muted-foreground">
                   <p className="text-lg font-medium">Sin citas</p>
@@ -568,7 +706,7 @@ export default function Calendar() {
                   'h-12 border-b border-border px-1 md:px-2 py-1 text-center cursor-pointer hover:bg-muted/50 transition-colors',
                   isCurrentDay && 'bg-primary/10'
                 )}
-                onClick={() => openNewBooking(day)}
+                onClick={() => openCreateChoice(day)}
               >
                 <p className="text-[10px] md:text-xs text-muted-foreground uppercase">
                   {format(day, 'EEE', { locale: es })}
@@ -601,7 +739,7 @@ export default function Calendar() {
                   >
                     <div
                       className="absolute inset-0"
-                      onClick={() => openNewBooking(day)}
+                      onClick={() => openCreateChoice(day)}
                     />
                   </DroppableTimeSlotEnhanced>
                 ))}
@@ -641,6 +779,25 @@ export default function Calendar() {
                       isDraggable={true}
                       viewMode="week"
                       isPendingMove={pendingMove?.booking.id === booking.id}
+                    />
+                  );
+                })}
+
+                {/* Events overlay */}
+                {getEventsForDay(day).map((event) => {
+                  const evtStyle = getEventPosition(event, HOUR_HEIGHT_WEEK);
+                  return (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      style={{
+                        top: evtStyle.top,
+                        height: evtStyle.height,
+                        left: '2px',
+                        width: 'calc(100% - 4px)',
+                      }}
+                      onClick={() => openEventDetail(event)}
+                      viewMode="week"
                     />
                   );
                 })}
@@ -729,7 +886,7 @@ export default function Calendar() {
             bottom: 'calc(56px + env(safe-area-inset-bottom, 0px) + 16px)',
             boxShadow: '0 4px 14px hsl(217 91% 60% / 0.4), 0 2px 6px rgba(0, 0, 0, 0.1)',
           }}
-          onClick={() => openNewBooking()}
+          onClick={() => openCreateChoice()}
         >
           <Plus className="h-7 w-7 text-white" strokeWidth={2.5} />
         </button>
@@ -747,7 +904,7 @@ export default function Calendar() {
                 onBookingClick={openBookingDetail}
                 onSlotClick={(date, time) => {
                   setSelectedDate(date);
-                  openNewBooking(date);
+                  openCreateChoice(date);
                 }}
                 hourHeight={HOUR_HEIGHT_DAY}
                 barberNames={barberNames}
@@ -760,6 +917,9 @@ export default function Calendar() {
                 draggedBookingServiceName={activeBookingServiceName}
                 draggedBookingColorClasses={activeBookingColorClasses}
                 pendingMoveBookingId={pendingMove?.booking.id}
+                events={calendarEvents}
+                getEventsForDay={getEventsForDay}
+                onEventClick={openEventDetail}
               />
             )}
             {viewMode === 'week' && renderWeekView()}
@@ -770,6 +930,8 @@ export default function Calendar() {
                 bookings={filteredBookings}
                 services={services}
                 onBookingClick={openBookingDetail}
+                getEventsForDay={getEventsForDay}
+                onEventClick={openEventDetail}
               />
             )}
           </div>
@@ -988,6 +1150,39 @@ export default function Calendar() {
           onConfirm={confirmMove}
           onCancel={cancelMove}
           isLoading={isUpdating}
+        />
+
+        {/* Choice Dialog: Booking vs Event */}
+        <CreateChoiceDialog
+          open={isChoiceDialogOpen}
+          onOpenChange={setIsChoiceDialogOpen}
+          onChooseBooking={() => openNewBooking(selectedDate || undefined)}
+          onChooseEvent={() => openNewEvent(selectedDate || undefined)}
+        />
+
+        {/* Event Modal for new/edit events */}
+        <EventModal
+          open={isEventModalOpen}
+          onOpenChange={(open) => {
+            setIsEventModalOpen(open);
+            if (!open) setSelectedEvent(null);
+          }}
+          event={selectedEvent}
+          barbers={barbers}
+          onSave={handleSaveEvent}
+          selectedDate={selectedDate}
+        />
+
+        {/* Event Detail Modal */}
+        <EventDetailModal
+          event={selectedEvent}
+          open={isEventDetailOpen}
+          onClose={() => {
+            setIsEventDetailOpen(false);
+            setTimeout(() => setSelectedEvent(null), 250);
+          }}
+          onEdit={handleEditEvent}
+          onDelete={handleDeleteEvent}
         />
       </div>
     </DndContext>

@@ -101,3 +101,47 @@ export interface UpdateBookingRequest {
   notes?: string;
   cancellation_reason?: string;
 }
+
+// ==================== Calendar Event Types ====================
+
+export type ApiEventRepeat = 'none' | 'daily' | 'weekly' | 'monthly';
+
+export interface ApiCalendarEvent {
+  id: string;
+  business_id: string;
+  name: string;
+  event_date: string; // YYYY-MM-DD
+  start_time: string; // HH:mm:ss
+  end_time: string; // HH:mm:ss
+  repeat: ApiEventRepeat;
+  location: string | null;
+  notes: string | null;
+  barber: string | null;
+  color: string; // hex color
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateEventRequest {
+  name: string;
+  event_date: string;
+  start_time: string;
+  end_time: string;
+  repeat?: ApiEventRepeat;
+  location?: string;
+  notes?: string;
+  barber?: string | null;
+  color?: string;
+}
+
+export interface UpdateEventRequest {
+  name?: string;
+  event_date?: string;
+  start_time?: string;
+  end_time?: string;
+  repeat?: ApiEventRepeat;
+  location?: string;
+  notes?: string;
+  barber?: string | null;
+  color?: string;
+}

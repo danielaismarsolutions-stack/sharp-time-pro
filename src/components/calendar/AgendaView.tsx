@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Eye } from 'lucide-react';
-import { ApiBooking } from '@/types/api';
+import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -11,6 +11,8 @@ interface AgendaViewProps {
   bookings: ApiBooking[];
   services: Service[];
   onBookingClick: (booking: ApiBooking) => void;
+  getEventsForDay?: (date: Date) => ApiCalendarEvent[];
+  onEventClick?: (event: ApiCalendarEvent) => void;
 }
 
 interface DayGroup {
@@ -38,6 +40,8 @@ export function AgendaView({
   bookings,
   services,
   onBookingClick,
+  getEventsForDay,
+  onEventClick,
 }: AgendaViewProps) {
   // Group bookings by day for the selected week
   const dayGroups = useMemo<DayGroup[]>(() => {
@@ -87,8 +91,8 @@ export function AgendaView({
               {formatDateHeader(group.date)}
             </h3>
 
-            {/* Appointments or Empty State */}
-            {group.bookings.length === 0 ? (
+            {/* Appointments & Events or Empty State */}
+            {group.bookings.length === 0 && (!getEventsForDay || getEventsForDay(group.date).length === 0) ? (
               <p className="text-sm text-muted-foreground italic pl-1">
                 Nada planificado
               </p>
@@ -99,6 +103,13 @@ export function AgendaView({
                     key={booking.id}
                     booking={booking}
                     onClick={() => onBookingClick(booking)}
+                  />
+                ))}
+                {getEventsForDay && onEventClick && getEventsForDay(group.date).map((event) => (
+                  <AgendaEventCard
+                    key={event.id}
+                    event={event}
+                    onClick={() => onEventClick(event)}
                   />
                 ))}
               </div>
@@ -155,6 +166,43 @@ function AgendaAppointmentCard({ booking, onClick }: AgendaAppointmentCardProps)
       </p>
 
       {/* Line 2: Time range */}
+      <p className="text-xs text-gray-600 mt-0.5">
+        {timeRange}
+      </p>
+    </button>
+  );
+}
+
+// Event card for agenda view
+interface AgendaEventCardProps {
+  event: ApiCalendarEvent;
+  onClick: () => void;
+}
+
+function AgendaEventCard({ event, onClick }: AgendaEventCardProps) {
+  const timeRange = `${formatTime12h(event.start_time)} - ${formatTime12h(event.end_time)}`;
+
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full text-left rounded-lg p-3 px-4 transition-all',
+        'border-l-4',
+        'hover:brightness-95 active:scale-[0.98]',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+      )}
+      style={{
+        borderRadius: '8px',
+        borderLeftColor: event.color || '#d1d5db',
+        backgroundColor: (event.color || '#d1d5db') + '33',
+      }}
+    >
+      <p className="text-sm text-gray-800">
+        <span className="font-semibold">{event.name}</span>
+        {event.location && (
+          <span className="font-normal text-gray-600"> - {event.location}</span>
+        )}
+      </p>
       <p className="text-xs text-gray-600 mt-0.5">
         {timeRange}
       </p>

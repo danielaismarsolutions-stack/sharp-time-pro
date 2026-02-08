@@ -6,3 +6,4 @@ export { BookingCard } from './BookingCard';
 export { DroppableTimeSlot } from './DroppableTimeSlot';
 export { DroppableTimeSlotEnhanced } from './DroppableTimeSlotEnhanced';
 export { DragOverlayCard } from './DragOverlayCard';
+export { EventCard } from './EventCard';
