@@ -94,7 +94,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border md:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="flex items-center justify-around h-14">
@@ -108,7 +108,7 @@ export default function BottomNav() {
               to={item.path}
               className={cn(
                 'flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors',
-                'active:bg-gray-50'
+                'active:bg-muted'
               )}
             >
               <motion.div

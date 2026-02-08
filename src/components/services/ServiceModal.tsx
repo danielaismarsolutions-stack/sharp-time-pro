@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Scissors, Clock, DollarSign, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
