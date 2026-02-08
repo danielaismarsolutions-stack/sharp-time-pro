@@ -68,11 +68,31 @@ export function ThreeDayView({
   const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
 
+  // Touch gesture tracking refs for mobile drag-to-create
+  const touchStartRef = useRef<{ clientX: number; clientY: number; date: Date; gridY: number; rectTop: number } | null>(null);
+  const touchModeRef = useRef<'undetermined' | 'selecting' | 'scrolling'>('undetermined');
+  const touchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Update current time every minute
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(interval);
   });
+
+  // Prevent page scrolling while drag-selecting on mobile
+  useEffect(() => {
+    if (!isSelecting) return;
+    const handler = (e: TouchEvent) => { e.preventDefault(); };
+    document.addEventListener('touchmove', handler, { passive: false });
+    return () => document.removeEventListener('touchmove', handler);
+  }, [isSelecting]);
+
+  // Cleanup touch timer on unmount
+  useEffect(() => {
+    return () => {
+      if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
+    };
+  }, []);
 
   // Get 3 consecutive days starting from currentDate
   const days = useMemo(() => {
@@ -143,6 +163,79 @@ export function ThreeDayView({
     setSelectionEnd(null);
     setIsSelecting(false);
   };
+
+  // Handle touch drag selection start (mobile)
+  // Uses a 200ms hold delay to distinguish drag-to-create from scrolling
+  const handleTouchStart = useCallback((date: Date, e: React.TouchEvent<HTMLDivElement>) => {
+    if (isDragging || e.touches.length > 1) return;
+    const touch = e.touches[0];
+    const rect = e.currentTarget.getBoundingClientRect();
+    touchStartRef.current = {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      date,
+      gridY: touch.clientY - rect.top,
+      rectTop: rect.top,
+    };
+    touchModeRef.current = 'undetermined';
+    if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
+    touchTimerRef.current = setTimeout(() => {
+      if (touchStartRef.current && touchModeRef.current === 'undetermined') {
+        touchModeRef.current = 'selecting';
+        setSelectionStart({ date: touchStartRef.current.date, y: touchStartRef.current.gridY });
+        setSelectionEnd(touchStartRef.current.gridY);
+        setIsSelecting(true);
+        if (navigator.vibrate) navigator.vibrate(10);
+      }
+    }, 200);
+  }, [isDragging]);
+
+  // Handle touch drag selection move (mobile)
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    if (!touchStartRef.current || isDragging) return;
+    if (e.touches.length > 1) {
+      // Multi-touch: cancel any active selection
+      if (touchTimerRef.current) { clearTimeout(touchTimerRef.current); touchTimerRef.current = null; }
+      touchModeRef.current = 'scrolling';
+      setSelectionStart(null);
+      setSelectionEnd(null);
+      setIsSelecting(false);
+      return;
+    }
+    const touch = e.touches[0];
+    if (touchModeRef.current === 'undetermined') {
+      // If finger moves before the hold timer fires, treat as scroll
+      const deltaX = Math.abs(touch.clientX - touchStartRef.current.clientX);
+      const deltaY = Math.abs(touch.clientY - touchStartRef.current.clientY);
+      if (deltaX > 8 || deltaY > 8) {
+        if (touchTimerRef.current) { clearTimeout(touchTimerRef.current); touchTimerRef.current = null; }
+        touchModeRef.current = 'scrolling';
+      }
+      return;
+    }
+    if (touchModeRef.current === 'selecting') {
+      const y = touch.clientY - touchStartRef.current.rectTop;
+      setSelectionEnd(y);
+    }
+  }, [isDragging]);
+
+  // Handle touch drag selection end (mobile)
+  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchTimerRef.current) { clearTimeout(touchTimerRef.current); touchTimerRef.current = null; }
+    if (touchModeRef.current === 'selecting' && selectionStart && selectionEnd !== null) {
+      const startTime = yToTime(Math.min(selectionStart.y, selectionEnd));
+      const endTime = yToTime(Math.max(selectionStart.y, selectionEnd));
+      if (startTime !== endTime) {
+        e.preventDefault(); // Prevent subsequent click event from firing
+        onSlotClick(selectionStart.date, startTime);
+      }
+    }
+    touchStartRef.current = null;
+    touchModeRef.current = 'undetermined';
+    setSelectionStart(null);
+    setSelectionEnd(null);
+    setIsSelecting(false);
+  }, [selectionStart, selectionEnd, yToTime, onSlotClick]);
 
   // Current time position
   const currentTimePosition = useMemo(() => {
@@ -304,6 +397,9 @@ export function ThreeDayView({
                 onMouseDown={(e) => handleMouseDown(day, e)}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
+                onTouchStart={(e) => handleTouchStart(day, e)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
               >
                 {/* Hour grid with DroppableTimeSlotEnhanced for drag-drop support */}
                 {HOURS.map((hour) => (
