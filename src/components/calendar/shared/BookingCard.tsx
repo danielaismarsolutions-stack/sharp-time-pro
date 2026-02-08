@@ -100,7 +100,7 @@ const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
     return (
       <button
         ref={ref}
-        onClick={isDragging ? undefined : onClick}
+        onClick={isDragging ? undefined : (e) => { e.stopPropagation(); onClick(); }}
         className={cn(
           // Base styling
           'absolute rounded-lg border border-border/40 border-l-4 cursor-pointer',
