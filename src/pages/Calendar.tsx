@@ -830,7 +830,9 @@ export default function Calendar() {
           open={isDetailOpen}
           onClose={() => {
             setIsDetailOpen(false);
-            setSelectedBooking(null);
+            // Delay clearing booking so the Dialog close animation can
+            // finish rendering with the last booking data via the ref.
+            setTimeout(() => setSelectedBooking(null), 250);
           }}
           onStatusChange={handleStatusChange}
           onEdit={handleEditBooking}
