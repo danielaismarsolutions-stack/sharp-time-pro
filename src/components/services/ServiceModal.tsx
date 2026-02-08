@@ -159,7 +159,7 @@ export default function ServiceModal({
 
   return (
     <Dialog open={open} onOpenChange={(value) => !isLoading && onOpenChange(value)}>
-      <DialogContent className="sm:max-w-[500px] bg-card border-border max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Scissors className="h-5 w-5 text-primary" />

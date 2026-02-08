@@ -72,7 +72,7 @@ export function MoveBookingConfirmDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onCancel(); }}>
-      <AlertDialogContent className="max-w-[360px] sm:max-w-md rounded-xl p-0 overflow-hidden">
+      <AlertDialogContent className="max-w-[360px] sm:max-w-md p-0 overflow-hidden">
         {/* Header */}
         <AlertDialogHeader className="px-5 pt-5 pb-0">
           <AlertDialogTitle className="text-base font-semibold flex items-center gap-2">
