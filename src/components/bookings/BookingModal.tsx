@@ -368,32 +368,32 @@ export default function BookingModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CalendarIcon className="h-5 w-5 text-primary" />
+          <DialogTitle className="flex items-center gap-1.5">
+            <CalendarIcon className="h-4 w-4 text-primary" />
             {booking ? 'Editar Cita' : 'Nueva Cita'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {/* Client Selection with Search */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Cliente</Label>
+          <div className="space-y-1">
+            <Label className="text-xs font-medium">Cliente</Label>
             <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
                   aria-expanded={clientSearchOpen}
-                  className="w-full justify-between font-normal h-10"
+                  className="w-full justify-between font-normal h-8 text-xs"
                 >
                   {selectedClient ? (
                     <span className="truncate">{selectedClient.name} - {selectedClient.phone}</span>
                   ) : (
                     <span className="text-muted-foreground">Buscar cliente...</span>
                   )}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
@@ -405,7 +405,7 @@ export default function BookingModal({
                   />
                   <CommandList>
                     <CommandEmpty>No se encontraron clientes</CommandEmpty>
-                    
+
                     {/* Create New Client Option */}
                     {onClientCreate && (
                       <>
@@ -417,14 +417,14 @@ export default function BookingModal({
                             }}
                             className="text-primary"
                           >
-                            <Plus className="mr-2 h-4 w-4" />
-                            <span className="font-medium">Crear nuevo cliente</span>
+                            <Plus className="mr-2 h-3.5 w-3.5" />
+                            <span className="font-medium text-xs">Crear nuevo cliente</span>
                           </CommandItem>
                         </CommandGroup>
                         <CommandSeparator />
                       </>
                     )}
-                    
+
                     {/* Client List */}
                     <CommandGroup heading="Clientes">
                       {filteredClients.map((client) => (
@@ -439,13 +439,13 @@ export default function BookingModal({
                         >
                           <Check
                             className={cn(
-                              'mr-2 h-4 w-4',
+                              'mr-2 h-3.5 w-3.5',
                               formData.clientId === client.id ? 'opacity-100' : 'opacity-0'
                             )}
                           />
                           <div className="flex flex-col">
-                            <span className="font-medium">{client.name}</span>
-                            <span className="text-xs text-muted-foreground">{client.phone}</span>
+                            <span className="text-xs font-medium">{client.name}</span>
+                            <span className="text-[10px] text-muted-foreground">{client.phone}</span>
                           </div>
                         </CommandItem>
                       ))}
@@ -457,21 +457,21 @@ export default function BookingModal({
           </div>
 
           {/* Service Selection */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Servicio</Label>
+          <div className="space-y-1">
+            <Label className="text-xs font-medium">Servicio</Label>
             <Select
               value={formData.serviceId}
               onValueChange={(value) => setFormData({ ...formData, serviceId: value })}
             >
-              <SelectTrigger className="h-10">
+              <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder="Selecciona un servicio" />
               </SelectTrigger>
               <SelectContent>
                 {services.filter((s) => s.isActive).map((service) => (
                   <SelectItem key={service.id} value={service.id}>
-                    <div className="flex items-center justify-between w-full gap-4">
-                      <span>{service.name}</span>
-                      <span className="text-muted-foreground text-sm">
+                    <div className="flex items-center justify-between w-full gap-3">
+                      <span className="text-xs">{service.name}</span>
+                      <span className="text-muted-foreground text-[10px]">
                         {service.duration}min • €{service.price}
                       </span>
                     </div>
@@ -482,13 +482,13 @@ export default function BookingModal({
           </div>
 
           {/* Barber Selection */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Barbero</Label>
+          <div className="space-y-1">
+            <Label className="text-xs font-medium">Barbero</Label>
             <Select
               value={formData.barberId || 'none'}
               onValueChange={(value) => setFormData({ ...formData, barberId: value === 'none' ? '' : value })}
             >
-              <SelectTrigger className="h-10">
+              <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder="Selecciona un barbero (opcional)" />
               </SelectTrigger>
               <SelectContent>
@@ -503,26 +503,26 @@ export default function BookingModal({
           </div>
 
           {/* Date & Time */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Fecha</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Fecha</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className={cn(
-                      'w-full justify-start text-left font-normal h-10',
+                      'w-full justify-start text-left font-normal h-8 text-xs',
                       !date && 'text-muted-foreground',
                       !formData.barberId && 'opacity-60'
                     )}
                     disabled={!formData.barberId}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                    <CalendarIcon className="mr-1.5 h-3 w-3 shrink-0" />
                     <span className="truncate">
-                      {!formData.barberId 
-                        ? 'Selecciona barbero primero'
-                        : date 
-                          ? format(date, "d 'de' MMM yyyy", { locale: es }) 
+                      {!formData.barberId
+                        ? 'Barbero primero'
+                        : date
+                          ? format(date, "d 'de' MMM yyyy", { locale: es })
                           : 'Selecciona fecha'}
                     </span>
                   </Button>
@@ -540,25 +540,25 @@ export default function BookingModal({
               </Popover>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Hora</Label>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Hora</Label>
               <Select
                 value={formData.time}
                 onValueChange={(value) => setFormData({ ...formData, time: value })}
                 disabled={!formData.barberId || !date || availableTimeSlots.length === 0}
               >
                 <SelectTrigger className={cn(
-                  "h-10",
+                  "h-8 text-xs",
                   (!formData.barberId || !date) && 'opacity-60'
                 )}>
                   <SelectValue placeholder={
-                    !formData.barberId 
-                      ? 'Selecciona barbero' 
-                      : !date 
-                        ? 'Selecciona fecha' 
-                        : availableTimeSlots.length === 0 
-                          ? 'Sin horas disponibles'
-                          : 'Selecciona hora'
+                    !formData.barberId
+                      ? 'Barbero'
+                      : !date
+                        ? 'Fecha'
+                        : availableTimeSlots.length === 0
+                          ? 'Sin horas'
+                          : 'Hora'
                   } />
                 </SelectTrigger>
                 <SelectContent>
@@ -570,35 +570,35 @@ export default function BookingModal({
                 </SelectContent>
               </Select>
               {formData.barberId && date && availableTimeSlots.length === 0 && (
-                <p className="text-xs text-destructive flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  No hay horas disponibles este día
+                <p className="text-[10px] text-destructive flex items-center gap-1">
+                  <AlertCircle className="h-2.5 w-2.5" />
+                  Sin horas disponibles
                 </p>
               )}
             </div>
           </div>
 
           {/* Notes */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Notas <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+          <div className="space-y-1">
+            <Label className="text-xs font-medium">Notas <span className="text-muted-foreground font-normal">(opcional)</span></Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Solicitudes especiales o notas..."
               rows={2}
-              className="resize-none"
+              className="resize-none text-xs"
             />
           </div>
 
           {/* Summary */}
           {selectedService && (
-            <div className="bg-muted/50 rounded-lg p-3 space-y-1">
-              <p className="text-sm text-muted-foreground">Resumen de la cita</p>
-              <div className="flex justify-between text-sm">
+            <div className="bg-muted/50 rounded-lg p-2.5 space-y-0.5">
+              <p className="text-[10px] text-muted-foreground font-medium">Resumen de la cita</p>
+              <div className="flex justify-between text-xs">
                 <span>{selectedService.name}</span>
                 <span className="font-medium">€{selectedService.price}</span>
               </div>
-              <div className="flex justify-between text-sm text-muted-foreground">
+              <div className="flex justify-between text-[10px] text-muted-foreground">
                 <span>Duración</span>
                 <span>{selectedService.duration} minutos</span>
               </div>
@@ -606,11 +606,11 @@ export default function BookingModal({
           )}
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" size="sm" className="text-xs h-8" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" size="sm" className="text-xs h-8" disabled={isLoading}>
               {isLoading ? 'Guardando...' : booking ? 'Actualizar' : 'Crear Cita'}
             </Button>
           </div>

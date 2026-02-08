@@ -35,28 +35,29 @@ export function NotesModal({ open, onOpenChange, currentNotes, clientName, onSav
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Notas de staff - {clientName}</DialogTitle>
+          <DialogTitle>Notas - {clientName}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="staff-notes">Notas internas</Label>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label htmlFor="staff-notes" className="text-xs">Notas internas</Label>
             <Textarea
               id="staff-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Añade notas sobre esta consulta..."
-              rows={5}
+              rows={4}
+              className="text-xs"
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button size="sm" className="text-xs h-8" onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
             Guardar
           </Button>
         </DialogFooter>
