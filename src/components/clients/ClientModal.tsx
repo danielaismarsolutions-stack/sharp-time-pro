@@ -28,12 +28,38 @@ export default function ClientModal({
 }: ClientModalProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     email: '',
     notes: '',
   });
+
+  // Detect virtual keyboard and compute offset to shift dialog up
+  useEffect(() => {
+    if (!open) {
+      setKeyboardOffset(0);
+      return;
+    }
+
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleResize = () => {
+      const offset = window.innerHeight - vv.height;
+      setKeyboardOffset(offset > 100 ? offset : 0);
+    };
+
+    vv.addEventListener('resize', handleResize);
+    vv.addEventListener('scroll', handleResize);
+    handleResize();
+
+    return () => {
+      vv.removeEventListener('resize', handleResize);
+      vv.removeEventListener('scroll', handleResize);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (client) {
@@ -87,7 +113,12 @@ export default function ClientModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border">
+      <DialogContent
+        className="bg-card border-border max-h-[85dvh] overflow-y-auto transition-[top] duration-200"
+        style={keyboardOffset > 0 ? {
+          top: `calc(50% - ${keyboardOffset / 2}px)`,
+        } : undefined}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-1.5">
             <User className="h-4 w-4 text-primary" />
