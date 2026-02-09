@@ -79,6 +79,7 @@ interface EventModalProps {
   barbers: Barber[];
   onSave: (data: EventFormData) => Promise<void>;
   selectedDate?: Date;
+  selectedTime?: string; // HH:mm format
 }
 
 // ==================== Component ====================
@@ -90,6 +91,7 @@ export function EventModal({
   barbers,
   onSave,
   selectedDate,
+  selectedTime,
 }: EventModalProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -121,11 +123,16 @@ export function EventModal({
         color: event.color || '#d1d5db',
       });
     } else {
-      const now = new Date();
-      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${(Math.ceil(now.getMinutes() / 15) * 15 % 60).toString().padStart(2, '0')}`;
+      // Use selectedTime if provided (from slot click/drag), otherwise current time
+      let startTime: string;
+      if (selectedTime) {
+        startTime = selectedTime;
+      } else {
+        const now = new Date();
+        startTime = `${now.getHours().toString().padStart(2, '0')}:${(Math.ceil(now.getMinutes() / 15) * 15 % 60).toString().padStart(2, '0')}`;
+      }
       // Default end time: 1 hour after start
-      const startH = now.getHours();
-      const startM = Math.ceil(now.getMinutes() / 15) * 15;
+      const [startH, startM] = startTime.split(':').map(Number);
       const endH = startH + Math.floor((startM + 60) / 60);
       const endM = (startM + 60) % 60;
       const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
@@ -133,7 +140,7 @@ export function EventModal({
       setDate(selectedDate || new Date());
       setFormData({
         name: '',
-        startTime: currentTime,
+        startTime,
         endTime,
         repeat: 'none',
         location: '',
@@ -142,7 +149,7 @@ export function EventModal({
         color: '#d1d5db',
       });
     }
-  }, [event, selectedDate, open, barbers]);
+  }, [event, selectedDate, selectedTime, open, barbers]);
 
   // Filtered end time slots (must be after start)
   const endTimeSlots = useMemo(() => {
