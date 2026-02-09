@@ -53,9 +53,8 @@ import { Barber } from '@/types/barber';
 import { ApiBooking, ApiBookingStatus, ApiCalendarEvent } from '@/types/api';
 import { supabaseClientsApi } from '@/services/supabaseClients';
 import { supabaseServicesApi } from '@/services/supabaseServices';
-import { supabaseBookingsApi } from '@/services/supabaseBookings';
+import { supabaseBookingsApi, supabaseEventBookingsApi } from '@/services/supabaseBookings';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
-import { eventsStorageApi } from '@/services/eventsStorage';
 import { createNotification } from '@/services/supabaseNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { BUSINESS_ID } from '@/config/api';
@@ -148,19 +147,45 @@ export default function Calendar() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [bookingsData, clientsData, servicesData, barbersData, eventsData] = await Promise.all([
+      const [allBookingsData, clientsData, servicesData, barbersData] = await Promise.all([
         supabaseBookingsApi.getAll(),
         supabaseClientsApi.getAll(),
         supabaseServicesApi.getAll(),
         supabaseBarbersApi.getAll(false),
-        eventsStorageApi.getAll(),
       ]);
-      setBookings(bookingsData);
+
+      // Separate regular bookings from event-type bookings
+      const regularBookings: ApiBooking[] = [];
+      const eventBookings: ApiCalendarEvent[] = [];
+
+      for (const b of allBookingsData) {
+        if (b.booking_type === 'event') {
+          eventBookings.push({
+            id: b.id,
+            business_id: b.business_id,
+            name: b.event_name || b.client_name || '',
+            event_date: b.booking_date,
+            start_time: b.start_time,
+            end_time: b.end_time,
+            repeat: (b.recurrence_rule as { frequency?: string } | null)?.frequency as ApiCalendarEvent['repeat'] || 'none',
+            location: b.location || null,
+            notes: b.notes || null,
+            barber: b.barber || null,
+            color: b.color || '#d1d5db',
+            created_at: b.created_at,
+            updated_at: b.updated_at,
+          });
+        } else {
+          regularBookings.push(b);
+        }
+      }
+
+      setBookings(regularBookings);
       setClients(clientsData);
       setServices(servicesData);
       setBarbers(barbersData);
-      setCalendarEvents(eventsData);
-      console.log('✅ Calendar data loaded from Supabase');
+      setCalendarEvents(eventBookings);
+      console.log('✅ Calendar data loaded from Supabase:', regularBookings.length, 'bookings,', eventBookings.length, 'events');
     } catch (error) {
       console.error('Error loading data:', error);
       toast({ title: 'Error al cargar datos', variant: 'destructive' });
@@ -478,7 +503,7 @@ export default function Calendar() {
     setIsEventDetailOpen(false);
     setSelectedEvent(null);
     try {
-      await eventsStorageApi.delete(eventId);
+      await supabaseEventBookingsApi.delete(eventId);
       toast({ title: 'Evento eliminado correctamente' });
     } catch {
       setCalendarEvents(previous);
@@ -486,44 +511,75 @@ export default function Calendar() {
     }
   };
 
+  // Helper: convert an event-type ApiBooking row to ApiCalendarEvent for the UI
+  const bookingToCalendarEvent = useCallback((b: ApiBooking): ApiCalendarEvent => ({
+    id: b.id,
+    business_id: b.business_id,
+    name: b.event_name || b.client_name || '',
+    event_date: b.booking_date,
+    start_time: b.start_time,
+    end_time: b.end_time,
+    repeat: (b.recurrence_rule as { frequency?: string } | null)?.frequency as ApiCalendarEvent['repeat'] || 'none',
+    location: b.location || null,
+    notes: b.notes || null,
+    barber: b.barber || null,
+    color: b.color || '#d1d5db',
+    created_at: b.created_at,
+    updated_at: b.updated_at,
+  }), []);
+
+  const buildRecurrenceRule = (repeat: string): Record<string, unknown> | null => {
+    if (repeat === 'none') return null;
+    return { frequency: repeat };
+  };
+
   const handleSaveEvent = async (data: EventFormData) => {
     try {
       if (selectedEvent) {
-        const updated = await eventsStorageApi.update(selectedEvent.id, {
-          name: data.name,
-          event_date: data.date,
+        // Update existing event
+        const updatedBooking = await supabaseEventBookingsApi.update(selectedEvent.id, {
+          event_name: data.name,
+          booking_date: data.date,
           start_time: data.startTime,
           end_time: data.endTime,
-          repeat: data.repeat,
+          barber: data.barber,
+          user_id: data.barberId || null,
           location: data.location || null,
           notes: data.notes || null,
-          barber: data.barber,
           color: data.color,
+          is_recurring: data.repeat !== 'none',
+          recurrence_rule: buildRecurrenceRule(data.repeat),
         });
+        const updatedEvent = bookingToCalendarEvent(updatedBooking);
         setCalendarEvents((prev) =>
-          prev.map((e) => (e.id === selectedEvent.id ? updated : e))
+          prev.map((e) => (e.id === selectedEvent.id ? updatedEvent : e))
         );
         toast({ title: 'Evento actualizado correctamente' });
       } else {
-        const created = await eventsStorageApi.create({
-          name: data.name,
-          event_date: data.date,
+        // Create new event
+        const createdBooking = await supabaseEventBookingsApi.create({
+          event_name: data.name,
+          booking_date: data.date,
           start_time: data.startTime,
           end_time: data.endTime,
-          repeat: data.repeat,
+          barber: data.barber,
+          user_id: data.barberId || null,
           location: data.location || null,
           notes: data.notes || null,
-          barber: data.barber,
           color: data.color,
+          is_recurring: data.repeat !== 'none',
+          recurrence_rule: buildRecurrenceRule(data.repeat),
         });
-        setCalendarEvents((prev) => [...prev, created]);
+        const createdEvent = bookingToCalendarEvent(createdBooking);
+        setCalendarEvents((prev) => [...prev, createdEvent]);
         toast({ title: 'Evento creado correctamente' });
       }
       setIsEventModalOpen(false);
       setSelectedEvent(null);
-    } catch {
-      toast({ title: 'Error al guardar el evento', variant: 'destructive' });
-      throw new Error('Failed to save event');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Error al guardar el evento';
+      toast({ title: message, variant: 'destructive' });
+      throw error; // Re-throw so EventModal keeps its loading state
     }
   };
 

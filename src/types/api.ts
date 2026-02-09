@@ -17,6 +17,8 @@ export interface ApiResponse<T> {
 export type ApiBookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
 export type ApiBookingSource = 'online' | 'phone' | 'walk_in';
 
+export type ApiBookingType = 'booking' | 'event';
+
 export interface ApiBooking {
   id: string;
   business_id: string;
@@ -40,6 +42,13 @@ export interface ApiBooking {
   reminder_sent_at: string | null;
   created_at: string; // ISO timestamp
   updated_at: string; // ISO timestamp
+  // Event-specific columns (populated when booking_type = 'event')
+  booking_type?: ApiBookingType;
+  event_name?: string | null;
+  is_recurring?: boolean;
+  recurrence_rule?: Record<string, unknown> | null;
+  location?: string | null;
+  color?: string | null;
 }
 
 // ==================== Client Types (Future) ====================

@@ -69,6 +69,7 @@ export interface EventFormData {
   location: string;
   notes: string;
   barber: string | null;
+  barberId: string | null;
   color: string;
 }
 
@@ -191,6 +192,7 @@ export function EventModal({
         location: formData.location.trim(),
         notes: formData.notes.trim(),
         barber: selectedBarber?.name || null,
+        barberId: selectedBarber?.id || null,
         color: formData.color,
       });
       onOpenChange(false);
