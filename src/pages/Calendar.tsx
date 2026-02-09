@@ -127,6 +127,7 @@ export default function Calendar() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string | undefined>();
+  const [isSlotCreation, setIsSlotCreation] = useState(false);
   const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
 
   // Event state
@@ -427,6 +428,7 @@ export default function Calendar() {
 
   const handleEditBooking = (booking: ApiBooking) => {
     setSelectedBooking(booking);
+    setIsSlotCreation(false);
     setIsDetailOpen(false);
     setIsModalOpen(true);
   };
@@ -435,6 +437,7 @@ export default function Calendar() {
   const openCreateChoice = (date?: Date, time?: string) => {
     setSelectedDate(date);
     setSelectedTime(time);
+    setIsSlotCreation(!!date); // slot creation when triggered from a calendar slot
     setSelectedBooking(null);
     setSelectedEvent(null);
     setIsChoiceDialogOpen(true);
@@ -890,7 +893,11 @@ export default function Calendar() {
             bottom: 'calc(56px + env(safe-area-inset-bottom, 0px) + 16px)',
             boxShadow: '0 4px 14px hsl(217 91% 60% / 0.4), 0 2px 6px rgba(0, 0, 0, 0.1)',
           }}
-          onClick={() => openCreateChoice()}
+          onClick={() => {
+            setIsSlotCreation(false);
+            setSelectedTime(undefined);
+            openCreateChoice();
+          }}
         >
           <Plus className="h-7 w-7 text-white" strokeWidth={2.5} />
         </button>
@@ -1145,6 +1152,8 @@ export default function Calendar() {
           }}
           selectedDate={selectedDate}
           selectedTime={selectedTime}
+          isSlotCreation={isSlotCreation}
+          preselectedBarberName={selectedBarber}
         />
 
         {/* Move Booking Confirmation Dialog */}

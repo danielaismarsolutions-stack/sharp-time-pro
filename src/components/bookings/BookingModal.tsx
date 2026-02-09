@@ -54,6 +54,10 @@ interface BookingModalProps {
   onClientCreate?: (client: Partial<Client>) => Promise<Client>;
   selectedDate?: Date;
   selectedTime?: string; // HH:mm format
+  /** When true, date/time/barber are pre-filled from a calendar slot click/drag */
+  isSlotCreation?: boolean;
+  /** Barber name from the calendar filter (null = "Todos") */
+  preselectedBarberName?: string | null;
 }
 
 // Day of week mapping for schedule lookup
@@ -92,6 +96,8 @@ export default function BookingModal({
   onClientCreate,
   selectedDate,
   selectedTime,
+  isSlotCreation = false,
+  preselectedBarberName,
 }: BookingModalProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -261,31 +267,37 @@ export default function BookingModal({
       });
     } else {
       setDate(selectedDate || new Date());
+      // Pre-select barber when creating from a slot drag
+      let preselectedBarberId = '';
+      if (isSlotCreation && preselectedBarberName) {
+        const found = barbers.find((b) => b.name === preselectedBarberName);
+        if (found) preselectedBarberId = found.id;
+      }
       setFormData({
         clientId: '',
         serviceId: '',
-        barberId: '',
+        barberId: preselectedBarberId,
         time: selectedTime || '',
         status: 'confirmed',
         source: 'phone',
         notes: '',
       });
     }
-  }, [booking, selectedDate, selectedTime, open, barbers]);
+  }, [booking, selectedDate, selectedTime, isSlotCreation, preselectedBarberName, open, barbers]);
 
-  // Reset time when date or barber changes (only for new bookings)
+  // Reset time when date or barber changes (only for new bookings via + button)
   useEffect(() => {
-    if (!booking && formData.barberId && date) {
+    if (!booking && !isSlotCreation && formData.barberId && date) {
       // Select first available slot
       if (availableTimeSlots.length > 0 && !availableTimeSlots.includes(formData.time)) {
         setFormData((prev) => ({ ...prev, time: availableTimeSlots[0] }));
       }
     }
-  }, [date, formData.barberId, availableTimeSlots, booking, formData.time]);
+  }, [date, formData.barberId, availableTimeSlots, booking, formData.time, isSlotCreation]);
 
-  // Reset date when barber changes if current date is not valid
+  // Reset date when barber changes if current date is not valid (only for + button flow)
   useEffect(() => {
-    if (!booking && selectedBarber && date && !isBarberWorkingOnDate(date, selectedBarber)) {
+    if (!booking && !isSlotCreation && selectedBarber && date && !isBarberWorkingOnDate(date, selectedBarber)) {
       // Find next available date
       let nextDate = new Date();
       for (let i = 0; i < 60; i++) {
@@ -297,7 +309,7 @@ export default function BookingModal({
         }
       }
     }
-  }, [selectedBarber, booking, isBarberWorkingOnDate]);
+  }, [selectedBarber, booking, isBarberWorkingOnDate, isSlotCreation]);
 
   // Handle new client creation
   const handleClientCreate = async (clientData: Partial<Client>) => {
@@ -515,13 +527,13 @@ export default function BookingModal({
                     className={cn(
                       'w-full justify-start text-left font-normal h-8 text-xs',
                       !date && 'text-muted-foreground',
-                      !formData.barberId && 'opacity-60'
+                      !isSlotCreation && !formData.barberId && 'opacity-60'
                     )}
-                    disabled={!formData.barberId}
+                    disabled={!isSlotCreation && !formData.barberId}
                   >
                     <CalendarIcon className="mr-1.5 h-3 w-3 shrink-0" />
                     <span className="truncate">
-                      {!formData.barberId
+                      {!isSlotCreation && !formData.barberId
                         ? 'Barbero primero'
                         : date
                           ? format(date, "d 'de' MMM yyyy", { locale: es })
@@ -547,14 +559,14 @@ export default function BookingModal({
               <Select
                 value={formData.time}
                 onValueChange={(value) => setFormData({ ...formData, time: value })}
-                disabled={!formData.barberId || !date || availableTimeSlots.length === 0}
+                disabled={!isSlotCreation && (!formData.barberId || !date || availableTimeSlots.length === 0)}
               >
                 <SelectTrigger className={cn(
                   "h-8 text-xs",
-                  (!formData.barberId || !date) && 'opacity-60'
+                  !isSlotCreation && (!formData.barberId || !date) && 'opacity-60'
                 )}>
                   <SelectValue placeholder={
-                    !formData.barberId
+                    !isSlotCreation && !formData.barberId
                       ? 'Barbero'
                       : !date
                         ? 'Fecha'
