@@ -126,6 +126,7 @@ export default function Calendar() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [selectedTime, setSelectedTime] = useState<string | undefined>();
   const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
 
   // Event state
@@ -431,20 +432,23 @@ export default function Calendar() {
   };
 
   // Open choice dialog (booking vs event) for new creation
-  const openCreateChoice = (date?: Date) => {
+  const openCreateChoice = (date?: Date, time?: string) => {
     setSelectedDate(date);
+    setSelectedTime(time);
     setSelectedBooking(null);
     setSelectedEvent(null);
     setIsChoiceDialogOpen(true);
   };
 
-  const openNewBooking = (date?: Date) => {
-    setSelectedDate(date);
+  const openNewBooking = (date?: Date, time?: string) => {
+    if (date) setSelectedDate(date);
+    if (time) setSelectedTime(time);
     setIsModalOpen(true);
   };
 
-  const openNewEvent = (date?: Date) => {
-    setSelectedDate(date);
+  const openNewEvent = (date?: Date, time?: string) => {
+    if (date) setSelectedDate(date);
+    if (time) setSelectedTime(time);
     setSelectedEvent(null);
     setIsEventModalOpen(true);
   };
@@ -587,7 +591,7 @@ export default function Calendar() {
               >
                 <div
                   className="absolute inset-0"
-                  onClick={() => openCreateChoice(currentDate)}
+                  onClick={() => openCreateChoice(currentDate, `${hour.toString().padStart(2, '0')}:00`)}
                 />
               </DroppableTimeSlotEnhanced>
             ))}
@@ -739,7 +743,7 @@ export default function Calendar() {
                   >
                     <div
                       className="absolute inset-0"
-                      onClick={() => openCreateChoice(day)}
+                      onClick={() => openCreateChoice(day, `${hour.toString().padStart(2, '0')}:00`)}
                     />
                   </DroppableTimeSlotEnhanced>
                 ))}
@@ -903,8 +907,7 @@ export default function Calendar() {
                 onDateChange={setCurrentDate}
                 onBookingClick={openBookingDetail}
                 onSlotClick={(date, time) => {
-                  setSelectedDate(date);
-                  openCreateChoice(date);
+                  openCreateChoice(date, time);
                 }}
                 hourHeight={HOUR_HEIGHT_DAY}
                 barberNames={barberNames}
@@ -1141,6 +1144,7 @@ export default function Calendar() {
             }
           }}
           selectedDate={selectedDate}
+          selectedTime={selectedTime}
         />
 
         {/* Move Booking Confirmation Dialog */}
@@ -1156,8 +1160,8 @@ export default function Calendar() {
         <CreateChoiceDialog
           open={isChoiceDialogOpen}
           onOpenChange={setIsChoiceDialogOpen}
-          onChooseBooking={() => openNewBooking(selectedDate || undefined)}
-          onChooseEvent={() => openNewEvent(selectedDate || undefined)}
+          onChooseBooking={() => openNewBooking(selectedDate, selectedTime)}
+          onChooseEvent={() => openNewEvent(selectedDate, selectedTime)}
         />
 
         {/* Event Modal for new/edit events */}
@@ -1171,6 +1175,7 @@ export default function Calendar() {
           barbers={barbers}
           onSave={handleSaveEvent}
           selectedDate={selectedDate}
+          selectedTime={selectedTime}
         />
 
         {/* Event Detail Modal */}

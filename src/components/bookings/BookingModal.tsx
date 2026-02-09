@@ -53,6 +53,7 @@ interface BookingModalProps {
   onSave: (booking: Partial<Booking>) => Promise<void>;
   onClientCreate?: (client: Partial<Client>) => Promise<Client>;
   selectedDate?: Date;
+  selectedTime?: string; // HH:mm format
 }
 
 // Day of week mapping for schedule lookup
@@ -90,6 +91,7 @@ export default function BookingModal({
   onSave,
   onClientCreate,
   selectedDate,
+  selectedTime,
 }: BookingModalProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -263,13 +265,13 @@ export default function BookingModal({
         clientId: '',
         serviceId: '',
         barberId: '',
-        time: '',
+        time: selectedTime || '',
         status: 'confirmed',
         source: 'phone',
         notes: '',
       });
     }
-  }, [booking, selectedDate, open, barbers]);
+  }, [booking, selectedDate, selectedTime, open, barbers]);
 
   // Reset time when date or barber changes (only for new bookings)
   useEffect(() => {
