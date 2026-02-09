@@ -103,7 +103,7 @@ export default function Calendar() {
   const { toast } = useToast();
   const { user } = useAuth();
   const isMobile = useIsMobile();
-  const [viewMode, setViewMode] = useState<ViewMode>(() => isMobile ? '3day' : 'week');
+  const [viewMode, setViewMode] = useState<ViewMode>('3day');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
