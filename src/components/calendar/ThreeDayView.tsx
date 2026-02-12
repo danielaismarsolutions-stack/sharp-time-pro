@@ -133,10 +133,10 @@ export function ThreeDayView({
     return [currentDate, addDays(currentDate, 1), addDays(currentDate, 2)];
   }, [currentDate]);
 
-  // Swipe navigation gesture hook - advances by 1 day instead of 3
+  // Swipe navigation gesture hook - advances by 3 days for full view transition
   const { dragX, isSwipeActive, canSwipe, handlers } = useSwipeNavigationGesture({
-    onSwipeLeft: () => onDateChange(addDays(currentDate, 1)),
-    onSwipeRight: () => onDateChange(addDays(currentDate, -1)),
+    onSwipeLeft: () => onDateChange(addDays(currentDate, 3)),
+    onSwipeRight: () => onDateChange(addDays(currentDate, -3)),
     disabled: isDragging || isSelecting || touchModeRef.current === 'selecting',
     containerWidth,
   });
@@ -335,37 +335,47 @@ export function ThreeDayView({
       className="flex flex-col flex-1"
       style={{ backgroundColor: '#f5f5f5' }}
     >
-      {/* Sticky header: Column Headers + Legend overlay */}
+      {/* Sticky header container with legend overlay */}
       <div className="sticky top-0 z-40 bg-white relative">
-        {/* Column Headers */}
         <div className="flex border-b" style={{ borderColor: '#e0e0e0' }}>
           {/* Time column spacer */}
-          <div className="w-12 shrink-0" style={{ borderRight: '1px solid #e0e0e0' }} />
+          <div className="w-12 shrink-0 bg-white" style={{ borderRight: '1px solid #e0e0e0' }} />
 
-          {/* Day columns - show only visible 3 days */}
-          {visibleDays.map((day) => {
-            const dayIsToday = isToday(day);
-            return (
-              <div
-                key={day.toISOString()}
-                className="flex-1 py-1.5 flex items-center justify-center gap-1.5"
-                style={{ borderRight: '1px solid #e0e0e0' }}
-              >
-                <span className={cn(
-                  'w-6 h-6 flex items-center justify-center rounded-full text-sm font-medium',
-                  dayIsToday ? 'bg-foreground text-background' : 'text-foreground'
-                )}>
-                  {format(day, 'd')}
-                </span>
-                <span className={cn(
-                  'text-sm',
-                  dayIsToday ? 'text-foreground font-medium' : 'text-muted-foreground'
-                )}>
-                  {format(day, 'EEE', { locale: es })}
-                </span>
-              </div>
-            );
-          })}
+          {/* Carousel viewport for day headers - clips to show only 3 days */}
+          <div className="flex-1 overflow-hidden relative">
+            <motion.div
+              style={{ x: dragX, display: 'flex' }}
+              className="pointer-events-none"
+            >
+              {/* Day header columns - synced with day columns below */}
+              {days.map((day) => {
+                const dayIsToday = isToday(day);
+                return (
+                  <div
+                    key={day.toISOString()}
+                    className="py-1.5 flex items-center justify-center gap-1.5"
+                    style={{
+                      flex: '0 0 33.33%',
+                      borderRight: '1px solid #e0e0e0'
+                    }}
+                  >
+                    <span className={cn(
+                      'w-6 h-6 flex items-center justify-center rounded-full text-sm font-medium',
+                      dayIsToday ? 'bg-foreground text-background' : 'text-foreground'
+                    )}>
+                      {format(day, 'd')}
+                    </span>
+                    <span className={cn(
+                      'text-sm',
+                      dayIsToday ? 'text-foreground font-medium' : 'text-muted-foreground'
+                    )}>
+                      {format(day, 'EEE', { locale: es })}
+                    </span>
+                  </div>
+                );
+              })}
+            </motion.div>
+          </div>
         </div>
 
         {/* Legend - hangs below sticky header, overlays grid */}
@@ -429,10 +439,10 @@ export function ThreeDayView({
               style={{ x: dragX, display: 'flex' }}
               drag={canSwipe ? "x" : false}
               dragConstraints={{
-                left: -(containerWidth - 48) * 2 / 3, // Two days width
+                left: -(containerWidth - 48), // Full container width for buffer days
                 right: 0
               }}
-              dragElastic={0.1}
+              dragElastic={0.15}
               onDragStart={handlers.onDragStart}
               onDrag={handlers.onDrag}
               onDragEnd={handlers.onDragEnd}

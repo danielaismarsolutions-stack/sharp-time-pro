@@ -44,21 +44,26 @@ export function useSwipeNavigationGesture({
   // Calculate day width (each day is 1/3 of container in 3-day view)
   const dayWidth = containerWidth / 3;
 
-  // Gesture thresholds
-  const DISTANCE_THRESHOLD = containerWidth * 0.3; // 30% of container
-  const VELOCITY_THRESHOLD = 500; // px/s
+  // Full swipe distance (3 days = full container width)
+  const fullSwipeDistance = containerWidth;
 
-  // Spring animation configuration
+  // Gesture thresholds - lower for more responsive feel
+  const DISTANCE_THRESHOLD = containerWidth * 0.25; // 25% of container
+  const VELOCITY_THRESHOLD = 400; // px/s (lower for easier swipes)
+
+  // Spring animation configuration - smoother and more interactive
   const SPRING_CONFIG = {
     type: "spring" as const,
-    stiffness: 300,
-    damping: 30,
+    stiffness: 280,
+    damping: 28,
+    mass: 0.8,
   };
 
   const SNAP_BACK_CONFIG = {
     type: "spring" as const,
-    stiffness: 400,
-    damping: 40,
+    stiffness: 350,
+    damping: 35,
+    mass: 0.8,
   };
 
   /**
@@ -98,8 +103,8 @@ export function useSwipeNavigationGesture({
         // Prevent multiple simultaneous animations
         isAnimatingRef.current = true;
 
-        // Calculate target position (one day width)
-        const targetOffset = direction === 'right' ? dayWidth : -dayWidth;
+        // Calculate target position (full container width for 3-day transition)
+        const targetOffset = direction === 'right' ? fullSwipeDistance : -fullSwipeDistance;
 
         try {
           // Animate to target position
@@ -130,7 +135,7 @@ export function useSwipeNavigationGesture({
         }
       }
     },
-    [disabled, dayWidth, DISTANCE_THRESHOLD, dragX, onSwipeLeft, onSwipeRight]
+    [disabled, fullSwipeDistance, DISTANCE_THRESHOLD, dragX, onSwipeLeft, onSwipeRight]
   );
 
   /**
