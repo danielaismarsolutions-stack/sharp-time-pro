@@ -173,7 +173,7 @@ export default function Barbers() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-6">
+    <div className="space-y-4 sm:space-y-6 pb-16 sm:pb-6">
       {/* Header - Compact on mobile */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>

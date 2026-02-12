@@ -1,6 +1,6 @@
 // Overlap calculation utilities
 import { parse } from 'date-fns';
-import { ApiBooking } from '@/types/api';
+import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { OverlapInfo } from './types';
 
 // Check if two bookings overlap
@@ -43,5 +43,26 @@ export const getBookingPosition = (
   const endOffset = (endHour - startHourOffset) * hourHeight + (endMinute / 60) * hourHeight;
   const height = Math.max(endOffset - startOffset, 32); // Minimum 32px height
   
+  return { top: startOffset, height };
+};
+
+// Calculate event position (same logic, works with ApiCalendarEvent)
+export const getEventPosition = (
+  event: ApiCalendarEvent,
+  hourHeight: number = 60,
+  startHourOffset: number = 8
+): { top: number; height: number } => {
+  const startTime = parse(event.start_time, 'HH:mm:ss', new Date());
+  const endTime = parse(event.end_time, 'HH:mm:ss', new Date());
+
+  const startHour = startTime.getHours();
+  const startMinute = startTime.getMinutes();
+  const endHour = endTime.getHours();
+  const endMinute = endTime.getMinutes();
+
+  const startOffset = (startHour - startHourOffset) * hourHeight + (startMinute / 60) * hourHeight;
+  const endOffset = (endHour - startHourOffset) * hourHeight + (endMinute / 60) * hourHeight;
+  const height = Math.max(endOffset - startOffset, 32);
+
   return { top: startOffset, height };
 };

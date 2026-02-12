@@ -62,62 +62,62 @@ export function ConsultationDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between pr-8">
+          <DialogTitle className="flex items-center justify-between pr-6">
             <span>Detalle de Consulta</span>
             <StatusBadge status={consultation.status} />
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-3">
           {/* Photo */}
           {consultation.photo_url ? (
             <div className="rounded-lg overflow-hidden border">
               <img
                 src={consultation.photo_url}
                 alt={`Foto de ${consultation.client_name}`}
-                className="w-full h-64 object-cover"
+                className="w-full h-36 object-cover"
               />
             </div>
           ) : (
-            <div className="h-48 bg-muted rounded-lg flex items-center justify-center border">
+            <div className="h-24 bg-muted rounded-lg flex items-center justify-center border">
               <div className="text-center text-muted-foreground">
-                <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Sin foto adjunta</p>
+                <ImageIcon className="h-8 w-8 mx-auto mb-1 opacity-50" />
+                <p className="text-[10px]">Sin foto adjunta</p>
               </div>
             </div>
           )}
 
           {/* Client Info */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <User className="h-4 w-4 text-muted-foreground" />
+          <div className="grid gap-3 grid-cols-2">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs">
+                <User className="h-3 w-3 text-muted-foreground" />
                 <span className="font-medium">{consultation.client_name}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Phone className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-1.5 text-xs">
+                <Phone className="h-3 w-3 text-muted-foreground" />
                 <a href={`tel:${consultation.client_phone}`} className="text-primary hover:underline">
                   {consultation.client_phone}
                 </a>
               </div>
               {consultation.client_email && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <a href={`mailto:${consultation.client_email}`} className="text-primary hover:underline">
+                <div className="flex items-center gap-1.5 text-xs">
+                  <Mail className="h-3 w-3 text-muted-foreground" />
+                  <a href={`mailto:${consultation.client_email}`} className="text-primary hover:underline truncate">
                     {consultation.client_email}
                   </a>
                 </div>
               )}
             </div>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <MessageCircle className="h-4 w-4 text-muted-foreground" />
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs">
+                <MessageCircle className="h-3 w-3 text-muted-foreground" />
                 <span>{consultation.service_name}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-1.5 text-xs">
+                <Calendar className="h-3 w-3 text-muted-foreground" />
                 <span>{formatDate(consultation.created_at)}</span>
               </div>
             </div>
@@ -125,42 +125,44 @@ export function ConsultationDetailModal({
 
           {/* Client Notes */}
           {consultation.client_notes && (
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
+            <div className="space-y-1">
+              <Label className="flex items-center gap-1.5 text-xs">
+                <FileText className="h-3 w-3" />
                 Descripción del cliente
               </Label>
-              <div className="p-3 bg-muted rounded-lg text-sm whitespace-pre-wrap">
+              <div className="p-2 bg-muted rounded-lg text-[11px] whitespace-pre-wrap">
                 {consultation.client_notes}
               </div>
             </div>
           )}
 
           {/* Staff Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="detail-notes" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
+          <div className="space-y-1">
+            <Label htmlFor="detail-notes" className="flex items-center gap-1.5 text-xs">
+              <FileText className="h-3 w-3" />
               Notas del staff
             </Label>
             <Textarea
               id="detail-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Añade notas internas sobre esta consulta..."
-              rows={3}
+              placeholder="Añade notas internas..."
+              rows={2}
+              className="text-xs"
             />
             <Button
               size="sm"
+              className="h-7 text-[11px]"
               onClick={handleSaveNotes}
               disabled={savingNotes || notes === (consultation.staff_notes || '')}
             >
-              {savingNotes && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {savingNotes && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
               Guardar notas
             </Button>
           </div>
 
           {/* Actions */}
-          <div className="flex flex-wrap items-center gap-3 pt-4 border-t">
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
             <StatusDropdown
               currentStatus={consultation.status}
               onStatusChange={handleStatusChange}
@@ -168,7 +170,7 @@ export function ConsultationDetailModal({
             />
 
             {canConvertToBooking && onConvertToBooking && (
-              <Button onClick={onConvertToBooking}>
+              <Button size="sm" className="h-7 text-[11px]" onClick={onConvertToBooking}>
                 Convertir a reserva
               </Button>
             )}
@@ -179,15 +181,15 @@ export function ConsultationDetailModal({
               rel="noopener noreferrer"
               className="inline-flex"
             >
-              <Button variant="outline" className="gap-2 text-green-600 hover:text-green-700">
-                <MessageCircle className="h-4 w-4" />
+              <Button variant="outline" size="sm" className="gap-1.5 text-green-600 hover:text-green-700 h-7 text-[11px]">
+                <MessageCircle className="h-3 w-3" />
                 WhatsApp
               </Button>
             </a>
 
             <a href={`tel:${consultation.client_phone}`}>
-              <Button variant="outline" className="gap-2">
-                <Phone className="h-4 w-4" />
+              <Button variant="outline" size="sm" className="gap-1.5 h-7 text-[11px]">
+                <Phone className="h-3 w-3" />
                 Llamar
               </Button>
             </a>

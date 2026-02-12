@@ -34,6 +34,9 @@ import { supabaseBookingsApi, CreateBookingData } from '@/services/supabaseBooki
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { supabaseClientsApi } from '@/services/supabaseClients';
+import { createNotification } from '@/services/supabaseNotifications';
+import { useAuth } from '@/contexts/AuthContext';
+import { BUSINESS_ID } from '@/config/api';
 
 interface ConsultationBookingModalProps {
   open: boolean;
@@ -58,6 +61,7 @@ export function ConsultationBookingModal({
   onBooked,
 }: ConsultationBookingModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
@@ -241,7 +245,31 @@ export function ConsultationBookingModal({
         notes: formData.notes || `Reserva desde consulta: ${consultation.client_notes || ''}`.trim(),
       };
 
-      await supabaseBookingsApi.create(bookingData);
+      const newBooking = await supabaseBookingsApi.create(bookingData);
+      
+      // Create notification for booking from consultation
+      if (user?.id) {
+        try {
+          await createNotification({
+            user_id: user.id,
+            business_id: BUSINESS_ID,
+            type: 'booking_created',
+            title: 'Nueva reserva desde consulta',
+            message: `${consultation.client_name} ha reservado ${selectedService.name} para el ${format(date, "dd/MM/yyyy", { locale: es })} a las ${formData.time}`,
+            metadata: {
+              booking_id: newBooking.id,
+              consultation_id: consultation.id,
+              client_name: consultation.client_name,
+              service_name: selectedService.name,
+              booking_date: format(date, 'yyyy-MM-dd'),
+              start_time: formData.time,
+            },
+          });
+          console.log('✅ Notification created for consultation booking');
+        } catch (notifError) {
+          console.error('Failed to create notification:', notifError);
+        }
+      }
       
       toast({
         title: 'Cita creada',
@@ -289,27 +317,27 @@ export function ConsultationBookingModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CalendarIcon className="h-5 w-5 text-primary" />
+          <DialogTitle className="flex items-center gap-1.5">
+            <CalendarIcon className="h-4 w-4 text-primary" />
             Convertir a Reserva
           </DialogTitle>
         </DialogHeader>
 
         {isLoadingData ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {/* Client Info (read-only) */}
-            <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-              <p className="text-sm font-medium flex items-center gap-2">
-                <User className="h-4 w-4" />
+            <div className="bg-muted/50 rounded-lg p-2.5 space-y-1">
+              <p className="text-xs font-medium flex items-center gap-1.5">
+                <User className="h-3 w-3" />
                 Datos del cliente
               </p>
-              <div className="text-sm text-muted-foreground space-y-1">
+              <div className="text-[11px] text-muted-foreground space-y-0.5">
                 <p><strong>Nombre:</strong> {consultation.client_name}</p>
                 <p><strong>Teléfono:</strong> {consultation.client_phone}</p>
                 {consultation.client_email && (
@@ -319,24 +347,24 @@ export function ConsultationBookingModal({
             </div>
 
             {/* Service Selection */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Scissors className="h-4 w-4" />
+            <div className="space-y-1">
+              <Label className="flex items-center gap-1.5 text-xs">
+                <Scissors className="h-3 w-3" />
                 Servicio
               </Label>
               <Select
                 value={formData.serviceId}
                 onValueChange={(value) => setFormData({ ...formData, serviceId: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-xs">
                   <SelectValue placeholder="Selecciona un servicio" />
                 </SelectTrigger>
                 <SelectContent>
                   {services.map((service) => (
                     <SelectItem key={service.id} value={service.id}>
-                      <div className="flex items-center justify-between w-full gap-4">
-                        <span>{service.name}</span>
-                        <span className="text-muted-foreground text-sm">
+                      <div className="flex items-center justify-between w-full gap-3">
+                        <span className="text-xs">{service.name}</span>
+                        <span className="text-muted-foreground text-[10px]">
                           {service.duration}min • €{service.price}
                         </span>
                       </div>
@@ -348,17 +376,17 @@ export function ConsultationBookingModal({
 
             {/* Duration & Price Selection (for variable duration services) */}
             {isVariableDuration && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-1.5 text-xs">
+                    <Clock className="h-3 w-3" />
                     Duración
                   </Label>
                   <Select
                     value={formData.customDuration.toString()}
                     onValueChange={(value) => setFormData({ ...formData, customDuration: parseInt(value) })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -370,8 +398,8 @@ export function ConsultationBookingModal({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-1.5 text-xs">
                     <span>€</span>
                     Precio
                   </Label>
@@ -382,21 +410,22 @@ export function ConsultationBookingModal({
                     value={formData.customPrice}
                     onChange={(e) => setFormData({ ...formData, customPrice: parseFloat(e.target.value) || 0 })}
                     placeholder="0.00"
+                    className="h-8 text-xs"
                   />
                 </div>
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <User className="h-4 w-4" />
+            <div className="space-y-1">
+              <Label className="flex items-center gap-1.5 text-xs">
+                <User className="h-3 w-3" />
                 Barbero
               </Label>
               <Select
                 value={formData.barberId || 'none'}
                 onValueChange={(value) => setFormData({ ...formData, barberId: value === 'none' ? '' : value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-xs">
                   <SelectValue placeholder="Selecciona un barbero (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -411,20 +440,20 @@ export function ConsultationBookingModal({
             </div>
 
             {/* Date & Time */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Fecha</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Fecha</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        'w-full justify-start text-left font-normal',
+                        'w-full justify-start text-left font-normal h-8 text-xs',
                         !date && 'text-muted-foreground'
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {date ? format(date, 'PPP', { locale: es }) : 'Selecciona fecha'}
+                      <CalendarIcon className="mr-1.5 h-3 w-3" />
+                      {date ? format(date, "d MMM yyyy", { locale: es }) : 'Selecciona fecha'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -440,19 +469,19 @@ export function ConsultationBookingModal({
                 </Popover>
               </div>
 
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
+              <div className="space-y-1">
+                <Label className="flex items-center gap-1.5 text-xs">
+                  <Clock className="h-3 w-3" />
                   Hora
-                  {isLoadingSlots && <Loader2 className="h-3 w-3 animate-spin" />}
+                  {isLoadingSlots && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
                 </Label>
                 <Select
                   value={formData.time}
                   onValueChange={(value) => setFormData({ ...formData, time: value })}
                   disabled={isLoadingSlots}
                 >
-                  <SelectTrigger className={cn(!formData.time && 'text-muted-foreground')}>
-                    <SelectValue placeholder="Selecciona hora" />
+                  <SelectTrigger className={cn("h-8 text-xs", !formData.time && 'text-muted-foreground')}>
+                    <SelectValue placeholder="Hora" />
                   </SelectTrigger>
                   <SelectContent>
                     {formData.barberId ? (
@@ -463,7 +492,7 @@ export function ConsultationBookingModal({
                           </SelectItem>
                         ))
                       ) : (
-                        <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                        <div className="px-2 py-3 text-[10px] text-muted-foreground text-center">
                           No hay horarios disponibles
                         </div>
                       )
@@ -477,50 +506,51 @@ export function ConsultationBookingModal({
                   </SelectContent>
                 </Select>
                 {formData.barberId && bookedSlots.length > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {bookedSlots.length} cita(s) ocupada(s) este día
+                  <p className="text-[10px] text-muted-foreground">
+                    {bookedSlots.length} cita(s) ocupada(s)
                   </p>
                 )}
               </div>
             </div>
 
             {/* Notes */}
-            <div className="space-y-2">
-              <Label>Notas adicionales</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Notas adicionales</Label>
               <Textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Notas adicionales para la cita..."
                 rows={2}
+                className="text-xs"
               />
             </div>
 
             {/* Original consultation note */}
             {consultation.client_notes && (
-              <div className="bg-muted/30 rounded-lg p-3 space-y-1 text-sm">
-                <p className="font-medium text-muted-foreground">Nota original del cliente:</p>
-                <p className="text-foreground">{consultation.client_notes}</p>
+              <div className="bg-muted/30 rounded-lg p-2 space-y-0.5">
+                <p className="text-[10px] font-medium text-muted-foreground">Nota original del cliente:</p>
+                <p className="text-[11px] text-foreground">{consultation.client_notes}</p>
               </div>
             )}
 
             {/* Summary */}
             {selectedService && date && (
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-1">
-                <p className="text-sm font-medium">Resumen de la cita</p>
-                <div className="flex justify-between text-sm">
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-2.5 space-y-0.5">
+                <p className="text-xs font-medium">Resumen de la cita</p>
+                <div className="flex justify-between text-xs">
                   <span>{selectedService.name}</span>
                   <span className="font-medium">€{effectivePrice}</span>
                 </div>
-                <div className="flex justify-between text-sm text-muted-foreground">
+                <div className="flex justify-between text-[10px] text-muted-foreground">
                   <span>Fecha y hora</span>
                   <span>{format(date, 'dd/MM/yyyy', { locale: es })} a las {formData.time}</span>
                 </div>
-                <div className="flex justify-between text-sm text-muted-foreground">
+                <div className="flex justify-between text-[10px] text-muted-foreground">
                   <span>Duración</span>
-                  <span>{effectiveDuration} minutos</span>
+                  <span>{effectiveDuration} min</span>
                 </div>
                 {selectedBarber && (
-                  <div className="flex justify-between text-sm text-muted-foreground">
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
                     <span>Barbero</span>
                     <span>{selectedBarber.name}</span>
                   </div>
@@ -529,14 +559,14 @@ export function ConsultationBookingModal({
             )}
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" size="sm" className="text-xs h-8" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isLoading || !formData.serviceId || !formData.time}>
+              <Button type="submit" size="sm" className="text-xs h-8" disabled={isLoading || !formData.serviceId || !formData.time}>
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
                     Creando...
                   </>
                 ) : (

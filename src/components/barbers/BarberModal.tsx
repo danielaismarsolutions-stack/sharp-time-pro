@@ -61,56 +61,60 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{barber ? 'Editar Barbero' : 'Nuevo Barbero'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nombre *</Label>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="space-y-1">
+            <Label htmlFor="name" className="text-xs">Nombre *</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Nombre del barbero"
               required
+              className="h-8 text-xs"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+          <div className="space-y-1">
+            <Label htmlFor="email" className="text-xs">Email</Label>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="email@ejemplo.com"
+              className="h-8 text-xs"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">Teléfono</Label>
+          <div className="space-y-1">
+            <Label htmlFor="phone" className="text-xs">Teléfono</Label>
             <Input
               id="phone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+34 600 000 000"
+              className="h-8 text-xs"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="bio">Biografía</Label>
+          <div className="space-y-1">
+            <Label htmlFor="bio" className="text-xs">Biografía</Label>
             <Textarea
               id="bio"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="Descripción breve del barbero..."
-              rows={3}
+              rows={2}
+              className="text-xs"
             />
           </div>
 
-          <div className="flex items-center justify-between">
-            <Label htmlFor="active">Activo</Label>
+          <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30">
+            <Label htmlFor="active" className="text-xs">Activo</Label>
             <Switch
               id="active"
               checked={isActive}
@@ -118,12 +122,12 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" size="sm" className="text-xs h-8" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={saving || !name.trim()}>
-              {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+            <Button type="submit" size="sm" className="text-xs h-8" disabled={saving || !name.trim()}>
+              {saving && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
               {barber ? 'Guardar' : 'Crear'}
             </Button>
           </div>

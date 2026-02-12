@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Scissors, Clock, DollarSign, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -159,17 +160,17 @@ export default function ServiceModal({
 
   return (
     <Dialog open={open} onOpenChange={(value) => !isLoading && onOpenChange(value)}>
-      <DialogContent className="sm:max-w-[500px] bg-card border-border max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Scissors className="h-5 w-5 text-primary" />
+          <DialogTitle className="flex items-center gap-1.5">
+            <Scissors className="h-4 w-4 text-primary" />
             {service ? 'Editar Servicio' : 'Nuevo Servicio'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>Nombre del servicio *</Label>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Nombre del servicio *</Label>
             <Input
               value={formData.name}
               onChange={(e) => {
@@ -177,29 +178,30 @@ export default function ServiceModal({
                 if (errors.name) setErrors({ ...errors, name: undefined });
               }}
               placeholder="Ej: Corte clásico"
-              className={errors.name ? 'border-destructive' : ''}
+              className={cn("h-8 text-xs", errors.name && 'border-destructive')}
               maxLength={100}
             />
             {errors.name && (
-              <p className="text-sm text-destructive">{errors.name}</p>
+              <p className="text-[10px] text-destructive">{errors.name}</p>
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label>Descripción</Label>
+          <div className="space-y-1">
+            <Label className="text-xs">Descripción</Label>
             <Textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Descripción opcional del servicio..."
               rows={2}
               maxLength={500}
+              className="text-xs"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="flex items-center gap-1.5 text-xs">
+                <Clock className="h-3 w-3" />
                 Duración *
               </Label>
               <Select
@@ -209,25 +211,25 @@ export default function ServiceModal({
                   if (errors.duration) setErrors({ ...errors, duration: undefined });
                 }}
               >
-                <SelectTrigger className={errors.duration ? 'border-destructive' : ''}>
+                <SelectTrigger className={cn("h-8 text-xs", errors.duration && 'border-destructive')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {durationOptions.map((d) => (
                     <SelectItem key={d} value={d.toString()}>
-                      {d} minutos
+                      {d} min
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {errors.duration && (
-                <p className="text-sm text-destructive">{errors.duration}</p>
+                <p className="text-[10px] text-destructive">{errors.duration}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
+            <div className="space-y-1">
+              <Label className="flex items-center gap-1.5 text-xs">
+                <DollarSign className="h-3 w-3" />
                 Precio (€) *
               </Label>
               <Input
@@ -239,23 +241,23 @@ export default function ServiceModal({
                   setFormData({ ...formData, price: parseFloat(e.target.value) || 0 });
                   if (errors.price) setErrors({ ...errors, price: undefined });
                 }}
-                className={errors.price ? 'border-destructive' : ''}
+                className={cn("h-8 text-xs", errors.price && 'border-destructive')}
               />
               {errors.price && (
-                <p className="text-sm text-destructive">{errors.price}</p>
+                <p className="text-[10px] text-destructive">{errors.price}</p>
               )}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Color (para el calendario)</Label>
-            <div className="flex flex-wrap gap-2">
+          <div className="space-y-1">
+            <Label className="text-xs">Color</Label>
+            <div className="flex flex-wrap gap-1.5">
               {colorOptions.map((color) => (
                 <button
                   key={color}
                   type="button"
-                  className={`w-8 h-8 rounded-full border-2 transition-all ${
-                    formData.color === color ? 'border-foreground scale-110 ring-2 ring-offset-2 ring-primary' : 'border-transparent'
+                  className={`w-6 h-6 rounded-full border-2 transition-all ${
+                    formData.color === color ? 'border-foreground scale-110 ring-1 ring-offset-1 ring-primary' : 'border-transparent'
                   }`}
                   style={{ backgroundColor: color }}
                   onClick={() => setFormData({ ...formData, color })}
@@ -264,36 +266,38 @@ export default function ServiceModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Buffer antes (min)</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Buffer antes (min)</Label>
               <Input
                 type="number"
                 min="0"
                 max="60"
                 value={formData.bufferBefore}
                 onChange={(e) => setFormData({ ...formData, bufferBefore: Math.max(0, parseInt(e.target.value) || 0) })}
+                className="h-8 text-xs"
               />
-              <p className="text-xs text-muted-foreground">Tiempo libre antes de la cita</p>
+              <p className="text-[10px] text-muted-foreground">Antes de la cita</p>
             </div>
-            <div className="space-y-2">
-              <Label>Buffer después (min)</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Buffer después (min)</Label>
               <Input
                 type="number"
                 min="0"
                 max="60"
                 value={formData.bufferAfter}
                 onChange={(e) => setFormData({ ...formData, bufferAfter: Math.max(0, parseInt(e.target.value) || 0) })}
+                className="h-8 text-xs"
               />
-              <p className="text-xs text-muted-foreground">Tiempo libre después de la cita</p>
+              <p className="text-[10px] text-muted-foreground">Después de la cita</p>
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+          <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30">
             <div>
-              <Label>Activo</Label>
-              <p className="text-sm text-muted-foreground">
-                Servicios inactivos no aparecen en las reservas
+              <Label className="text-xs">Activo</Label>
+              <p className="text-[10px] text-muted-foreground">
+                Inactivos no aparecen en reservas
               </p>
             </div>
             <Switch
@@ -302,19 +306,21 @@ export default function ServiceModal({
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs h-8"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" size="sm" className="text-xs h-8" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
                   Guardando...
                 </>
               ) : service ? 'Actualizar' : 'Crear Servicio'}

@@ -1,8 +1,8 @@
-// Shared BookingCard component with consistent text size across all cards
+// Shared BookingCard component with drag-and-drop support and consistent text sizing
 import React, { forwardRef } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Clock, User } from 'lucide-react';
+import { Clock, User, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ApiBooking } from '@/types/api';
 import { ColorClasses, OverlapInfo } from './types';
@@ -22,11 +22,12 @@ interface BookingCardProps {
   isDraggable?: boolean;
   viewMode?: 'day' | 'week' | 'month';
   isMobile?: boolean;
+  /** When true, card is attenuated (pending move confirmation) */
+  isPendingMove?: boolean;
 }
 
 // Get spacing based on card height - text size is ALWAYS the same
 const getSpacingStyles = (height: number) => {
-  // Very small cards (< 35px) - minimal spacing
   if (height < 35) {
     return {
       padding: 'px-1 py-0.5',
@@ -34,8 +35,6 @@ const getSpacingStyles = (height: number) => {
       lineHeight: 'leading-tight',
     };
   }
-  
-  // Small cards (35-50px) - tight spacing
   if (height < 50) {
     return {
       padding: 'px-1.5 py-0.5',
@@ -43,8 +42,6 @@ const getSpacingStyles = (height: number) => {
       lineHeight: 'leading-tight',
     };
   }
-  
-  // Medium cards (50-70px) - normal spacing
   if (height < 70) {
     return {
       padding: 'px-1.5 py-1',
@@ -52,8 +49,6 @@ const getSpacingStyles = (height: number) => {
       lineHeight: 'leading-normal',
     };
   }
-  
-  // Large cards (70-100px) - comfortable spacing
   if (height < 100) {
     return {
       padding: 'px-2 py-1.5',
@@ -61,8 +56,6 @@ const getSpacingStyles = (height: number) => {
       lineHeight: 'leading-normal',
     };
   }
-  
-  // Extra large cards (>= 100px) - generous spacing
   return {
     padding: 'px-2 py-2',
     marginBetween: 'mt-2',
@@ -95,30 +88,36 @@ interface CardButtonProps {
   dragAttributes: Record<string, any>;
   dragListeners: Record<string, any> | undefined;
   onClick: () => void;
+  isMobile?: boolean;
+  isPendingMove?: boolean;
 }
 
 const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
-  ({ booking, style, colorClasses, spacingStyles, widthPercent, leftPercent, gap, isDragging, isDraggable, dragStyle, dragAttributes, dragListeners, onClick }, ref) => {
+  ({ booking, style, colorClasses, spacingStyles, widthPercent, leftPercent, gap, isDragging, isDraggable, dragStyle, dragAttributes, dragListeners, onClick, isMobile, isPendingMove }, ref) => {
     const startTime = booking.start_time.substring(0, 5);
     const endTime = booking.end_time.substring(0, 5);
 
     return (
       <button
         ref={ref}
-        onClick={onClick}
+        onClick={isDragging ? undefined : (e) => { e.stopPropagation(); onClick(); }}
         className={cn(
           // Base styling
           'absolute rounded-lg border border-border/40 border-l-4 cursor-pointer',
-          'transition-all duration-200 overflow-hidden flex flex-col justify-start text-left',
+          'overflow-hidden flex flex-col justify-start text-left',
           // Shadow for depth
           'shadow-sm hover:shadow-md',
-          // Hover effects
-          'hover:brightness-95 hover:scale-[1.01]',
-          // Dragging state
-          isDragging && 'opacity-60 scale-105 shadow-lg z-50',
+          // Hover effects (only when not dragging)
+          !isDragging && 'hover:brightness-95 hover:scale-[1.01]',
+          // Smooth transitions for snap-to-grid animation
+          'transition-[box-shadow,filter,transform] duration-200',
+          // Dragging state - ghosted appearance at original position
+          isDragging && 'opacity-40 shadow-none z-0',
+          // Pending move confirmation - attenuated
+          isPendingMove && !isDragging && 'opacity-30',
+          isDraggable && 'touch-none',
           // Padding based on height
           spacingStyles.padding,
-          // Line height
           spacingStyles.lineHeight,
           // Colors
           colorClasses.bg,
@@ -135,15 +134,22 @@ const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
         }}
         {...(isDraggable ? { ...dragAttributes, ...dragListeners } : {})}
       >
-        {/* Row 1: Time range - ALWAYS show start and end time with CONSISTENT text size */}
+        {/* Drag grip indicator for draggable cards */}
+        {isDraggable && !isDragging && style.height >= 40 && (
+          <div className="absolute top-0.5 right-0.5 opacity-30">
+            <GripVertical className="w-3 h-3" />
+          </div>
+        )}
+
+        {/* Row 1: Time range */}
         <div className="flex items-center gap-1 w-full">
           <Clock className="w-2.5 h-2.5 shrink-0 opacity-70" />
           <span className="text-[10px] font-bold whitespace-nowrap">
             {startTime} - {endTime}
           </span>
         </div>
-        
-        {/* Row 2: Client Name - ALWAYS visible with CONSISTENT text size */}
+
+        {/* Row 2: Client Name */}
         <div className={cn('flex items-center gap-1 w-full', spacingStyles.marginBetween)}>
           <User className="w-2.5 h-2.5 shrink-0 opacity-70" />
           <span className="text-[10px] font-medium truncate">
@@ -166,33 +172,32 @@ export function BookingCard({
   isDraggable = true,
   viewMode = 'day',
   isMobile = false,
+  isPendingMove = false,
 }: BookingCardProps) {
   const { total, index } = overlapInfo;
-  
+
   // Drag and drop setup
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: booking.id,
     data: { booking },
     disabled: !isDraggable,
   });
-  
-  const dragStyle = transform ? {
-    transform: CSS.Translate.toString(transform),
-    zIndex: 100,
-    opacity: 0.8,
-  } : undefined;
-  
-  // Calculate width based on overlaps (side-by-side for all devices)
+
+  // Don't apply transform to the original card - it stays in place.
+  // The DragOverlay component handles the moving visual.
+  const dragStyle = undefined;
+
+  // Calculate width based on overlaps
   const widthPercent = 100 / total;
   const leftPercent = index * widthPercent;
-  const gap = isMobile ? 1 : 2; // Smaller gap on mobile
-  
-  // Get spacing based on card height only
+  const gap = isMobile ? 1 : 2;
+
+  // Get spacing based on card height
   const spacingStyles = getSpacingStyles(style.height);
-  
+
   // Show tooltip for narrow cards
   const showTooltip = widthPercent < 50 || total >= 3;
-  
+
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
 
@@ -210,8 +215,10 @@ export function BookingCard({
     dragAttributes: attributes,
     dragListeners: listeners,
     onClick,
+    isMobile,
+    isPendingMove,
   };
-  
+
   // Wrap with tooltip for compact cards
   if (showTooltip && !isDragging) {
     return (
@@ -234,7 +241,7 @@ export function BookingCard({
       </TooltipProvider>
     );
   }
-  
+
   return <CardButton ref={setNodeRef} {...cardProps} />;
 }
 

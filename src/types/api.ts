@@ -17,6 +17,8 @@ export interface ApiResponse<T> {
 export type ApiBookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
 export type ApiBookingSource = 'online' | 'phone' | 'walk_in';
 
+export type ApiBookingType = 'booking' | 'event';
+
 export interface ApiBooking {
   id: string;
   business_id: string;
@@ -40,6 +42,13 @@ export interface ApiBooking {
   reminder_sent_at: string | null;
   created_at: string; // ISO timestamp
   updated_at: string; // ISO timestamp
+  // Event-specific columns (populated when booking_type = 'event')
+  booking_type?: ApiBookingType;
+  event_name?: string | null;
+  is_recurring?: boolean;
+  recurrence_rule?: Record<string, unknown> | null;
+  location?: string | null;
+  color?: string | null;
 }
 
 // ==================== Client Types (Future) ====================
@@ -100,4 +109,48 @@ export interface UpdateBookingRequest {
   status?: ApiBookingStatus;
   notes?: string;
   cancellation_reason?: string;
+}
+
+// ==================== Calendar Event Types ====================
+
+export type ApiEventRepeat = 'none' | 'daily' | 'weekly' | 'monthly';
+
+export interface ApiCalendarEvent {
+  id: string;
+  business_id: string;
+  name: string;
+  event_date: string; // YYYY-MM-DD
+  start_time: string; // HH:mm:ss
+  end_time: string; // HH:mm:ss
+  repeat: ApiEventRepeat;
+  location: string | null;
+  notes: string | null;
+  barber: string | null;
+  color: string; // hex color
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateEventRequest {
+  name: string;
+  event_date: string;
+  start_time: string;
+  end_time: string;
+  repeat?: ApiEventRepeat;
+  location?: string;
+  notes?: string;
+  barber?: string | null;
+  color?: string;
+}
+
+export interface UpdateEventRequest {
+  name?: string;
+  event_date?: string;
+  start_time?: string;
+  end_time?: string;
+  repeat?: ApiEventRepeat;
+  location?: string;
+  notes?: string;
+  barber?: string | null;
+  color?: string;
 }

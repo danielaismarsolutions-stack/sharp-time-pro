@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { Bell, Search, Command, Check, Trash2, Settings, HelpCircle, User, Loader2 } from 'lucide-react';
+import { Bell, Search, Command, Check, Trash2, Settings, HelpCircle, User, Loader2, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
@@ -27,9 +27,10 @@ import { cn } from '@/lib/utils';
 interface TopBarProps {
   onSearchOpen?: () => void;
   isMobile?: boolean;
+  onMenuClick?: () => void;
 }
 
-export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
+export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { 
@@ -49,11 +50,21 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
     .slice(0, 2) || 'U';
 
   return (
-    <header className="h-14 md:h-16 bg-card border-b border-border flex items-center justify-between px-3 md:px-6 sticky top-0 z-30">
+    <header className="bg-card border-b border-border flex items-center justify-between px-3 md:px-6 sticky top-0 z-30" style={{ paddingTop: 'env(safe-area-inset-top, 0px)', minHeight: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
       {/* Left side - Search */}
       <div className="flex items-center gap-2 md:gap-4 flex-1 max-w-md">
         {isMobile && (
-          <h1 className="font-bold text-lg">BarberPro</h1>
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onMenuClick}
+              className="h-10 w-10 min-h-[44px] min-w-[44px] -ml-1"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+            <h1 className="font-bold text-lg">BarberPro</h1>
+          </>
         )}
         {!isMobile && (
           <div className="relative flex-1">
@@ -80,13 +91,13 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
         </div>
 
         {/* Notifications */}
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative h-10 w-10 min-h-[44px] min-w-[44px]">
               <Bell className="h-5 w-5" />
               {unreadCount > 0 && (
-                <Badge 
-                  variant="destructive" 
+                <Badge
+                  variant="destructive"
                   className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px]"
                 >
                   {unreadCount > 9 ? '9+' : unreadCount}
@@ -94,7 +105,7 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
+          <DropdownMenuContent align="end" className="w-80 max-w-[calc(100vw-2rem)]">
             <div className="flex items-center justify-between px-2">
               <DropdownMenuLabel className="flex items-center gap-2">
                 Notificaciones
@@ -182,7 +193,7 @@ export default function TopBar({ onSearchOpen, isMobile }: TopBarProps) {
         </DropdownMenu>
 
         {/* User menu */}
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 min-h-[44px] min-w-[44px] rounded-full">
               <Avatar>

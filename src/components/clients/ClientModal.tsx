@@ -28,12 +28,38 @@ export default function ClientModal({
 }: ClientModalProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     email: '',
     notes: '',
   });
+
+  // Detect virtual keyboard and compute offset to shift dialog up
+  useEffect(() => {
+    if (!open) {
+      setKeyboardOffset(0);
+      return;
+    }
+
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleResize = () => {
+      const offset = window.innerHeight - vv.height;
+      setKeyboardOffset(offset > 100 ? offset : 0);
+    };
+
+    vv.addEventListener('resize', handleResize);
+    vv.addEventListener('scroll', handleResize);
+    handleResize();
+
+    return () => {
+      vv.removeEventListener('resize', handleResize);
+      vv.removeEventListener('scroll', handleResize);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (client) {
@@ -87,42 +113,49 @@ export default function ClientModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-card border-border">
+      <DialogContent
+        className="bg-card border-border max-h-[85dvh] overflow-y-auto transition-[top] duration-200"
+        style={keyboardOffset > 0 ? {
+          top: `calc(50% - ${keyboardOffset / 2}px)`,
+        } : undefined}
+      >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
+          <DialogTitle className="flex items-center gap-1.5">
+            <User className="h-4 w-4 text-primary" />
             {client ? 'Editar Cliente' : 'Nuevo Cliente'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <User className="h-4 w-4" />
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="space-y-1">
+            <Label className="flex items-center gap-1.5 text-xs">
+              <User className="h-3 w-3" />
               Nombre completo *
             </Label>
             <Input
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Juan García"
+              className="h-8 text-xs"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
+          <div className="space-y-1">
+            <Label className="flex items-center gap-1.5 text-xs">
+              <Phone className="h-3 w-3" />
               Teléfono *
             </Label>
             <Input
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               placeholder="+34 612 345 678"
+              className="h-8 text-xs"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
+          <div className="space-y-1">
+            <Label className="flex items-center gap-1.5 text-xs">
+              <Mail className="h-3 w-3" />
               Correo electrónico
             </Label>
             <Input
@@ -130,27 +163,29 @@ export default function ClientModal({
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="juan@ejemplo.com"
+              className="h-8 text-xs"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
+          <div className="space-y-1">
+            <Label className="flex items-center gap-1.5 text-xs">
+              <MessageSquare className="h-3 w-3" />
               Notas
             </Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Preferencias, alergias, solicitudes especiales..."
-              rows={3}
+              rows={2}
+              className="text-xs"
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" size="sm" className="text-xs h-8" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" size="sm" className="text-xs h-8" disabled={isLoading}>
               {isLoading ? 'Guardando...' : client ? 'Actualizar' : 'Crear Cliente'}
             </Button>
           </div>

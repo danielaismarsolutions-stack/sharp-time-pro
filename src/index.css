@@ -126,6 +126,40 @@
   }
 }
 
+/* =============================================
+   Mobile Native App Behavior
+   - Disable text selection & long-press context menu
+   - Prevent double-tap zoom on iOS
+   - Keep selection enabled for inputs/textareas
+   ============================================= */
+
+/* Disable text selection and touch callouts globally */
+*,
+*::before,
+*::after {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Re-enable text selection for form elements where users need to type/select */
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* Prevent double-tap zoom on iOS by eliminating tap delay */
+html {
+  touch-action: manipulation;
+}
+
 @layer utilities {
   /* Status badge utilities */
   .status-pending {

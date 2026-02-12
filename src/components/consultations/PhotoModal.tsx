@@ -16,15 +16,15 @@ interface PhotoModalProps {
 export function PhotoModal({ open, onOpenChange, photoUrl, clientName }: PhotoModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl p-0 overflow-hidden">
-        <DialogHeader className="p-4 pb-0">
+      <DialogContent className="max-w-sm p-0 overflow-hidden">
+        <DialogHeader className="p-3 pb-0">
           <DialogTitle>Foto de {clientName}</DialogTitle>
         </DialogHeader>
-        <div className="p-4">
+        <div className="p-3">
           <img
             src={photoUrl}
             alt={`Foto de consulta de ${clientName}`}
-            className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+            className="w-full h-auto max-h-[60vh] object-contain rounded-lg"
           />
         </div>
       </DialogContent>
