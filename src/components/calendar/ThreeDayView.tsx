@@ -117,14 +117,19 @@ export function ThreeDayView({
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
-  // Get 5 consecutive days for carousel (2 buffer days on each side)
+  // Get 9 consecutive days for carousel (3 buffer days on each side)
+  // This ensures instant 3-day swipes without waiting for new days to load
   const days = useMemo(() => {
     return [
+      addDays(currentDate, -3),
       addDays(currentDate, -2),
       addDays(currentDate, -1),
       currentDate,
       addDays(currentDate, 1),
       addDays(currentDate, 2),
+      addDays(currentDate, 3),
+      addDays(currentDate, 4),
+      addDays(currentDate, 5),
     ];
   }, [currentDate]);
 
@@ -343,12 +348,14 @@ export function ThreeDayView({
 
           {/* Carousel viewport for day headers - clips to show only 3 days */}
           <div className="flex-1 overflow-hidden relative">
-            <motion.div
-              style={{ x: dragX, display: 'flex' }}
-              className="pointer-events-none"
-            >
-              {/* Day header columns - synced with day columns below */}
-              {days.map((day) => {
+            {/* Wrapper to offset carousel so middle 3 days (indices 3,4,5) are visible */}
+            <div style={{ transform: `translateX(-${containerWidth}px)` }}>
+              <motion.div
+                style={{ x: dragX, display: 'flex' }}
+                className="pointer-events-none"
+              >
+                {/* Day header columns - synced with day columns below */}
+                {days.map((day) => {
                 const dayIsToday = isToday(day);
                 return (
                   <div
@@ -374,7 +381,8 @@ export function ThreeDayView({
                   </div>
                 );
               })}
-            </motion.div>
+              </motion.div>
+            </div>
           </div>
         </div>
 
@@ -435,19 +443,21 @@ export function ThreeDayView({
 
           {/* Carousel viewport - clips to show only 3 days */}
           <div className="flex-1 overflow-hidden relative">
-            <motion.div
-              style={{ x: dragX, display: 'flex' }}
-              drag={canSwipe ? "x" : false}
-              dragConstraints={{
-                left: -(containerWidth - 48), // Full container width for buffer days
-                right: 0
-              }}
-              dragElastic={0.15}
-              onDragStart={handlers.onDragStart}
-              onDrag={handlers.onDrag}
-              onDragEnd={handlers.onDragEnd}
-            >
-              {/* Day columns */}
+            {/* Wrapper to offset carousel so middle 3 days (indices 3,4,5) are visible */}
+            <div style={{ transform: `translateX(-${containerWidth}px)` }}>
+              <motion.div
+                style={{ x: dragX, display: 'flex' }}
+                drag={canSwipe ? "x" : false}
+                dragConstraints={{
+                  left: -2 * containerWidth, // Allow 2 views left (to see days 6,7,8)
+                  right: containerWidth      // Allow 1 view right (to see days 0,1,2)
+                }}
+                dragElastic={0.15}
+                onDragStart={handlers.onDragStart}
+                onDrag={handlers.onDrag}
+                onDragEnd={handlers.onDragEnd}
+              >
+                {/* Day columns */}
               {days.map((day) => {
                 const dayBookings = getBookingsForDay(day);
                 const dayIsToday = isToday(day);
@@ -573,7 +583,8 @@ export function ThreeDayView({
               </div>
             );
           })}
-            </motion.div>
+              </motion.div>
+            </div>
 
             {/* Current time indicator */}
           {showCurrentTime && currentTimePosition !== null && (
