@@ -19,7 +19,6 @@ import {
   differenceInMinutes,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { motion } from 'framer-motion';
 import {
   DndContext,
   PointerSensor,
@@ -64,7 +63,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCalendarDragDropEnhanced, snapToQuarterHour, isWithinBusinessHours } from '@/hooks/useCalendarDragDropEnhanced';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
-import { useSwipeNavigationGesture } from '@/hooks/useSwipeNavigationGesture';
 import { useAutoScrollToNow } from '@/hooks/useAutoScrollToNow';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/bookings/BookingModal';

@@ -1,11 +1,10 @@
 import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import { format, addDays, isToday, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { motion } from 'framer-motion';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 import { cn } from '@/lib/utils';
-import { useSwipeNavigationGesture } from '@/hooks/useSwipeNavigationGesture';
+import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { getServicePastelColor, getOverlapInfo, getBookingPosition, getEventPosition } from '@/components/calendar/shared';
 import { pastelColors } from '@/components/calendar/shared/colorUtils';
 import { BookingCard } from '@/components/calendar/shared/BookingCard';
@@ -78,7 +77,7 @@ export function ThreeDayView({
 
   // Touch gesture tracking refs for mobile drag-to-create
   const touchStartRef = useRef<{ clientX: number; clientY: number; date: Date; gridY: number; rectTop: number } | null>(null);
-  const touchModeRef = useRef<'undetermined' | 'swipe-nav' | 'selecting' | 'scrolling'>('undetermined');
+  const touchModeRef = useRef<'undetermined' | 'selecting' | 'scrolling'>('undetermined');
   const touchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Update current time every minute
@@ -102,48 +101,15 @@ export function ThreeDayView({
     };
   }, []);
 
-  // Measure container width for swipe gesture calculations
-  const [containerWidth, setContainerWidth] = useState(0);
-
-  useEffect(() => {
-    const updateWidth = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.offsetWidth);
-      }
-    };
-
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
-  }, []);
-
-  // Get 9 consecutive days for carousel (3 buffer days on each side)
-  // This ensures instant 3-day swipes without waiting for new days to load
+  // Get 3 consecutive days starting from currentDate
   const days = useMemo(() => {
-    return [
-      addDays(currentDate, -3),
-      addDays(currentDate, -2),
-      addDays(currentDate, -1),
-      currentDate,
-      addDays(currentDate, 1),
-      addDays(currentDate, 2),
-      addDays(currentDate, 3),
-      addDays(currentDate, 4),
-      addDays(currentDate, 5),
-    ];
-  }, [currentDate]);
-
-  // Visible days are the middle 3 days (for header display)
-  const visibleDays = useMemo(() => {
     return [currentDate, addDays(currentDate, 1), addDays(currentDate, 2)];
   }, [currentDate]);
 
-  // Swipe navigation gesture hook - advances by 3 days for full view transition
-  const { dragX, isSwipeActive, canSwipe, handlers } = useSwipeNavigationGesture({
-    onSwipeLeft: () => onDateChange(addDays(currentDate, 3)),
-    onSwipeRight: () => onDateChange(addDays(currentDate, -3)),
-    disabled: isDragging || isSelecting || touchModeRef.current === 'selecting',
-    containerWidth,
+  // Swipe handlers for navigation - disabled when dragging a booking card
+  const swipeHandlers = useSwipeGesture({
+    onSwipeLeft: () => !isDragging && onDateChange(addDays(currentDate, 3)),
+    onSwipeRight: () => !isDragging && onDateChange(addDays(currentDate, -3)),
   });
 
   // Get bookings for a specific day
@@ -245,18 +211,9 @@ export function ThreeDayView({
     }
     const touch = e.touches[0];
     if (touchModeRef.current === 'undetermined') {
-      // Determine gesture type based on movement
+      // If finger moves before the hold timer fires, treat as scroll
       const deltaX = Math.abs(touch.clientX - touchStartRef.current.clientX);
       const deltaY = Math.abs(touch.clientY - touchStartRef.current.clientY);
-
-      // Horizontal swipe detected (for navigation)
-      if (deltaX > 8 && deltaX > deltaY * 1.5) {
-        if (touchTimerRef.current) { clearTimeout(touchTimerRef.current); touchTimerRef.current = null; }
-        touchModeRef.current = 'swipe-nav';
-        return; // Let Framer Motion handle the swipe
-      }
-
-      // Other movement (vertical or mixed)
       if (deltaX > 8 || deltaY > 8) {
         if (touchTimerRef.current) { clearTimeout(touchTimerRef.current); touchTimerRef.current = null; }
         touchModeRef.current = 'scrolling';
@@ -339,51 +296,39 @@ export function ThreeDayView({
       ref={containerRef}
       className="flex flex-col flex-1"
       style={{ backgroundColor: '#f5f5f5' }}
+      {...swipeHandlers}
     >
-      {/* Sticky header container with legend overlay */}
+      {/* Sticky header: Column Headers + Legend overlay */}
       <div className="sticky top-0 z-40 bg-white relative">
+        {/* Column Headers */}
         <div className="flex border-b" style={{ borderColor: '#e0e0e0' }}>
           {/* Time column spacer */}
-          <div className="w-12 shrink-0 bg-white" style={{ borderRight: '1px solid #e0e0e0' }} />
+          <div className="w-12 shrink-0" style={{ borderRight: '1px solid #e0e0e0' }} />
 
-          {/* Carousel viewport for day headers - clips to show only 3 days */}
-          <div className="flex-1 overflow-hidden relative">
-            {/* Wrapper to offset carousel so middle 3 days (indices 3,4,5) are visible */}
-            <div style={{ transform: `translateX(-${containerWidth}px)` }}>
-              <motion.div
-                style={{ x: dragX, display: 'flex' }}
-                className="pointer-events-none"
+          {/* Day columns */}
+          {days.map((day) => {
+            const dayIsToday = isToday(day);
+            return (
+              <div
+                key={day.toISOString()}
+                className="flex-1 py-1.5 flex items-center justify-center gap-1.5"
+                style={{ borderRight: '1px solid #e0e0e0' }}
               >
-                {/* Day header columns - synced with day columns below */}
-                {days.map((day) => {
-                const dayIsToday = isToday(day);
-                return (
-                  <div
-                    key={day.toISOString()}
-                    className="py-1.5 flex items-center justify-center gap-1.5"
-                    style={{
-                      flex: '0 0 33.33%',
-                      borderRight: '1px solid #e0e0e0'
-                    }}
-                  >
-                    <span className={cn(
-                      'w-6 h-6 flex items-center justify-center rounded-full text-sm font-medium',
-                      dayIsToday ? 'bg-foreground text-background' : 'text-foreground'
-                    )}>
-                      {format(day, 'd')}
-                    </span>
-                    <span className={cn(
-                      'text-sm',
-                      dayIsToday ? 'text-foreground font-medium' : 'text-muted-foreground'
-                    )}>
-                      {format(day, 'EEE', { locale: es })}
-                    </span>
-                  </div>
-                );
-              })}
-              </motion.div>
-            </div>
-          </div>
+                <span className={cn(
+                  'w-6 h-6 flex items-center justify-center rounded-full text-sm font-medium',
+                  dayIsToday ? 'bg-foreground text-background' : 'text-foreground'
+                )}>
+                  {format(day, 'd')}
+                </span>
+                <span className={cn(
+                  'text-sm',
+                  dayIsToday ? 'text-foreground font-medium' : 'text-muted-foreground'
+                )}>
+                  {format(day, 'EEE', { locale: es })}
+                </span>
+              </div>
+            );
+          })}
         </div>
 
         {/* Legend - hangs below sticky header, overlays grid */}
@@ -441,45 +386,28 @@ export function ThreeDayView({
             ))}
           </div>
 
-          {/* Carousel viewport - clips to show only 3 days */}
-          <div className="flex-1 overflow-hidden relative">
-            {/* Wrapper to offset carousel so middle 3 days (indices 3,4,5) are visible */}
-            <div style={{ transform: `translateX(-${containerWidth}px)` }}>
-              <motion.div
-                style={{ x: dragX, display: 'flex' }}
-                drag={canSwipe ? "x" : false}
-                dragConstraints={{
-                  left: -2 * containerWidth, // Allow 2 views left (to see days 6,7,8)
-                  right: containerWidth      // Allow 1 view right (to see days 0,1,2)
-                }}
-                dragElastic={0.15}
-                onDragStart={handlers.onDragStart}
-                onDrag={handlers.onDrag}
-                onDragEnd={handlers.onDragEnd}
-              >
-                {/* Day columns */}
-              {days.map((day) => {
-                const dayBookings = getBookingsForDay(day);
-                const dayIsToday = isToday(day);
-                const dateStr = format(day, 'yyyy-MM-dd');
+          {/* Day columns */}
+          {days.map((day) => {
+            const dayBookings = getBookingsForDay(day);
+            const dayIsToday = isToday(day);
+            const dateStr = format(day, 'yyyy-MM-dd');
 
-                return (
-                  <div
-                    key={day.toISOString()}
-                    className="relative"
-                    style={{
-                      flex: '0 0 33.33%',
-                      borderRight: '1px solid #e0e0e0',
-                      backgroundColor: dayIsToday ? '#fafafa' : '#f8f8f8'
-                    }}
-                    onClick={(e) => handleSlotClick(day, e)}
-                    onMouseDown={(e) => handleMouseDown(day, e)}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onTouchStart={(e) => handleTouchStart(day, e)}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                  >
+            return (
+              <div
+                key={day.toISOString()}
+                className="flex-1 relative"
+                style={{
+                  borderRight: '1px solid #e0e0e0',
+                  backgroundColor: dayIsToday ? '#fafafa' : '#f8f8f8'
+                }}
+                onClick={(e) => handleSlotClick(day, e)}
+                onMouseDown={(e) => handleMouseDown(day, e)}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onTouchStart={(e) => handleTouchStart(day, e)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+              >
                 {/* Hour grid with DroppableTimeSlotEnhanced for drag-drop support */}
                 {HOURS.map((hour) => (
                   <DroppableTimeSlotEnhanced
@@ -583,10 +511,8 @@ export function ThreeDayView({
               </div>
             );
           })}
-              </motion.div>
-            </div>
 
-            {/* Current time indicator */}
+          {/* Current time indicator */}
           {showCurrentTime && currentTimePosition !== null && (
             <>
               {/* Time label - positioned in the time column */}
@@ -631,7 +557,6 @@ export function ThreeDayView({
               </div>
             </>
           )}
-          </div>
         </div>
       </div>
     </div>
