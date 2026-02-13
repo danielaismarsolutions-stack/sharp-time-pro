@@ -253,33 +253,6 @@ export function ThreeDayView({
         </div>
       </div>
 
-      {/* Legend overlay */}
-      {legendRows.length > 0 && (
-        <div className="flex justify-center pointer-events-none pt-1.5 px-2 shrink-0 relative z-30">
-          <div
-            className="rounded-xl px-4 py-1.5 max-w-full pointer-events-auto"
-            style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.92)',
-              boxShadow: '0 1px 8px rgba(0, 0, 0, 0.08)',
-              backdropFilter: 'blur(8px)',
-            }}
-          >
-            <div className="flex flex-col items-center gap-1">
-              {legendRows.map((row, rowIndex) => (
-                <div key={rowIndex} className="flex items-center justify-center gap-3">
-                  {row.map(({ name, colors }) => (
-                    <div key={name} className="flex items-center gap-1">
-                      <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
-                      <span className="text-[11px] font-medium text-gray-700 whitespace-nowrap">{name}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Scrollable body: time labels + day columns */}
       <div className="flex-1 flex overflow-hidden">
         {/* Fixed time labels column */}
@@ -329,9 +302,28 @@ export function ThreeDayView({
         {/* Horizontally scrollable day columns */}
         <div
           ref={bodyScrollRef}
-          className="flex-1 overflow-auto"
+          className="flex-1 overflow-auto relative"
           onScroll={handleScroll}
         >
+          {/* Sticky legend - no background, stays visible on vertical scroll */}
+          {legendRows.length > 0 && (
+            <div className="sticky top-0 z-30 flex justify-center pointer-events-none pt-1.5 px-2" style={{ marginBottom: '-30px' }}>
+              <div className="px-4 py-1 max-w-full pointer-events-auto">
+                <div className="flex flex-col items-center gap-0.5">
+                  {legendRows.map((row, rowIndex) => (
+                    <div key={rowIndex} className="flex items-center justify-center gap-3">
+                      {row.map(({ name, colors }) => (
+                        <div key={name} className="flex items-center gap-1">
+                          <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
+                          <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">{name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           <div className="flex" style={{ width: `${totalWidthPercent}%`, minHeight: '100%' }}>
             {allDays.map((day) => {
               const dayBookings = getBookingsForDay(day);
