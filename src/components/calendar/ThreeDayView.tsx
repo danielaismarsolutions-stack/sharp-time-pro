@@ -255,10 +255,17 @@ export function ThreeDayView({
 
       {/* Scrollable body: time labels + day columns */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Legend overlay - no background, floats over grid */}
+        {/* Floating legend - absolute on non-scrolling parent */}
         {legendRows.length > 0 && (
-          <div className="absolute left-12 right-0 top-0 flex justify-center pointer-events-none px-2 z-30 pt-1">
-            <div className="rounded-b-xl px-4 py-1 max-w-full pointer-events-auto">
+          <div className="absolute left-12 right-0 top-1 flex justify-center pointer-events-none z-30">
+            <div
+              className="rounded-xl px-4 py-1.5 max-w-full pointer-events-auto"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                boxShadow: '0 1px 6px rgba(0, 0, 0, 0.08)',
+                backdropFilter: 'blur(8px)',
+              }}
+            >
               <div className="flex flex-col items-center gap-0.5">
                 {legendRows.map((row, rowIndex) => (
                   <div key={rowIndex} className="flex items-center justify-center gap-3">
