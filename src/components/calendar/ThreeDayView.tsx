@@ -124,19 +124,19 @@ export function ThreeDayView({
   useLayoutEffect(() => {
     const el = bodyScrollRef.current;
     if (!el) return;
-    // Use requestAnimationFrame to ensure layout is ready
-    requestAnimationFrame(() => {
+    const setScroll = () => {
       const pageWidth = el.offsetWidth;
       if (pageWidth === 0) return;
       el.scrollLeft = CENTER_INDEX * pageWidth;
       if (headerScrollRef.current) {
         headerScrollRef.current.scrollLeft = CENTER_INDEX * pageWidth;
       }
-      // After first render, mark as initialized
-      if (!hasInitialized.current) {
-        hasInitialized.current = true;
-      }
-    });
+    };
+    // Set immediately (works most of the time)
+    setScroll();
+    // Fallback: also set after a frame in case layout wasn't ready
+    const id = requestAnimationFrame(setScroll);
+    return () => cancelAnimationFrame(id);
   }, [currentDate]);
 
   // Sync header scroll with body scroll
@@ -426,7 +426,7 @@ export function ThreeDayView({
       {/* Body: fixed time labels + horizontally scrollable day columns */}
       <div className="flex-1 flex">
         {/* Fixed time labels column */}
-        <div className="w-12 shrink-0 bg-white" style={{ borderRight: '1px solid #e0e0e0' }}>
+        <div className="w-12 shrink-0 bg-white relative" style={{ borderRight: '1px solid #e0e0e0' }}>
           {HOURS.map((hour) => (
             <div key={hour} className="relative" style={{ height: hourHeight }}>
               {hour !== START_HOUR && (
@@ -443,6 +443,30 @@ export function ThreeDayView({
               )}
             </div>
           ))}
+
+          {/* Current time label inside time column */}
+          {currentTimePosition !== null && allDays.some(d => isToday(d)) && (
+            <div
+              className="absolute z-30 flex items-center justify-end pointer-events-none"
+              style={{
+                top: currentTimePosition,
+                transform: 'translateY(-50%)',
+                left: 0,
+                right: 0,
+                paddingRight: '4px',
+              }}
+            >
+              <span
+                className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
+                style={{
+                  backgroundColor: '#1a1a1a',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                }}
+              >
+                {format(currentTime, 'H:mm')}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Horizontally scrollable day columns with snap */}
@@ -605,30 +629,6 @@ export function ThreeDayView({
           </div>
         </div>
       </div>
-
-      {/* Current time label in time column */}
-      {currentTimePosition !== null && allDays.some(d => isToday(d)) && (
-        <div
-          className="absolute z-30 flex items-center justify-end pointer-events-none"
-          style={{
-            top: currentTimePosition,
-            transform: 'translateY(-50%)',
-            left: 0,
-            width: '48px',
-            paddingRight: '4px',
-          }}
-        >
-          <span
-            className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
-            style={{
-              backgroundColor: '#1a1a1a',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-            }}
-          >
-            {format(currentTime, 'H:mm')}
-          </span>
-        </div>
-      )}
     </div>
   );
 }
