@@ -365,13 +365,13 @@ export function ThreeDayView({
           >
             <div className="flex" style={{ width: `${NUM_GROUPS * 100}%` }}>
               {groups.map((group, gi) => (
-                <div key={gi} className="flex" style={{ width: `${100 / NUM_GROUPS}%` }}>
+                <div key={gi} className="flex min-w-0" style={{ width: `${100 / NUM_GROUPS}%` }}>
                   {group.map((day) => {
                     const dayIsToday = isToday(day);
                     return (
                       <div
                         key={day.toISOString()}
-                        className="flex-1 py-1.5 flex items-center justify-center gap-1.5"
+                        className="flex-1 min-w-0 py-1.5 flex items-center justify-center gap-1.5"
                         style={{ borderRight: '1px solid #e0e0e0' }}
                       >
                         <span className={cn(
@@ -484,7 +484,7 @@ export function ThreeDayView({
             {groups.map((group, gi) => (
               <div
                 key={gi}
-                className="flex snap-start relative"
+                className="flex snap-start relative min-w-0"
                 style={{ width: `${100 / NUM_GROUPS}%` }}
               >
                 {group.map((day) => {
@@ -495,7 +495,7 @@ export function ThreeDayView({
                   return (
                     <div
                       key={day.toISOString()}
-                      className="flex-1 relative"
+                      className="flex-1 relative min-w-0 overflow-hidden"
                       style={{
                         borderRight: '1px solid #e0e0e0',
                         backgroundColor: dayIsToday ? '#fafafa' : '#f8f8f8',
