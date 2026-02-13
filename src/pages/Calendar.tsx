@@ -613,43 +613,36 @@ export default function Calendar() {
 
     return (
       <div className="flex flex-col flex-1 overflow-hidden" {...(isMobile ? swipeHandlers : {})}>
-        {/* Floating legend overlay for day view */}
-        {barberNames.length > 0 && (() => {
-          const sorted = [...barberNames].sort();
-          const barberLegendColors = sorted.map((name, i) => ({
-            name,
-            colors: pastelColors[i % pastelColors.length],
-          }));
-          const rows = barberLegendColors.length <= 3
-            ? [barberLegendColors]
-            : [barberLegendColors.slice(0, Math.ceil(barberLegendColors.length / 2)), barberLegendColors.slice(Math.ceil(barberLegendColors.length / 2))];
-          return (
-            <div className="flex justify-center pointer-events-none pt-1.5 px-2 shrink-0 relative z-30">
-              <div
-                className="rounded-xl px-4 py-1.5 max-w-full pointer-events-auto"
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.92)',
-                  boxShadow: '0 1px 8px rgba(0, 0, 0, 0.08)',
-                  backdropFilter: 'blur(8px)',
-                }}
-              >
-                <div className="flex flex-col items-center gap-1">
-                  {rows.map((row, rowIndex) => (
-                    <div key={rowIndex} className="flex items-center justify-center gap-3">
-                      {row.map(({ name, colors }) => (
-                        <div key={name} className="flex items-center gap-1">
-                          <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
-                          <span className="text-[11px] font-medium text-gray-700 whitespace-nowrap">{name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
+        <div className="flex-1 flex overflow-auto relative">
+          {/* Floating legend overlay for day view */}
+          {barberNames.length > 0 && (() => {
+            const sorted = [...barberNames].sort();
+            const barberLegendColors = sorted.map((name, i) => ({
+              name,
+              colors: pastelColors[i % pastelColors.length],
+            }));
+            const rows = barberLegendColors.length <= 3
+              ? [barberLegendColors]
+              : [barberLegendColors.slice(0, Math.ceil(barberLegendColors.length / 2)), barberLegendColors.slice(Math.ceil(barberLegendColors.length / 2))];
+            return (
+              <div className="absolute left-0 right-0 top-0 flex justify-center pointer-events-none px-2 z-30 pt-1">
+                <div className="rounded-b-xl px-4 py-1 max-w-full pointer-events-auto">
+                  <div className="flex flex-col items-center gap-0.5">
+                    {rows.map((row, rowIndex) => (
+                      <div key={rowIndex} className="flex items-center justify-center gap-3">
+                        {row.map(({ name, colors }) => (
+                          <div key={name} className="flex items-center gap-1">
+                            <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
+                            <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">{name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })()}
-        <div className="flex-1 flex overflow-auto">
+            );
+          })()}
           {/* Time column */}
           <div className="w-16 md:w-20 shrink-0 border-r border-border">
             {HOURS.map((hour) => (
