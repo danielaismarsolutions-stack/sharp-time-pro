@@ -72,7 +72,7 @@ import { MoveBookingConfirmDialog } from '@/components/calendar/MoveBookingConfi
 import { CreateChoiceDialog } from '@/components/calendar/CreateChoiceDialog';
 import { EventModal, type EventFormData } from '@/components/calendar/EventModal';
 import { EventDetailModal } from '@/components/calendar/EventDetailModal';
-import { setBarberList } from '@/components/calendar/shared/colorUtils';
+import { setBarberList, pastelColors } from '@/components/calendar/shared/colorUtils';
 import { CurrentTimeIndicator } from '@/components/calendar/CurrentTimeIndicator';
 import { SetmoreHeader } from '@/components/calendar/SetmoreHeader';
 import { ThreeDayView } from '@/components/calendar/ThreeDayView';
@@ -612,7 +612,43 @@ export default function Calendar() {
     const dateStr = format(currentDate, 'yyyy-MM-dd');
 
     return (
-      <div className="flex flex-1 overflow-hidden" {...(isMobile ? swipeHandlers : {})}>
+      <div className="flex flex-col flex-1 overflow-hidden" {...(isMobile ? swipeHandlers : {})}>
+        {/* Floating legend overlay for day view */}
+        {barberNames.length > 0 && (() => {
+          const sorted = [...barberNames].sort();
+          const barberLegendColors = sorted.map((name, i) => ({
+            name,
+            colors: pastelColors[i % pastelColors.length],
+          }));
+          const rows = barberLegendColors.length <= 3
+            ? [barberLegendColors]
+            : [barberLegendColors.slice(0, Math.ceil(barberLegendColors.length / 2)), barberLegendColors.slice(Math.ceil(barberLegendColors.length / 2))];
+          return (
+            <div className="flex justify-center pointer-events-none pt-1.5 px-2 shrink-0 relative z-30">
+              <div
+                className="rounded-xl px-4 py-1.5 max-w-full pointer-events-auto"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                  boxShadow: '0 1px 8px rgba(0, 0, 0, 0.08)',
+                  backdropFilter: 'blur(8px)',
+                }}
+              >
+                <div className="flex flex-col items-center gap-1">
+                  {rows.map((row, rowIndex) => (
+                    <div key={rowIndex} className="flex items-center justify-center gap-3">
+                      {row.map(({ name, colors }) => (
+                        <div key={name} className="flex items-center gap-1">
+                          <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
+                          <span className="text-[11px] font-medium text-gray-700 whitespace-nowrap">{name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
         <div className="flex-1 flex overflow-auto">
           {/* Time column */}
           <div className="w-16 md:w-20 shrink-0 border-r border-border">
@@ -1003,7 +1039,7 @@ export default function Calendar() {
           </div>
 
           {/* Barber Legend - always visible below calendar (not for agenda) */}
-          {viewMode !== 'agenda' && viewMode !== '3day' && <BarberLegend barberNames={barberNames} />}
+          {viewMode !== 'agenda' && viewMode !== '3day' && viewMode !== 'day' && <BarberLegend barberNames={barberNames} />}
         </Card>
 
         {/* Undo Button */}
