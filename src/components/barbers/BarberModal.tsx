@@ -7,12 +7,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Barber, CreateBarberData, DEFAULT_SCHEDULE } from '@/types/barber';
 import { Loader2 } from 'lucide-react';
+import AvatarUpload from './AvatarUpload';
+import { supabaseStorageApi } from '@/services/supabaseStorage';
+import { useToast } from '@/hooks/use-toast';
 
 interface BarberModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   barber: Barber | null;
-  onSave: (data: CreateBarberData) => Promise<void>;
+  onSave: (data: CreateBarberData, avatarFile?: File | null) => Promise<void>;
 }
 
 export default function BarberModal({ open, onOpenChange, barber, onSave }: BarberModalProps) {
@@ -22,6 +25,9 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
   const [bio, setBio] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (barber) {
@@ -37,6 +43,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
       setBio('');
       setIsActive(true);
     }
+    setAvatarFile(null); // Reset avatar file when modal opens/closes
   }, [barber, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,17 +52,52 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
 
     setSaving(true);
     try {
-      await onSave({
+      let avatarUrl = barber?.avatar_url || null;
+
+      // Handle avatar upload if a new file was selected (only for existing barbers)
+      if (avatarFile && barber) {
+        setUploadingAvatar(true);
+        try {
+          // Delete old avatar if it exists
+          if (barber.avatar_url) {
+            await supabaseStorageApi.deleteAvatar(barber.avatar_url);
+          }
+
+          // Upload new avatar
+          const result = await supabaseStorageApi.uploadAvatar(avatarFile, barber.id);
+          avatarUrl = result.url;
+        } catch (uploadError: any) {
+          console.error('Avatar upload error:', uploadError);
+          toast({
+            title: 'Error',
+            description: 'No se pudo subir la foto, pero el barbero se guardará sin ella',
+            variant: 'destructive',
+          });
+        } finally {
+          setUploadingAvatar(false);
+        }
+      }
+
+      const barberData: CreateBarberData = {
         name: name.trim(),
         email: email.trim() || null,
         phone: phone.trim() || null,
         bio: bio.trim() || null,
+        avatar_url: avatarUrl,
         schedule: barber?.schedule || DEFAULT_SCHEDULE,
         is_active: isActive,
-      });
+      };
+
+      // For new barbers with avatar, pass the file to parent to handle upload after creation
+      await onSave(barberData, barber ? null : avatarFile);
+
       onOpenChange(false);
+    } catch (error) {
+      console.error('Save error:', error);
+      // Error toast is handled by parent component
     } finally {
       setSaving(false);
+      setUploadingAvatar(false);
     }
   };
 
@@ -77,6 +119,13 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
               className="h-8 text-xs"
             />
           </div>
+
+          <AvatarUpload
+            currentAvatarUrl={barber?.avatar_url || null}
+            onFileSelect={setAvatarFile}
+            disabled={saving || uploadingAvatar}
+            barberName={name}
+          />
 
           <div className="space-y-1">
             <Label htmlFor="email" className="text-xs">Email</Label>
@@ -126,9 +175,9 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
             <Button type="button" variant="outline" size="sm" className="text-xs h-8" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" size="sm" className="text-xs h-8" disabled={saving || !name.trim()}>
-              {saving && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
-              {barber ? 'Guardar' : 'Crear'}
+            <Button type="submit" size="sm" className="text-xs h-8" disabled={saving || uploadingAvatar || !name.trim()}>
+              {(saving || uploadingAvatar) && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
+              {uploadingAvatar ? 'Subiendo...' : barber ? 'Guardar' : 'Crear'}
             </Button>
           </div>
         </form>
