@@ -20,7 +20,7 @@ interface DayViewProps {
   onBookingClick: (booking: ApiBooking) => void;
 }
 
-const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8:00 - 20:00
+const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0:00 - 23:00
 const HOUR_HEIGHT = 80; // pixels per hour
 
 // Status-based colors with left border
@@ -70,7 +70,7 @@ export function DayView({ currentDate, bookings, onBookingClick }: DayViewProps)
     const startMinute = startTime.getMinutes();
     const duration = differenceInMinutes(endTime, startTime);
 
-    const top = (startHour - 8) * HOUR_HEIGHT + (startMinute / 60) * HOUR_HEIGHT;
+    const top = startHour * HOUR_HEIGHT + (startMinute / 60) * HOUR_HEIGHT;
     const height = Math.max((duration / 60) * HOUR_HEIGHT, 60); // Minimum 60px height
 
     return { top, height };
@@ -111,8 +111,8 @@ export function DayView({ currentDate, bookings, onBookingClick }: DayViewProps)
             {/* Current time indicator */}
             <CurrentTimeIndicator
               currentDate={currentDate}
-              startHour={8}
-              endHour={21}
+              startHour={0}
+              endHour={23}
               hourHeight={HOUR_HEIGHT}
             />
 

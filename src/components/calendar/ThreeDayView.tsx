@@ -43,8 +43,8 @@ interface ThreeDayViewProps {
   onEventClick?: (event: ApiCalendarEvent) => void;
 }
 
-const HOURS = Array.from({ length: 17 }, (_, i) => i + 7); // 7:00 - 23:00
-const START_HOUR = 7;
+const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0:00 - 23:00
+const START_HOUR = 0;
 const END_HOUR = 23;
 
 export function ThreeDayView({

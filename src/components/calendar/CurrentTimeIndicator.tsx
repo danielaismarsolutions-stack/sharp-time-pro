@@ -18,8 +18,8 @@ const getMadridTime = () => {
 
 export function CurrentTimeIndicator({
   currentDate,
-  startHour = 8,
-  endHour = 21,
+  startHour = 0,
+  endHour = 23,
   hourHeight,
 }: CurrentTimeIndicatorProps) {
   const [time, setTime] = useState(getMadridTime);
