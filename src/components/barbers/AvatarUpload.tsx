@@ -8,6 +8,7 @@ import { imageValidation } from '@/lib/imageValidation';
 interface AvatarUploadProps {
   currentAvatarUrl: string | null;
   onFileSelect: (file: File | null) => void;
+  onDeleteAvatar?: () => void;
   disabled?: boolean;
   barberName?: string;
 }
@@ -15,6 +16,7 @@ interface AvatarUploadProps {
 export default function AvatarUpload({
   currentAvatarUrl,
   onFileSelect,
+  onDeleteAvatar,
   disabled = false,
   barberName = '',
 }: AvatarUploadProps) {
@@ -68,6 +70,10 @@ export default function AvatarUpload({
     onFileSelect(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+    // If there's an existing avatar (not just a preview), signal deletion
+    if (currentAvatarUrl && onDeleteAvatar) {
+      onDeleteAvatar();
     }
   };
 
