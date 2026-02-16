@@ -26,6 +26,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [deleteAvatar, setDeleteAvatar] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const { toast } = useToast();
 
@@ -43,7 +44,8 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
       setBio('');
       setIsActive(true);
     }
-    setAvatarFile(null); // Reset avatar file when modal opens/closes
+    setAvatarFile(null);
+    setDeleteAvatar(false);
   }, [barber, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,16 +56,23 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
     try {
       let avatarUrl = barber?.avatar_url || null;
 
+      // Handle avatar deletion
+      if (deleteAvatar && barber?.avatar_url) {
+        try {
+          await supabaseStorageApi.deleteAvatar(barber.avatar_url);
+          avatarUrl = null;
+        } catch (err) {
+          console.error('Error deleting avatar:', err);
+        }
+      }
+
       // Handle avatar upload if a new file was selected (only for existing barbers)
       if (avatarFile && barber) {
         setUploadingAvatar(true);
         try {
-          // Delete old avatar if it exists
           if (barber.avatar_url) {
             await supabaseStorageApi.deleteAvatar(barber.avatar_url);
           }
-
-          // Upload new avatar
           const result = await supabaseStorageApi.uploadAvatar(avatarFile, barber.id);
           avatarUrl = result.url;
         } catch (uploadError: any) {
@@ -121,8 +130,12 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
           </div>
 
           <AvatarUpload
-            currentAvatarUrl={barber?.avatar_url || null}
-            onFileSelect={setAvatarFile}
+            currentAvatarUrl={deleteAvatar ? null : (barber?.avatar_url || null)}
+            onFileSelect={(file) => {
+              setAvatarFile(file);
+              if (file) setDeleteAvatar(false);
+            }}
+            onDeleteAvatar={() => setDeleteAvatar(true)}
             disabled={saving || uploadingAvatar}
             barberName={name}
           />
