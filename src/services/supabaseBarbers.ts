@@ -253,6 +253,7 @@ export const supabaseBarbersApi = {
       business_id: BUSINESS_ID,
       full_name: barberData.name,
       email: barberData.email || null,
+      phone: barberData.phone || null,
       avatar_url: barberData.avatar_url || null,
       bio: barberData.bio || null,
       is_active: barberData.is_active ?? true,
@@ -286,7 +287,7 @@ export const supabaseBarbersApi = {
 
   async update(barberId: string, updates: UpdateBarberData): Promise<Barber> {
     // Separate schedule, time_off, and phone (not in DB) from user updates
-    const { name, schedule, time_off, phone, ...restUpdates } = updates;
+    const { name, schedule, time_off, ...restUpdates } = updates;
     
     // Update user record (without schedule/time_off which are now in separate tables, and phone which doesn't exist in users table)
     const payload: Record<string, unknown> = {
