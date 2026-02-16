@@ -917,8 +917,8 @@ export default function Calendar() {
             currentDate={currentDate}
             onDateChange={(date) => {
               setCurrentDate(date);
-              if (viewMode === 'agenda') {
-                // In agenda view, clicking a day keeps agenda view
+              if (viewMode === 'agenda' || viewMode === '3day') {
+                // In agenda view or 3-day view, keep the current view mode
               } else {
                 setViewMode('day');
               }
