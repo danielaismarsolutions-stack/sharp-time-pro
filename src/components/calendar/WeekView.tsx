@@ -28,7 +28,7 @@ interface WeekViewProps {
   onBookingClick: (booking: ApiBooking) => void;
 }
 
-const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8:00 - 20:00
+const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0:00 - 23:00
 const HOUR_HEIGHT = 60; // pixels per hour
 
 // Predefined pastel colors for services with left border
@@ -114,14 +114,14 @@ export function WeekView({ currentDate, bookings, services, onBookingClick }: We
   const getBookingStyle = (booking: ApiBooking) => {
     const startTime = parse(booking.start_time, 'HH:mm:ss', new Date());
     const endTime = parse(booking.end_time, 'HH:mm:ss', new Date());
-    
+
     const startHour = startTime.getHours();
     const startMinute = startTime.getMinutes();
     const duration = differenceInMinutes(endTime, startTime);
-    
-    const top = ((startHour - 8) * HOUR_HEIGHT) + ((startMinute / 60) * HOUR_HEIGHT);
+
+    const top = (startHour * HOUR_HEIGHT) + ((startMinute / 60) * HOUR_HEIGHT);
     const height = Math.max((duration / 60) * HOUR_HEIGHT, 30); // Minimum 30px height
-    
+
     return { top, height };
   };
 
@@ -186,8 +186,8 @@ export function WeekView({ currentDate, bookings, services, onBookingClick }: We
                 {isToday(day) && (
                   <CurrentTimeIndicator
                     currentDate={day}
-                    startHour={8}
-                    endHour={21}
+                    startHour={0}
+                    endHour={23}
                     hourHeight={HOUR_HEIGHT}
                   />
                 )}

@@ -94,8 +94,8 @@ type ViewMode = 'day' | '3day' | 'week' | 'month' | 'agenda';
 
 const HOUR_HEIGHT_DAY = 140;
 const HOUR_HEIGHT_WEEK = 100;
-const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8:00 - 20:00
-const START_HOUR = 8;
+const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0:00 - 23:00
+const START_HOUR = 0;
 const BUSINESS_OPEN_HOUR = 9;
 const BUSINESS_CLOSE_HOUR = 21;
 
@@ -110,7 +110,7 @@ export default function Calendar() {
   // Auto-scroll to current time
   const currentHourHeightForScroll = viewMode === 'day' || viewMode === '3day' ? HOUR_HEIGHT_DAY : HOUR_HEIGHT_WEEK;
   const scrollContainerRef = useAutoScrollToNow(
-    viewMode === '3day' ? 7 : START_HOUR,
+    START_HOUR,
     currentHourHeightForScroll,
     [viewMode]
   );
@@ -390,8 +390,8 @@ export default function Calendar() {
   }, [currentDate]);
 
   const hours = useMemo(() => {
-    const start = setMinutes(setHours(new Date(), 8), 0);
-    const end = setMinutes(setHours(new Date(), 20), 0);
+    const start = setMinutes(setHours(new Date(), 0), 0);
+    const end = setMinutes(setHours(new Date(), 23), 0);
     return eachHourOfInterval({ start, end });
   }, []);
 
@@ -711,7 +711,7 @@ export default function Calendar() {
               <CurrentTimeIndicator
                 currentDate={currentDate}
                 startHour={START_HOUR}
-                endHour={21}
+                endHour={23}
                 hourHeight={HOUR_HEIGHT_DAY}
               />
             )}
@@ -812,7 +812,7 @@ export default function Calendar() {
                   <CurrentTimeIndicator
                     currentDate={day}
                     startHour={START_HOUR}
-                    endHour={21}
+                    endHour={23}
                     hourHeight={HOUR_HEIGHT_WEEK}
                   />
                 )}
