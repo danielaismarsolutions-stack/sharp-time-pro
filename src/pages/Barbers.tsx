@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Barber, CreateBarberData, BarberSchedule, TimeOff } from '@/types/barber';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
+import { supabaseStorageApi } from '@/services/supabaseStorage';
 import BarberCard from '@/components/barbers/BarberCard';
 import BarberModal from '@/components/barbers/BarberModal';
 import ScheduleEditor from '@/components/barbers/ScheduleEditor';
@@ -74,13 +75,30 @@ export default function Barbers() {
     barber.phone?.includes(searchQuery)
   );
 
-  const handleSaveBarber = async (data: CreateBarberData) => {
+  const handleSaveBarber = async (data: CreateBarberData, avatarFile?: File | null) => {
     try {
       if (selectedBarber) {
+        // Updating existing barber - avatar already handled in modal
         await supabaseBarbersApi.update(selectedBarber.id, data);
         toast({ title: 'Barbero actualizado' });
       } else {
-        await supabaseBarbersApi.create(data);
+        // Creating new barber
+        const newBarber = await supabaseBarbersApi.create(data);
+
+        // If there's an avatar file, upload it now
+        if (avatarFile) {
+          try {
+            const result = await supabaseStorageApi.uploadAvatar(avatarFile, newBarber.id);
+            await supabaseBarbersApi.updateAvatarUrl(newBarber.id, result.url);
+          } catch (uploadError) {
+            console.error('Failed to upload avatar for new barber:', uploadError);
+            toast({
+              title: 'Advertencia',
+              description: 'Barbero creado, pero no se pudo subir la foto',
+            });
+          }
+        }
+
         toast({ title: 'Barbero creado' });
       }
       await loadBarbers();

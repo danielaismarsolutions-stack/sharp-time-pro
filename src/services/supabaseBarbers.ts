@@ -1,6 +1,7 @@
 // Supabase Barbers Service - Uses 'users' table + normalized schedule tables
 import { SUPABASE_CONFIG, BUSINESS_ID } from '@/config/api';
 import { Barber, CreateBarberData, UpdateBarberData, DEFAULT_SCHEDULE, BarberSchedule, BarberDaySchedule, TimeOff } from '@/types/barber';
+import { supabaseStorageApi } from './supabaseStorage';
 
 const supabaseHeaders = () => ({
   'apikey': SUPABASE_CONFIG.anonKey,
@@ -494,6 +495,50 @@ export const supabaseBarbersApi = {
       const error = await parseErrorMessage(response);
       throw new Error(`Failed to delete time off: ${error}`);
     }
+  },
+
+  /**
+   * Update barber avatar URL after upload
+   * @param barberId - The barber's ID
+   * @param avatarUrl - The new avatar URL
+   */
+  async updateAvatarUrl(barberId: string, avatarUrl: string | null): Promise<void> {
+    const response = await fetch(
+      `${SUPABASE_CONFIG.url}/rest/v1/users?id=eq.${barberId}&business_id=eq.${BUSINESS_ID}`,
+      {
+        method: 'PATCH',
+        headers: supabaseHeaders(),
+        body: JSON.stringify({
+          avatar_url: avatarUrl,
+          updated_at: new Date().toISOString(),
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await parseErrorMessage(response);
+      throw new Error(`Failed to update avatar URL: ${error}`);
+    }
+  },
+
+  /**
+   * Delete barber avatar from storage and update database
+   * @param barberId - The barber's ID
+   * @param avatarUrl - The current avatar URL to delete
+   */
+  async deleteBarberAvatar(barberId: string, avatarUrl: string): Promise<void> {
+    // Delete from storage
+    if (avatarUrl) {
+      try {
+        await supabaseStorageApi.deleteAvatar(avatarUrl);
+      } catch (error) {
+        console.error('Failed to delete avatar from storage:', error);
+        // Continue to update database even if storage deletion fails
+      }
+    }
+
+    // Update database to remove avatar_url
+    await this.updateAvatarUrl(barberId, null);
   },
 };
 
