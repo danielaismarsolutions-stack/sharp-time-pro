@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 
-// Extend ServiceWorkerRegistration to include pushManager (not in all TS libs)
-interface PushServiceWorkerRegistration extends ServiceWorkerRegistration {
-  pushManager: PushManager;
-}
-
 const VAPID_PUBLIC_KEY = 'BKKBmrY_U1UnpLeNNiqbDnoZYR7H-j4j-vMhjaIOwlsi_XOZSqFGijgwI9bonM5fpz3OCseDt44tx6BWr7-bsG0';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -29,7 +24,7 @@ export function usePushNotifications(userId: string | null, businessId: string |
     if (!('serviceWorker' in navigator) || !userId) return;
     
     try {
-      const registration = await navigator.serviceWorker.ready as PushServiceWorkerRegistration;
+      const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
       setIsSubscribed(!!subscription);
     } catch (e) {
@@ -82,7 +77,7 @@ export function usePushNotifications(userId: string | null, businessId: string |
       // Subscribe to push
       console.log('🔔 Subscribing to push manager...');
       const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-      const subscription = await (registration as PushServiceWorkerRegistration).pushManager.subscribe({
+      const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey.buffer as ArrayBuffer
       });
@@ -121,7 +116,7 @@ export function usePushNotifications(userId: string | null, businessId: string |
     setIsLoading(true);
 
     try {
-      const registration = await navigator.serviceWorker.ready as PushServiceWorkerRegistration;
+      const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
       
       if (subscription) {
