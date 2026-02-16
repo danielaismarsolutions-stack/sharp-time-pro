@@ -52,6 +52,12 @@ export default function Barbers() {
     try {
       setLoading(true);
       const data = await supabaseBarbersApi.getAll(showInactive);
+      // Sort so "Rioja" always appears first
+      data.sort((a, b) => {
+        if (a.name.toLowerCase() === 'rioja') return -1;
+        if (b.name.toLowerCase() === 'rioja') return 1;
+        return a.name.localeCompare(b.name);
+      });
       setBarbers(data);
     } catch (error) {
       console.error('Error loading barbers:', error);
