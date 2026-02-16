@@ -1,10 +1,10 @@
 import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import { format, addDays, isToday, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { motion, useMotionValue, useSpring, animate, PanInfo } from 'framer-motion';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 import { cn } from '@/lib/utils';
-import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { getServicePastelColor, getOverlapInfo, getBookingPosition, getEventPosition } from '@/components/calendar/shared';
 import { pastelColors } from '@/components/calendar/shared/colorUtils';
 import { BookingCard } from '@/components/calendar/shared/BookingCard';
@@ -101,16 +101,30 @@ export function ThreeDayView({
     };
   }, []);
 
-  // Get 3 consecutive days starting from currentDate
+  // Get 9 consecutive days for carousel (previous 3, current 3, next 3)
   const days = useMemo(() => {
-    return [currentDate, addDays(currentDate, 1), addDays(currentDate, 2)];
+    return Array.from({ length: 9 }, (_, i) => addDays(currentDate, i - 3));
   }, [currentDate]);
 
-  // Swipe handlers for navigation - disabled when dragging a booking card
-  const swipeHandlers = useSwipeGesture({
-    onSwipeLeft: () => !isDragging && onDateChange(addDays(currentDate, 3)),
-    onSwipeRight: () => !isDragging && onDateChange(addDays(currentDate, -3)),
-  });
+  // Motion values for smooth horizontal scrolling
+  const [viewportWidth, setViewportWidth] = useState(0);
+  const x = useMotionValue(0);
+  const xSpring = useSpring(x, { stiffness: 300, damping: 30 });
+
+  // Calculate viewport width
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.offsetWidth;
+        setViewportWidth(width);
+        // Center on middle 3 days (offset by -100vw)
+        x.set(-width);
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, [x]);
 
   // Get bookings for a specific day
   const getBookingsForDay = useCallback((date: Date) => {
@@ -291,19 +305,59 @@ export function ThreeDayView({
     ];
   }, [barberColors]);
 
+  // Handle horizontal drag end with snap logic
+  const handleHorizontalDragEnd = useCallback((event: any, info: PanInfo) => {
+    if (!viewportWidth) return;
+
+    const { offset, velocity } = info;
+    const snapThreshold = viewportWidth / 3;
+
+    let direction = 0; // 0 = stay, -1 = prev 3 days, +1 = next 3 days
+
+    // Determine direction based on drag distance or velocity
+    if (Math.abs(offset.x) > snapThreshold || Math.abs(velocity.x) > 500) {
+      direction = offset.x > 0 ? -1 : 1; // Right swipe = go back, Left = forward
+    }
+
+    if (direction !== 0) {
+      // Snap to next/prev position
+      const targetX = -viewportWidth + (direction * viewportWidth);
+      animate(x, targetX, {
+        type: 'spring',
+        stiffness: 300,
+        damping: 30,
+        onComplete: () => {
+          // Update date after animation completes
+          onDateChange(addDays(currentDate, direction * 3));
+          // Reset to center position
+          x.set(-viewportWidth);
+        }
+      });
+    } else {
+      // Snap back to center
+      animate(x, -viewportWidth, { type: 'spring', stiffness: 300, damping: 30 });
+    }
+  }, [currentDate, onDateChange, viewportWidth, x]);
+
   return (
     <div
       ref={containerRef}
-      className="flex flex-col flex-1"
+      className="flex flex-col flex-1 overflow-hidden"
       style={{ backgroundColor: '#f5f5f5' }}
-      {...swipeHandlers}
     >
       {/* Sticky header: Column Headers + Legend overlay */}
-      <div className="sticky top-0 z-40 bg-white relative">
+      <div className="sticky top-0 z-40 bg-white relative overflow-hidden">
         {/* Column Headers */}
-        <div className="flex border-b" style={{ borderColor: '#e0e0e0' }}>
+        <motion.div
+          className="flex border-b"
+          style={{
+            borderColor: '#e0e0e0',
+            x: xSpring,
+            width: '300%'
+          }}
+        >
           {/* Time column spacer */}
-          <div className="w-12 shrink-0" style={{ borderRight: '1px solid #e0e0e0' }} />
+          <div className="shrink-0" style={{ borderRight: '1px solid #e0e0e0', width: `${100 / 9}%` }} />
 
           {/* Day columns */}
           {days.map((day) => {
@@ -311,8 +365,8 @@ export function ThreeDayView({
             return (
               <div
                 key={day.toISOString()}
-                className="flex-1 py-1.5 flex items-center justify-center gap-1.5"
-                style={{ borderRight: '1px solid #e0e0e0' }}
+                className="py-1.5 flex items-center justify-center gap-1.5 shrink-0"
+                style={{ borderRight: '1px solid #e0e0e0', width: `${100 / 9}%` }}
               >
                 <span className={cn(
                   'w-6 h-6 flex items-center justify-center rounded-full text-sm font-medium',
@@ -329,7 +383,7 @@ export function ThreeDayView({
               </div>
             );
           })}
-        </div>
+        </motion.div>
 
         {/* Legend - hangs below sticky header, overlays grid */}
         {legendRows.length > 0 && (
@@ -360,10 +414,10 @@ export function ThreeDayView({
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1">
+      <div className="flex-1 overflow-hidden">
         <div className="flex relative">
-          {/* Time labels column */}
-          <div className="w-12 shrink-0 bg-white" style={{ borderRight: '1px solid #e0e0e0' }}>
+          {/* Time labels column - fixed */}
+          <div className="shrink-0 bg-white z-10" style={{ borderRight: '1px solid #e0e0e0', width: `${viewportWidth ? (48 / viewportWidth) * 100 : 0}%` }}>
             {HOURS.map((hour) => (
               <div
                 key={hour}
@@ -386,7 +440,21 @@ export function ThreeDayView({
             ))}
           </div>
 
-          {/* Day columns */}
+          {/* Day columns - draggable */}
+          <motion.div
+            className="flex relative"
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.1}
+            dragMomentum={false}
+            onDragEnd={handleHorizontalDragEnd}
+            style={{
+              x: xSpring,
+              width: '300%',
+              cursor: isDragging || isSelecting ? 'default' : 'grab'
+            }}
+            {...(isDragging || isSelecting ? { drag: false } : {})}
+          >
           {days.map((day) => {
             const dayBookings = getBookingsForDay(day);
             const dayIsToday = isToday(day);
@@ -395,10 +463,11 @@ export function ThreeDayView({
             return (
               <div
                 key={day.toISOString()}
-                className="flex-1 relative"
+                className="relative shrink-0"
                 style={{
                   borderRight: '1px solid #e0e0e0',
-                  backgroundColor: dayIsToday ? '#fafafa' : '#f8f8f8'
+                  backgroundColor: dayIsToday ? '#fafafa' : '#f8f8f8',
+                  width: `${100 / 9}%`
                 }}
                 onClick={(e) => handleSlotClick(day, e)}
                 onMouseDown={(e) => handleMouseDown(day, e)}
@@ -511,6 +580,7 @@ export function ThreeDayView({
               </div>
             );
           })}
+          </motion.div>
 
           {/* Current time indicator */}
           {showCurrentTime && currentTimePosition !== null && (
