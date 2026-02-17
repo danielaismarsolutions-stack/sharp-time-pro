@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { format, startOfWeek, addDays } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Eye } from 'lucide-react';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
@@ -43,13 +43,12 @@ export function AgendaView({
   getEventsForDay,
   onEventClick,
 }: AgendaViewProps) {
-  // Group bookings by day for the selected week
+  // Group bookings by day starting from the selected day (7 days total)
   const dayGroups = useMemo<DayGroup[]>(() => {
-    const start = startOfWeek(currentDate, { weekStartsOn: 1 });
     const days: DayGroup[] = [];
 
     for (let i = 0; i < 7; i++) {
-      const date = addDays(start, i);
+      const date = addDays(currentDate, i);
       const dateStr = format(date, 'yyyy-MM-dd');
       const dayBookings = bookings
         .filter((b) => b.booking_date === dateStr && b.status !== 'cancelled')
@@ -65,11 +64,10 @@ export function AgendaView({
     return days;
   }, [currentDate, bookings]);
 
-  // Calculate weekly income from completed bookings
+  // Calculate income for the 7-day window starting from selected day
   const weeklyIncome = useMemo(() => {
-    const start = startOfWeek(currentDate, { weekStartsOn: 1 });
     const weekDates = Array.from({ length: 7 }, (_, i) =>
-      format(addDays(start, i), 'yyyy-MM-dd')
+      format(addDays(currentDate, i), 'yyyy-MM-dd')
     );
 
     return bookings
@@ -124,7 +122,7 @@ export function AgendaView({
       >
         <div className="flex items-center gap-2 text-muted-foreground">
           <Eye className="h-4 w-4" />
-          <span className="text-sm">Ingresos de esta semana</span>
+          <span className="text-sm">Ingresos de los próximos 7 días</span>
         </div>
         <span className="text-base font-semibold text-foreground">
           {new Intl.NumberFormat('es-ES', {
