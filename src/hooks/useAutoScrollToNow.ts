@@ -29,11 +29,15 @@ export function useAutoScrollToNow(
 
     const scrollTop = (hoursFromStart + currentMinutes / 60) * hourHeight;
 
-    // Small delay to ensure DOM is ready
-    requestAnimationFrame(() => {
-      scrollRef.current?.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' });
-      hasScrolled.current = true;
-    });
+    // Use a short timeout to ensure the view's DOM has fully rendered
+    const timer = setTimeout(() => {
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' });
+        hasScrolled.current = true;
+      });
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [startHour, hourHeight, ...deps]);
 
   return scrollRef;
