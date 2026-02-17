@@ -120,6 +120,9 @@ export const supabaseBookingsApi = {
       url.searchParams.append('barber', `eq.${filters.barber}`);
     }
     
+    // Increase default row limit for large date ranges (year view)
+    url.searchParams.append('limit', '10000');
+
     // Order by date and time
     url.searchParams.append('order', 'booking_date.asc,start_time.asc');
     
