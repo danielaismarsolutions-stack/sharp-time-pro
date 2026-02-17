@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  type ChartConfig,
 } from '@/components/ui/chart';
 import {
-  ResponsiveContainer,
   PieChart as RechartsPie,
   Pie,
   Cell,
@@ -15,6 +16,14 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts';
+
+const statusChartConfig = {
+  value: { label: 'Citas' },
+} satisfies ChartConfig;
+
+const hoursChartConfig = {
+  bookings: { label: 'Citas', color: 'hsl(var(--primary))' },
+} satisfies ChartConfig;
 
 interface StatusAndHoursChartsProps {
   statusData: Array<{ name: string; value: number; color: string }>;
@@ -39,7 +48,7 @@ export default function StatusAndHoursCharts({ statusData, hoursData }: StatusAn
                 Sin datos para este periodo
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={statusChartConfig} className="h-full w-full">
                 <RechartsPie>
                   <Pie
                     data={statusData}
@@ -57,7 +66,7 @@ export default function StatusAndHoursCharts({ statusData, hoursData }: StatusAn
                   <Legend wrapperStyle={{ fontSize: '12px' }} />
                   <ChartTooltip content={<ChartTooltipContent />} />
                 </RechartsPie>
-              </ResponsiveContainer>
+              </ChartContainer>
             )}
           </div>
         </CardContent>
@@ -75,7 +84,7 @@ export default function StatusAndHoursCharts({ statusData, hoursData }: StatusAn
                 Sin datos para este periodo
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={hoursChartConfig} className="h-full w-full">
                 <BarChart data={hoursData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="hour" stroke="hsl(var(--muted-foreground))" fontSize={9} />
@@ -83,7 +92,7 @@ export default function StatusAndHoursCharts({ statusData, hoursData }: StatusAn
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar dataKey="bookings" name="Citas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             )}
           </div>
         </CardContent>

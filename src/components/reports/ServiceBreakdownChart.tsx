@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  type ChartConfig,
 } from '@/components/ui/chart';
 import {
-  ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
@@ -13,6 +14,10 @@ import {
 } from 'recharts';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+
+const chartConfig = {
+  revenue: { label: 'Ingresos', color: 'hsl(var(--primary))' },
+} satisfies ChartConfig;
 
 interface ServiceBreakdownChartProps {
   data: Array<{ name: string; revenue: number }>;
@@ -39,7 +44,7 @@ export default function ServiceBreakdownChart({ data }: ServiceBreakdownChartPro
               Sin datos para este periodo
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
+            <ChartContainer config={chartConfig} className="h-full w-full">
               <BarChart data={coloredData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
@@ -47,7 +52,7 @@ export default function ServiceBreakdownChart({ data }: ServiceBreakdownChartPro
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="revenue" name="Ingresos" radius={[0, 4, 4, 0]} />
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           )}
         </div>
       </CardContent>
