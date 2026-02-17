@@ -1,16 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  type ChartConfig,
 } from '@/components/ui/chart';
 import {
-  ResponsiveContainer,
   LineChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
 } from 'recharts';
+
+const chartConfig = {
+  revenue: { label: 'Ingresos', color: 'hsl(var(--primary))' },
+} satisfies ChartConfig;
 
 interface RevenueTrendChartProps {
   data: Array<{ label: string; revenue: number; bookings: number }>;
@@ -31,7 +36,7 @@ export default function RevenueTrendChart({ data }: RevenueTrendChartProps) {
               Sin datos para este periodo
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
+            <ChartContainer config={chartConfig} className="h-full w-full">
               <LineChart data={data}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={12} />
@@ -46,7 +51,7 @@ export default function RevenueTrendChart({ data }: RevenueTrendChartProps) {
                   dot={{ fill: 'hsl(var(--primary))' }}
                 />
               </LineChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           )}
         </div>
       </CardContent>
