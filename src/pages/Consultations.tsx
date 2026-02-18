@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
-import { BUSINESS_ID } from '@/config/api';
+import { getBusinessId } from '@/config/session';
 import { supabaseConsultationsApi } from '@/services/supabaseConsultations';
 import { createNotification } from '@/services/supabaseNotifications';
 import { Consultation, ConsultationStatus, STATUS_CONFIG } from '@/types/consultation';
@@ -76,7 +76,7 @@ export default function Consultations() {
         try {
           await createNotification({
             user_id: user.id,
-            business_id: BUSINESS_ID,
+            business_id: getBusinessId(),
             type: 'consultation_created',
             title: 'Nueva consulta recibida',
             message: `${payload.new.client_name} ha enviado una consulta para ${payload.new.service_name}`,
@@ -196,7 +196,7 @@ export default function Consultations() {
         try {
           await createNotification({
             user_id: user.id,
-            business_id: BUSINESS_ID,
+            business_id: getBusinessId(),
             type: 'consultation_updated',
             title: 'Consulta programada',
             message: `La consulta de ${bookingConsultation.client_name} para ${bookingConsultation.service_name} ha sido convertida a reserva`,

@@ -1,7 +1,7 @@
 // Calendar Events Storage Service
 // Uses localStorage for persistence. Structured to easily swap to Supabase later.
 
-import { BUSINESS_ID } from '@/config/api';
+import { getBusinessId } from '@/config/session';
 import { ApiCalendarEvent, ApiEventRepeat } from '@/types/api';
 
 // ==================== Types ====================
@@ -32,7 +32,9 @@ export interface UpdateEventData {
 
 // ==================== Storage Key ====================
 
-const STORAGE_KEY = `sharp-time-pro-events-${BUSINESS_ID}`;
+function getStorageKey(): string {
+  return `sharp-time-pro-events-${getBusinessId()}`;
+}
 
 // ==================== Helpers ====================
 
@@ -42,7 +44,7 @@ function generateId(): string {
 
 function getAllEvents(): ApiCalendarEvent[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(getStorageKey());
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -50,7 +52,7 @@ function getAllEvents(): ApiCalendarEvent[] {
 }
 
 function saveAllEvents(events: ApiCalendarEvent[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+  localStorage.setItem(getStorageKey(), JSON.stringify(events));
 }
 
 // ==================== Events API ====================
@@ -71,7 +73,7 @@ export const eventsStorageApi = {
 
     const newEvent: ApiCalendarEvent = {
       id: generateId(),
-      business_id: BUSINESS_ID,
+      business_id: getBusinessId(),
       name: data.name,
       event_date: data.event_date,
       start_time: data.start_time.length === 5 ? `${data.start_time}:00` : data.start_time,

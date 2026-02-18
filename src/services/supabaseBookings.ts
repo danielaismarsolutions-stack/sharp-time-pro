@@ -1,7 +1,8 @@
 // Supabase Bookings API Service
 // Handles all booking-related operations with Supabase
 
-import { SUPABASE_CONFIG, BUSINESS_ID } from '@/config/api';
+import { SUPABASE_CONFIG } from '@/config/api';
+import { getBusinessId } from '@/config/session';
 import { ApiBooking, ApiBookingStatus, ApiBookingSource, ApiBookingType } from '@/types/api';
 
 // ==================== Types ====================
@@ -96,7 +97,7 @@ export const supabaseBookingsApi = {
     const url = new URL(`${SUPABASE_CONFIG.url}/rest/v1/bookings`);
     
     // Always filter by business_id
-    url.searchParams.append('business_id', `eq.${BUSINESS_ID}`);
+    url.searchParams.append('business_id', `eq.${getBusinessId()}`);
     
     // Apply filters
     if (filters?.date) {
@@ -150,7 +151,7 @@ export const supabaseBookingsApi = {
   getById: async (bookingId: string): Promise<ApiBooking | null> => {
     const url = new URL(`${SUPABASE_CONFIG.url}/rest/v1/bookings`);
     url.searchParams.append('id', `eq.${bookingId}`);
-    url.searchParams.append('business_id', `eq.${BUSINESS_ID}`);
+    url.searchParams.append('business_id', `eq.${getBusinessId()}`);
     
     const response = await fetch(url.toString(), {
       headers: supabaseHeaders,
@@ -176,7 +177,7 @@ export const supabaseBookingsApi = {
     const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings`;
     
     const payload = {
-      business_id: BUSINESS_ID,
+      business_id: getBusinessId(),
       ...bookingData,
       status: bookingData.status || 'confirmed',
       source: bookingData.source || 'phone',
@@ -209,7 +210,7 @@ export const supabaseBookingsApi = {
    * Update an existing booking
    */
   update: async (bookingId: string, updates: UpdateBookingData): Promise<ApiBooking> => {
-    const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings?id=eq.${bookingId}&business_id=eq.${BUSINESS_ID}`;
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings?id=eq.${bookingId}&business_id=eq.${getBusinessId()}`;
     
     const payload = {
       ...updates,
@@ -248,7 +249,7 @@ export const supabaseBookingsApi = {
    * Delete a booking (hard delete)
    */
   delete: async (bookingId: string): Promise<void> => {
-    const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings?id=eq.${bookingId}&business_id=eq.${BUSINESS_ID}`;
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings?id=eq.${bookingId}&business_id=eq.${getBusinessId()}`;
     
     console.log('🔄 Deleting booking:', bookingId);
     
@@ -391,7 +392,7 @@ async function checkEventConflicts(
   if (!barber) return []; // No barber assigned → no conflicts to check
 
   const url = new URL(`${SUPABASE_CONFIG.url}/rest/v1/bookings`);
-  url.searchParams.append('business_id', `eq.${BUSINESS_ID}`);
+  url.searchParams.append('business_id', `eq.${getBusinessId()}`);
   url.searchParams.append('booking_date', `eq.${date}`);
   url.searchParams.append('barber', `eq.${barber}`);
   url.searchParams.append('select', 'id,client_name,start_time,end_time,status,booking_type');
@@ -455,7 +456,7 @@ export const supabaseEventBookingsApi = {
     const endTime = normalizeTime(data.end_time);
 
     const payload = {
-      business_id: BUSINESS_ID,
+      business_id: getBusinessId(),
       booking_type: 'event',
       status: 'confirmed',
       booking_date: data.booking_date,
@@ -554,7 +555,7 @@ export const supabaseEventBookingsApi = {
 
     console.log('🔄 Updating event booking:', eventId, payload);
 
-    const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings?id=eq.${eventId}&business_id=eq.${BUSINESS_ID}`;
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings?id=eq.${eventId}&business_id=eq.${getBusinessId()}`;
     const response = await fetch(url, {
       method: 'PATCH',
       headers: {
@@ -581,7 +582,7 @@ export const supabaseEventBookingsApi = {
    * Delete an event booking
    */
   delete: async (eventId: string): Promise<void> => {
-    const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings?id=eq.${eventId}&business_id=eq.${BUSINESS_ID}`;
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings?id=eq.${eventId}&business_id=eq.${getBusinessId()}`;
 
     console.log('🔄 Deleting event booking:', eventId);
 

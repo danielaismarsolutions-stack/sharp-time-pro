@@ -23,7 +23,7 @@ import { supabaseBookingsApi } from '@/services/supabaseBookings';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { supabaseClientsApi } from '@/services/supabaseClients';
 import { supabase } from '@/lib/supabase';
-import { BUSINESS_ID } from '@/config/api';
+import { getBusinessId } from '@/config/session';
 import { ApiBooking } from '@/types/api';
 import { Barber } from '@/types/barber';
 
@@ -274,7 +274,7 @@ export function useReportsData(period: Period) {
       .channel(channelName)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'bookings', filter: `business_id=eq.${BUSINESS_ID}` },
+        { event: '*', schema: 'public', table: 'bookings', filter: `business_id=eq.${getBusinessId()}` },
         () => {
           queryClient.invalidateQueries({ queryKey: ['reports', 'bookings'] });
         },

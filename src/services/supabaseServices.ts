@@ -1,7 +1,8 @@
 // Supabase Services API
 // Direct connection to Supabase for services CRUD operations
 
-import { SUPABASE_CONFIG, BUSINESS_ID } from '@/config/api';
+import { SUPABASE_CONFIG } from '@/config/api';
+import { getBusinessId } from '@/config/session';
 import { Service } from '@/types';
 
 // Database service type (maps to Supabase schema)
@@ -97,7 +98,7 @@ export const supabaseServicesApi = {
    * Fetch all services for the business
    */
   getAll: async (includeInactive = true): Promise<Service[]> => {
-    let endpoint = `/services?business_id=eq.${BUSINESS_ID}&order=display_order.asc,name.asc`;
+    let endpoint = `/services?business_id=eq.${getBusinessId()}&order=display_order.asc,name.asc`;
     
     if (!includeInactive) {
       endpoint += '&is_active=eq.true';
@@ -111,7 +112,7 @@ export const supabaseServicesApi = {
    * Fetch a specific service by ID
    */
   getById: async (id: string): Promise<Service | null> => {
-    const endpoint = `/services?id=eq.${id}&business_id=eq.${BUSINESS_ID}`;
+    const endpoint = `/services?id=eq.${id}&business_id=eq.${getBusinessId()}`;
     const data = await supabaseFetch<DbService[]>(endpoint);
     
     if (data.length === 0) return null;
@@ -123,7 +124,7 @@ export const supabaseServicesApi = {
    */
   create: async (service: Omit<Service, 'id'>): Promise<Service> => {
     const dbData = {
-      business_id: BUSINESS_ID,
+      business_id: getBusinessId(),
       ...mapServiceToDb(service),
     };
     
@@ -144,7 +145,7 @@ export const supabaseServicesApi = {
       updated_at: new Date().toISOString(),
     };
     
-    const endpoint = `/services?id=eq.${id}&business_id=eq.${BUSINESS_ID}`;
+    const endpoint = `/services?id=eq.${id}&business_id=eq.${getBusinessId()}`;
     const data = await supabaseFetch<DbService[]>(endpoint, {
       method: 'PATCH',
       body: JSON.stringify(dbData),
@@ -161,7 +162,7 @@ export const supabaseServicesApi = {
    * Soft delete a service (set is_active to false)
    */
   delete: async (id: string): Promise<void> => {
-    const endpoint = `/services?id=eq.${id}&business_id=eq.${BUSINESS_ID}`;
+    const endpoint = `/services?id=eq.${id}&business_id=eq.${getBusinessId()}`;
     await supabaseFetch<void>(endpoint, {
       method: 'PATCH',
       body: JSON.stringify({
@@ -177,7 +178,7 @@ export const supabaseServicesApi = {
   updateOrder: async (orderedIds: string[]): Promise<void> => {
     // Update each service's display_order based on its position in the array
     const updates = orderedIds.map((id, index) => 
-      supabaseFetch<void>(`/services?id=eq.${id}&business_id=eq.${BUSINESS_ID}`, {
+      supabaseFetch<void>(`/services?id=eq.${id}&business_id=eq.${getBusinessId()}`, {
         method: 'PATCH',
         body: JSON.stringify({
           display_order: index,

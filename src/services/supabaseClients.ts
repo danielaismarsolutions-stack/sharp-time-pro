@@ -1,7 +1,8 @@
 // Supabase Clients API
 // Direct connection to Supabase for clients CRUD operations
 
-import { SUPABASE_CONFIG, BUSINESS_ID } from '@/config/api';
+import { SUPABASE_CONFIG } from '@/config/api';
+import { getBusinessId } from '@/config/session';
 import { Client, Booking } from '@/types';
 
 // Database client type (maps to Supabase schema)
@@ -134,7 +135,7 @@ export const supabaseClientsApi = {
    * Fetch all clients for the business
    */
   getAll: async (search?: string): Promise<Client[]> => {
-    let endpoint = `/clients?business_id=eq.${BUSINESS_ID}&order=created_at.desc`;
+    let endpoint = `/clients?business_id=eq.${getBusinessId()}&order=created_at.desc`;
     
     if (search) {
       // Search by name, phone, or email using OR
@@ -149,7 +150,7 @@ export const supabaseClientsApi = {
    * Fetch a specific client by ID
    */
   getById: async (id: string): Promise<Client | null> => {
-    const endpoint = `/clients?id=eq.${id}&business_id=eq.${BUSINESS_ID}`;
+    const endpoint = `/clients?id=eq.${id}&business_id=eq.${getBusinessId()}`;
     const data = await supabaseFetch<DbClient[]>(endpoint);
     
     if (data.length === 0) return null;
@@ -161,7 +162,7 @@ export const supabaseClientsApi = {
    */
   getWithBookings: async (clientId: string): Promise<ClientWithBookings | null> => {
     // Get client data
-    const clientEndpoint = `/clients?id=eq.${clientId}&business_id=eq.${BUSINESS_ID}`;
+    const clientEndpoint = `/clients?id=eq.${clientId}&business_id=eq.${getBusinessId()}`;
     const clients = await supabaseFetch<DbClient[]>(clientEndpoint);
     
     if (clients.length === 0) return null;
@@ -169,7 +170,7 @@ export const supabaseClientsApi = {
     const client = mapDbToClient(clients[0]);
     
     // Get client's booking history
-    const bookingsEndpoint = `/bookings?client_id=eq.${clientId}&business_id=eq.${BUSINESS_ID}&order=booking_date.desc,start_time.desc`;
+    const bookingsEndpoint = `/bookings?client_id=eq.${clientId}&business_id=eq.${getBusinessId()}&order=booking_date.desc,start_time.desc`;
     const bookingsData = await supabaseFetch<DbBooking[]>(bookingsEndpoint);
     
     const bookings = bookingsData.map(b => ({
@@ -190,7 +191,7 @@ export const supabaseClientsApi = {
    */
   create: async (client: Omit<Client, 'id' | 'createdAt' | 'totalVisits' | 'totalSpent' | 'lastVisit'>): Promise<Client> => {
     const dbData = {
-      business_id: BUSINESS_ID,
+      business_id: getBusinessId(),
       ...mapClientToDb(client),
       total_visits: 0,
       total_spent: 0,
@@ -214,7 +215,7 @@ export const supabaseClientsApi = {
       updated_at: new Date().toISOString(),
     };
     
-    const endpoint = `/clients?id=eq.${id}&business_id=eq.${BUSINESS_ID}`;
+    const endpoint = `/clients?id=eq.${id}&business_id=eq.${getBusinessId()}`;
     const data = await supabaseFetch<DbClient[]>(endpoint, {
       method: 'PATCH',
       body: JSON.stringify(dbData),
@@ -238,7 +239,7 @@ export const supabaseClientsApi = {
    * Delete a client
    */
   delete: async (id: string): Promise<void> => {
-    const endpoint = `/clients?id=eq.${id}&business_id=eq.${BUSINESS_ID}`;
+    const endpoint = `/clients?id=eq.${id}&business_id=eq.${getBusinessId()}`;
     await supabaseFetch<void>(endpoint, {
       method: 'DELETE',
     });
@@ -248,7 +249,7 @@ export const supabaseClientsApi = {
    * Get booking history for a client
    */
   getBookingHistory: async (clientId: string): Promise<Booking[]> => {
-    const endpoint = `/bookings?client_id=eq.${clientId}&business_id=eq.${BUSINESS_ID}&order=booking_date.desc,start_time.desc`;
+    const endpoint = `/bookings?client_id=eq.${clientId}&business_id=eq.${getBusinessId()}&order=booking_date.desc,start_time.desc`;
     const data = await supabaseFetch<DbBooking[]>(endpoint);
     return data.map(mapDbToBooking);
   },

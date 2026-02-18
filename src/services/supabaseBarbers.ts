@@ -1,5 +1,6 @@
 // Supabase Barbers Service - Uses 'users' table + normalized schedule tables
-import { SUPABASE_CONFIG, BUSINESS_ID } from '@/config/api';
+import { SUPABASE_CONFIG } from '@/config/api';
+import { getBusinessId } from '@/config/session';
 import { Barber, CreateBarberData, UpdateBarberData, DEFAULT_SCHEDULE, BarberSchedule, BarberDaySchedule, TimeOff } from '@/types/barber';
 import { supabaseStorageApi } from './supabaseStorage';
 
@@ -190,7 +191,7 @@ export const supabaseBarbersApi = {
 
   async getAll(includeInactive = false): Promise<Barber[]> {
     // Fetch users with role 'barber' from the users table
-    let url = `${SUPABASE_CONFIG.url}/rest/v1/users?business_id=eq.${BUSINESS_ID}&role=eq.barber&order=full_name.asc`;
+    let url = `${SUPABASE_CONFIG.url}/rest/v1/users?business_id=eq.${getBusinessId()}&role=eq.barber&order=full_name.asc`;
     
     if (!includeInactive) {
       url += '&is_active=eq.true';
@@ -224,7 +225,7 @@ export const supabaseBarbersApi = {
 
   async getById(barberId: string): Promise<Barber | null> {
     const response = await fetch(
-      `${SUPABASE_CONFIG.url}/rest/v1/users?id=eq.${barberId}&business_id=eq.${BUSINESS_ID}`,
+      `${SUPABASE_CONFIG.url}/rest/v1/users?id=eq.${barberId}&business_id=eq.${getBusinessId()}`,
       {
         method: 'GET',
         headers: supabaseHeaders(),
@@ -250,7 +251,7 @@ export const supabaseBarbersApi = {
 
   async create(barberData: CreateBarberData): Promise<Barber> {
     const payload = {
-      business_id: BUSINESS_ID,
+      business_id: getBusinessId(),
       full_name: barberData.name,
       email: barberData.email || null,
       phone: barberData.phone || null,
@@ -300,7 +301,7 @@ export const supabaseBarbersApi = {
     }
 
     const response = await fetch(
-      `${SUPABASE_CONFIG.url}/rest/v1/users?id=eq.${barberId}&business_id=eq.${BUSINESS_ID}`,
+      `${SUPABASE_CONFIG.url}/rest/v1/users?id=eq.${barberId}&business_id=eq.${getBusinessId()}`,
       {
         method: 'PATCH',
         headers: supabaseHeaders(),
@@ -363,7 +364,7 @@ export const supabaseBarbersApi = {
       if (daySchedule.enabled && daySchedule.shifts.length > 0) {
         daySchedule.shifts.forEach((shift) => {
           rows.push({
-            business_id: BUSINESS_ID,
+            business_id: getBusinessId(),
             barber_id: barberId,
             day_of_week: DAY_TO_NUMBER[dayName],
             start_time: shift.start + ':00', // Convert HH:MM to HH:MM:SS
@@ -415,7 +416,7 @@ export const supabaseBarbersApi = {
     // Insert new time_off entries
     if (timeOff.length > 0) {
       const rows = timeOff.map((item) => ({
-        business_id: BUSINESS_ID,
+        business_id: getBusinessId(),
         barber_id: barberId,
         start_date: item.start_date,
         end_date: item.end_date,
@@ -451,7 +452,7 @@ export const supabaseBarbersApi = {
   // Add a single time_off entry
   async addTimeOff(barberId: string, timeOff: Omit<TimeOff, 'id'>): Promise<TimeOff> {
     const payload = {
-      business_id: BUSINESS_ID,
+      business_id: getBusinessId(),
       barber_id: barberId,
       start_date: timeOff.start_date,
       end_date: timeOff.end_date,
@@ -504,7 +505,7 @@ export const supabaseBarbersApi = {
    */
   async updateAvatarUrl(barberId: string, avatarUrl: string | null): Promise<void> {
     const response = await fetch(
-      `${SUPABASE_CONFIG.url}/rest/v1/users?id=eq.${barberId}&business_id=eq.${BUSINESS_ID}`,
+      `${SUPABASE_CONFIG.url}/rest/v1/users?id=eq.${barberId}&business_id=eq.${getBusinessId()}`,
       {
         method: 'PATCH',
         headers: supabaseHeaders(),

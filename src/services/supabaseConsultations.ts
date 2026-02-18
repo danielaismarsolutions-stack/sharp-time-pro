@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { BUSINESS_ID } from '@/config/api';
+import { getBusinessId } from '@/config/session';
 import type { Consultation, ConsultationStatus } from '@/types/consultation';
 
 export const supabaseConsultationsApi = {
@@ -7,7 +7,7 @@ export const supabaseConsultationsApi = {
     const { data, error } = await supabase
       .from('consultations')
       .select('*')
-      .eq('business_id', BUSINESS_ID)
+      .eq('business_id', getBusinessId())
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -81,7 +81,7 @@ export const supabaseConsultationsApi = {
           event: '*',
           schema: 'public',
           table: 'consultations',
-          filter: `business_id=eq.${BUSINESS_ID}`,
+          filter: `business_id=eq.${getBusinessId()}`,
         },
         (payload) => {
           callback({

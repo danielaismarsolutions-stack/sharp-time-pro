@@ -57,7 +57,7 @@ import { supabaseBookingsApi, supabaseEventBookingsApi } from '@/services/supaba
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { createNotification } from '@/services/supabaseNotifications';
 import { useAuth } from '@/contexts/AuthContext';
-import { BUSINESS_ID } from '@/config/api';
+import { getBusinessId } from '@/config/session';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -217,7 +217,7 @@ export default function Calendar() {
           event: 'INSERT',
           schema: 'public',
           table: 'bookings',
-          filter: `business_id=eq.${BUSINESS_ID}`,
+          filter: `business_id=eq.${getBusinessId()}`,
         },
         async (payload) => {
           const newBooking = payload.new as ApiBooking;
@@ -228,7 +228,7 @@ export default function Calendar() {
             try {
               await createNotification({
                 user_id: user.id,
-                business_id: BUSINESS_ID,
+                business_id: getBusinessId(),
                 type: 'booking_created',
                 title: 'Nueva reserva online',
                 message: `${newBooking.client_name} ha reservado ${newBooking.service_name} para el ${format(new Date(newBooking.booking_date), 'dd/MM/yyyy', { locale: es })} a las ${newBooking.start_time.substring(0, 5)}`,
@@ -1145,7 +1145,7 @@ export default function Calendar() {
                   try {
                     await createNotification({
                       user_id: user.id,
-                      business_id: BUSINESS_ID,
+                      business_id: getBusinessId(),
                       type: 'booking_modified',
                       title: 'Reserva modificada',
                       message: `${data.clientName} - ${data.serviceName} actualizada al ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
@@ -1189,7 +1189,7 @@ export default function Calendar() {
                   try {
                     await createNotification({
                       user_id: user.id,
-                      business_id: BUSINESS_ID,
+                      business_id: getBusinessId(),
                       type: 'booking_created',
                       title: 'Nueva reserva',
                       message: `${data.clientName} ha reservado ${data.serviceName} para el ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
