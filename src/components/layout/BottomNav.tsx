@@ -1,7 +1,8 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, Settings, ListTodo } from 'lucide-react';
+import { Users, Settings, ListTodo, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Dynamic calendar icon component showing current date
 function CalendarDateIcon({ className, isActive }: { className?: string; isActive?: boolean }) {
@@ -66,18 +67,28 @@ interface NavItem {
   id: string;
   label: string;
   path: string;
-  icon: 'calendar' | 'services' | 'customers' | 'settings';
+  icon: 'calendar' | 'services' | 'customers' | 'settings' | 'consultations';
+  adminOnly?: boolean;
+  barberOnly?: boolean;
 }
 
-const navItems: NavItem[] = [
+const allNavItems: NavItem[] = [
   { id: 'calendar', icon: 'calendar', label: 'Agenda', path: '/calendar' },
-  { id: 'services', icon: 'services', label: 'Servicios', path: '/services' },
+  { id: 'consultations', icon: 'consultations', label: 'Consultas', path: '/consultations', barberOnly: true },
+  { id: 'services', icon: 'services', label: 'Servicios', path: '/services', adminOnly: true },
   { id: 'customers', icon: 'customers', label: 'Clientes', path: '/clients' },
-  { id: 'settings', icon: 'settings', label: 'Ajustes', path: '/settings' },
+  { id: 'settings', icon: 'settings', label: 'Ajustes', path: '/settings', adminOnly: true },
 ];
 
 export default function BottomNav() {
   const location = useLocation();
+  const { isAdmin, isBarber } = useAuth();
+
+  const navItems = allNavItems.filter(item => {
+    if (item.adminOnly && !isAdmin) return false;
+    if (item.barberOnly && !isBarber) return false;
+    return true;
+  });
 
   const renderIcon = (iconType: NavItem['icon'], isActive: boolean) => {
     switch (iconType) {
@@ -87,6 +98,8 @@ export default function BottomNav() {
         return <ListTodo className={cn('w-6 h-6', isActive ? 'text-foreground' : 'text-gray-400')} />;
       case 'customers':
         return <SmileyIcon isActive={isActive} />;
+      case 'consultations':
+        return <MessageSquare className={cn('w-6 h-6', isActive ? 'text-foreground' : 'text-gray-400')} />;
       case 'settings':
         return <Settings className={cn('w-6 h-6', isActive ? 'text-foreground' : 'text-gray-400')} />;
     }

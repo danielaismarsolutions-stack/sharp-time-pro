@@ -59,7 +59,7 @@ export function SetmoreHeader({
   onBarberChange,
   isMobile = false,
 }: SetmoreHeaderProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin, isBarber } = useAuth();
   const navigate = useNavigate();
   const {
     notifications,
@@ -257,13 +257,15 @@ export function SetmoreHeader({
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="min-h-[44px] cursor-pointer"
-                onClick={() => navigate('/settings')}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Ajustes
-              </DropdownMenuItem>
+              {isAdmin && (
+                <DropdownMenuItem
+                  className="min-h-[44px] cursor-pointer"
+                  onClick={() => navigate('/settings')}
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Ajustes
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem className="min-h-[44px] cursor-pointer">
                 <User className="h-4 w-4 mr-2" />
                 Mi perfil
@@ -366,8 +368,8 @@ export function SetmoreHeader({
           </TabsList>
         </Tabs>
 
-        {/* Barber Filter */}
-        {barberNames.length > 0 && (
+        {/* Barber Filter - hidden for barber users (they auto-filter to their own bookings) */}
+        {barberNames.length > 0 && !isBarber && (
           <Select
             value={selectedBarber || 'all'}
             onValueChange={(v) => onBarberChange(v === 'all' ? null : v)}
