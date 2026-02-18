@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { apiClient } from '@/services/apiClient';
+import { supabaseBookingsApi } from '@/services/supabaseBookings';
 import { ApiBooking } from '@/types/api';
 import { cn } from '@/lib/utils';
 import { AnimatedCard } from '@/components/ui/animated-card';
@@ -45,7 +45,7 @@ export default function Dashboard() {
   const loadBookings = useCallback(async () => {
     try {
       setError(null);
-      const data = await apiClient.bookings.getAll();
+      const data = await supabaseBookingsApi.getAll();
       setBookings(data);
       console.log('✅ Bookings loaded:', data);
     } catch (err) {
