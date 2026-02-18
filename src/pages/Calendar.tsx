@@ -101,7 +101,7 @@ const BUSINESS_CLOSE_HOUR = 21;
 
 export default function Calendar() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isBarber } = useAuth();
   const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<ViewMode>('3day');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -197,6 +197,13 @@ export default function Calendar() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Auto-set barber filter for barber users (employees only see their own bookings)
+  useEffect(() => {
+    if (isBarber && user?.name) {
+      setSelectedBarber(user.name);
+    }
+  }, [isBarber, user?.name]);
 
   // Real-time subscription for bookings from web/external sources
   useEffect(() => {
@@ -583,13 +590,16 @@ export default function Calendar() {
     }
   };
 
-  // Get events for a specific day (including repeated events)
+  // Get events for a specific day (including repeated events), filtered by barber
   const getEventsForDay = useCallback((date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const dayOfWeek = date.getDay();
     const dayOfMonth = date.getDate();
 
     return calendarEvents.filter((event) => {
+      // Filter by barber if one is selected
+      if (selectedBarber && event.barber !== selectedBarber) return false;
+
       // Exact date match
       if (event.event_date === dateStr) return true;
       // Repeated events
@@ -604,7 +614,7 @@ export default function Calendar() {
       }
       return false;
     });
-  }, [calendarEvents]);
+  }, [calendarEvents, selectedBarber]);
 
   // Render Day View
   const renderDayView = () => {

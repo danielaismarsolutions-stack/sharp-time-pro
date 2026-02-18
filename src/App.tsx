@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminRoute from "@/components/AdminRoute";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -39,15 +40,17 @@ const App = () => (
                   </ProtectedRoute>
                 }
               >
-                <Route path="/dashboard" element={<Dashboard />} />
+                {/* Barber-accessible routes */}
                 <Route path="/calendar" element={<Calendar />} />
                 <Route path="/consultations" element={<Consultations />} />
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/clients/:id" element={<ClientDetail />} />
-                <Route path="/barbers" element={<Barbers />} />
-                <Route path="/services" element={<Services />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/settings" element={<Settings />} />
+                {/* Admin-only routes */}
+                <Route path="/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
+                <Route path="/barbers" element={<AdminRoute><Barbers /></AdminRoute>} />
+                <Route path="/services" element={<AdminRoute><Services /></AdminRoute>} />
+                <Route path="/reports" element={<AdminRoute><Reports /></AdminRoute>} />
+                <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

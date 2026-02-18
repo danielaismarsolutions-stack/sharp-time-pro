@@ -34,15 +34,15 @@ interface MobileDrawerMenuProps {
   showViewModeSelector?: boolean;
 }
 
-const navItems = [
-  { icon: Calendar, label: 'Agenda', path: '/calendar' },
-  { icon: MessageSquare, label: 'Consultas', path: '/consultations' },
-  { icon: Users, label: 'Clientes', path: '/clients' },
-  { icon: UserCog, label: 'Barberos', path: '/barbers' },
-  { icon: Scissors, label: 'Servicios', path: '/services' },
-  { icon: LayoutDashboard, label: 'Finanzas', path: '/dashboard' },
-  { icon: BarChart3, label: 'Informes', path: '/reports' },
-  { icon: Settings, label: 'Ajustes', path: '/settings' },
+const allNavItems = [
+  { icon: Calendar, label: 'Agenda', path: '/calendar', adminOnly: false },
+  { icon: MessageSquare, label: 'Consultas', path: '/consultations', adminOnly: false },
+  { icon: Users, label: 'Clientes', path: '/clients', adminOnly: false },
+  { icon: UserCog, label: 'Barberos', path: '/barbers', adminOnly: true },
+  { icon: Scissors, label: 'Servicios', path: '/services', adminOnly: true },
+  { icon: LayoutDashboard, label: 'Finanzas', path: '/dashboard', adminOnly: true },
+  { icon: BarChart3, label: 'Informes', path: '/reports', adminOnly: true },
+  { icon: Settings, label: 'Ajustes', path: '/settings', adminOnly: true },
 ];
 
 const viewModeOptions = [
@@ -59,7 +59,9 @@ export function MobileDrawerMenu({
   showViewModeSelector = false,
 }: MobileDrawerMenuProps) {
   const location = useLocation();
-  const { logout, user } = useAuth();
+  const { logout, user, isAdmin } = useAuth();
+
+  const navItems = allNavItems.filter(item => !item.adminOnly || isAdmin);
 
   const handleNavClick = () => {
     onOpenChange(false);

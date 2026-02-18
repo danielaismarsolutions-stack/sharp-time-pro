@@ -31,7 +31,7 @@ interface TopBarProps {
 }
 
 export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { 
     notifications, 
@@ -211,13 +211,15 @@ export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarPr
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              className="min-h-[44px] cursor-pointer"
-              onClick={() => navigate('/settings')}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Ajustes
-            </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem
+                className="min-h-[44px] cursor-pointer"
+                onClick={() => navigate('/settings')}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Ajustes
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem className="min-h-[44px] cursor-pointer">
               <User className="h-4 w-4 mr-2" />
               Mi perfil
