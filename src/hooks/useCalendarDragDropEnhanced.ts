@@ -9,7 +9,7 @@ import { Barber, BarberSchedule } from '@/types/barber';
 import { supabaseBookingsApi } from '@/services/supabaseBookings';
 import { createNotification } from '@/services/supabaseNotifications';
 import { useAuth } from '@/contexts/AuthContext';
-import { BUSINESS_ID } from '@/config/api';
+import { getBusinessId } from '@/config/session';
 import { useToast } from '@/hooks/use-toast';
 import type { MoveBookingDetails } from '@/components/calendar/MoveBookingConfirmDialog';
 
@@ -511,7 +511,7 @@ export function useCalendarDragDropEnhanced({
         try {
           await createNotification({
             user_id: user.id,
-            business_id: BUSINESS_ID,
+            business_id: getBusinessId(),
             type: 'booking_modified',
             title: 'Reserva modificada',
             message: `${booking.client_name} ha modificado su reserva de ${booking.service_name} al ${format(new Date(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,

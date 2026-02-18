@@ -37,21 +37,19 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
-const TEST_BUSINESS_ID = '11111111-1111-1111-1111-111111111111';
-
 const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const dayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 export default function Settings() {
   const { toast } = useToast();
   const { user, logout } = useAuth();
-  const { 
-    permission, 
-    isSubscribed, 
-    isLoading: isPushLoading, 
+  const {
+    permission,
+    isSubscribed,
+    isLoading: isPushLoading,
     isSupported: isPushSupported,
-    toggle: togglePush 
-  } = usePushNotifications(user?.id || null, TEST_BUSINESS_ID);
+    toggle: togglePush
+  } = usePushNotifications(user?.id || null, user?.businessId || null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 

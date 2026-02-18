@@ -2,6 +2,7 @@
 // Connects to the n8n backend API
 
 import { API_CONFIG } from '@/config/api';
+import { getBusinessId } from '@/config/session';
 import { 
   ApiResponse, 
   ApiBooking, 
@@ -112,7 +113,7 @@ export const apiClient = {
         method: 'POST',
         body: JSON.stringify({
           ...booking,
-          business_id: API_CONFIG.BUSINESS_ID,
+          business_id: getBusinessId(),
         }),
       });
     },

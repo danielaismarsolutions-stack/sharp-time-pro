@@ -36,7 +36,7 @@ import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { supabaseClientsApi } from '@/services/supabaseClients';
 import { createNotification } from '@/services/supabaseNotifications';
 import { useAuth } from '@/contexts/AuthContext';
-import { BUSINESS_ID } from '@/config/api';
+import { getBusinessId } from '@/config/session';
 
 interface ConsultationBookingModalProps {
   open: boolean;
@@ -252,7 +252,7 @@ export function ConsultationBookingModal({
         try {
           await createNotification({
             user_id: user.id,
-            business_id: BUSINESS_ID,
+            business_id: getBusinessId(),
             type: 'booking_created',
             title: 'Nueva reserva desde consulta',
             message: `${consultation.client_name} ha reservado ${selectedService.name} para el ${format(date, "dd/MM/yyyy", { locale: es })} a las ${formData.time}`,
