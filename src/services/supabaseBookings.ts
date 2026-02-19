@@ -124,19 +124,16 @@ export const supabaseBookingsApi = {
     // Order by date and time
     url.searchParams.append('order', 'booking_date.asc,start_time.asc');
     
-    console.log(`🔄 Fetching bookings from: ${url.toString()}`);
     
     const headers = await getAuthHeaders();
     const response = await fetch(url.toString(), { headers });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Failed to fetch bookings:', errorText);
       throw new Error('Failed to fetch bookings');
     }
 
     const data: DbBooking[] = await response.json();
-    console.log('✅ Bookings loaded:', data.length);
     
     return data.map(mapDbToApiBooking);
   },
@@ -178,7 +175,6 @@ export const supabaseBookingsApi = {
       source: bookingData.source || 'phone',
     };
     
-    console.log('🔄 Creating booking:', payload);
 
     const headers = await getAuthHeaders();
     const response = await fetch(url, {
@@ -189,12 +185,10 @@ export const supabaseBookingsApi = {
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Failed to create booking:', errorText);
       throw new Error('Failed to create booking');
     }
     
     const data: DbBooking[] = await response.json();
-    console.log('✅ Booking created:', data[0]);
     
     return mapDbToApiBooking(data[0]);
   },
@@ -210,7 +204,6 @@ export const supabaseBookingsApi = {
       updated_at: new Date().toISOString(),
     };
     
-    console.log('🔄 Updating booking:', bookingId, payload);
 
     const headers = await getAuthHeaders();
     const response = await fetch(url, {
@@ -221,7 +214,6 @@ export const supabaseBookingsApi = {
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Failed to update booking:', errorText);
       throw new Error('Failed to update booking');
     }
     
@@ -231,7 +223,6 @@ export const supabaseBookingsApi = {
       throw new Error('Booking not found');
     }
     
-    console.log('✅ Booking updated:', data[0]);
     
     return mapDbToApiBooking(data[0]);
   },
@@ -242,7 +233,6 @@ export const supabaseBookingsApi = {
   delete: async (bookingId: string): Promise<void> => {
     const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings?id=eq.${bookingId}&business_id=eq.${getBusinessId()}`;
     
-    console.log('🔄 Deleting booking:', bookingId);
 
     const headers = await getAuthHeaders();
     const response = await fetch(url, {
@@ -252,11 +242,9 @@ export const supabaseBookingsApi = {
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Failed to delete booking:', errorText);
       throw new Error('Failed to delete booking');
     }
     
-    console.log('✅ Booking deleted:', bookingId);
   },
 
   /**
@@ -392,7 +380,6 @@ async function checkEventConflicts(
   const headers = await getAuthHeaders();
   const response = await fetch(url.toString(), { headers });
   if (!response.ok) {
-    console.error('Failed to check conflicts');
     return [];
   }
 
@@ -474,7 +461,6 @@ export const supabaseEventBookingsApi = {
       recurrence_rule: data.recurrence_rule || null,
     };
 
-    console.log('🔄 Creating event booking:', payload);
 
     const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings`;
     const headers = await getAuthHeaders();
@@ -486,12 +472,10 @@ export const supabaseEventBookingsApi = {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Failed to create event booking:', errorText);
       throw new Error('No se pudo crear el evento. Inténtalo de nuevo.');
     }
 
     const rows: DbBooking[] = await response.json();
-    console.log('✅ Event booking created:', rows[0]);
     return mapDbToApiBooking(rows[0]);
   },
 
@@ -544,7 +528,6 @@ export const supabaseEventBookingsApi = {
     if (data.is_recurring !== undefined) payload.is_recurring = data.is_recurring;
     if (data.recurrence_rule !== undefined) payload.recurrence_rule = data.recurrence_rule;
 
-    console.log('🔄 Updating event booking:', eventId, payload);
 
     const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings?id=eq.${eventId}&business_id=eq.${getBusinessId()}`;
     const headers = await getAuthHeaders();
@@ -556,14 +539,12 @@ export const supabaseEventBookingsApi = {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Failed to update event booking:', errorText);
       throw new Error('No se pudo actualizar el evento.');
     }
 
     const rows: DbBooking[] = await response.json();
     if (rows.length === 0) throw new Error('Evento no encontrado');
 
-    console.log('✅ Event booking updated:', rows[0]);
     return mapDbToApiBooking(rows[0]);
   },
 
@@ -573,7 +554,6 @@ export const supabaseEventBookingsApi = {
   delete: async (eventId: string): Promise<void> => {
     const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings?id=eq.${eventId}&business_id=eq.${getBusinessId()}`;
 
-    console.log('🔄 Deleting event booking:', eventId);
 
     const headers = await getAuthHeaders();
     const response = await fetch(url, {
@@ -583,11 +563,9 @@ export const supabaseEventBookingsApi = {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Failed to delete event booking:', errorText);
       throw new Error('No se pudo eliminar el evento.');
     }
 
-    console.log('✅ Event booking deleted:', eventId);
   },
 };
 

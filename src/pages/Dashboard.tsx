@@ -47,9 +47,7 @@ export default function Dashboard() {
       setError(null);
       const data = await supabaseBookingsApi.getAll();
       setBookings(data);
-      console.log('✅ Bookings loaded:', data);
     } catch (err) {
-      console.error('❌ Error loading bookings:', err);
       setError('No se pudieron cargar las citas. Por favor, intente de nuevo.');
     } finally {
       setIsLoading(false);

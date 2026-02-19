@@ -149,7 +149,6 @@ export default function BookingModal({
         );
         setExistingBookings(barberBookings);
       } catch (error) {
-        console.error('Error fetching bookings:', error);
         setExistingBookings([]);
       }
     };

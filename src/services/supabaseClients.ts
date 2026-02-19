@@ -110,7 +110,6 @@ async function supabaseFetch<T>(
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('❌ Supabase Error:', errorText);
     throw new Error(`Supabase error: ${response.status} - ${errorText}`);
   }
 

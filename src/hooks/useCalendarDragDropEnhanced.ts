@@ -523,9 +523,7 @@ export function useCalendarDragDropEnhanced({
               start_time: newStartTime,
             },
           });
-        } catch (notifError) {
-          console.error('Failed to create notification:', notifError);
-        }
+        } catch { /* ignored */ }
       }
 
       // Haptic feedback on success

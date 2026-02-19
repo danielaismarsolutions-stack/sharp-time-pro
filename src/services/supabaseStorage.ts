@@ -73,7 +73,6 @@ export const supabaseStorageApi = {
       .remove([path]);
 
     if (error) {
-      console.error('Failed to delete avatar:', error);
       // Don't throw - deletion failure shouldn't block the main operation
     }
   },

@@ -124,7 +124,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const profile = await resolveUser(session);
         setUser(profile);
       } catch (err) {
-        console.error('Failed to restore session:', err);
         clearBusinessId();
       } finally {
         setIsLoading(false);

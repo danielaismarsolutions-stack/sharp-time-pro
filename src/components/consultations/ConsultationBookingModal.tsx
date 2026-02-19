@@ -100,7 +100,6 @@ export function ConsultationBookingModal({
             setFormData(prev => ({ ...prev, serviceId: matchingService.id }));
           }
         } catch (error) {
-          console.error('Error loading data:', error);
           toast({
             title: 'Error',
             description: 'No se pudieron cargar los datos',
@@ -142,9 +141,7 @@ export function ConsultationBookingModal({
           if (formData.time && isTimeSlotBooked(formData.time, slots)) {
             setFormData(prev => ({ ...prev, time: '' }));
           }
-        } catch (error) {
-          console.error('Error fetching booked slots:', error);
-        } finally {
+        } catch { /* ignored */ } finally {
           setIsLoadingSlots(false);
         }
       };
@@ -266,10 +263,7 @@ export function ConsultationBookingModal({
               start_time: formData.time,
             },
           });
-          console.log('✅ Notification created for consultation booking');
-        } catch (notifError) {
-          console.error('Failed to create notification:', notifError);
-        }
+        } catch { /* ignored */ }
       }
       
       toast({
@@ -280,7 +274,6 @@ export function ConsultationBookingModal({
       onBooked();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error creating booking:', error);
       toast({
         title: 'Error',
         description: 'No se pudo crear la cita',

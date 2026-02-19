@@ -68,9 +68,7 @@ export default function Clients() {
     try {
       const data = await supabaseClientsApi.getAll();
       setClients(data);
-      console.log('✅ Clients loaded:', data);
     } catch (error) {
-      console.error('❌ Error loading clients:', error);
       toast({ 
         title: 'Error al cargar clientes', 
         description: 'Por favor, inténtalo de nuevo',
@@ -171,7 +169,6 @@ export default function Clients() {
       setEditingClient(null);
       setIsModalOpen(false);
     } catch (error) {
-      console.error('Error saving client:', error);
       toast({ 
         title: 'Error al guardar cliente', 
         variant: 'destructive' 
@@ -186,7 +183,6 @@ export default function Clients() {
       setClients((prev) => prev.filter((c) => c.id !== id));
       toast({ title: 'Cliente eliminado' });
     } catch (error) {
-      console.error('Error deleting client:', error);
       toast({ 
         title: 'Error al eliminar cliente', 
         variant: 'destructive' 

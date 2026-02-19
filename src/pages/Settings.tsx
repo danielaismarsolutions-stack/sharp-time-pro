@@ -103,7 +103,7 @@ export default function Settings() {
           filter: `business_id=eq.${user.businessId}`,
         },
         () => {
-          supabaseBusinessHoursApi.getAll().then(setBusinessHours).catch(console.error);
+          supabaseBusinessHoursApi.getAll().then(setBusinessHours).catch(() => {});
         }
       )
       .subscribe();

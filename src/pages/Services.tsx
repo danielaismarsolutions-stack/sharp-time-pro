@@ -68,7 +68,6 @@ export default function Services() {
       const data = await supabaseServicesApi.getAll(true);
       setServices(data);
     } catch (error) {
-      console.error('Error loading services:', error);
       toast({ 
         title: 'Error al cargar servicios', 
         description: 'Comprueba tu conexión a internet',
@@ -100,7 +99,6 @@ export default function Services() {
         await supabaseServicesApi.updateOrder(newServices.map(s => s.id));
         toast({ title: 'Orden actualizado' });
       } catch (error) {
-        console.error('Error saving order:', error);
         // Rollback on error
         setServices(services);
         toast({ 
@@ -129,7 +127,6 @@ export default function Services() {
       setEditingService(null);
       setIsModalOpen(false);
     } catch (error) {
-      console.error('Error saving service:', error);
       toast({ 
         title: 'Error al guardar servicio', 
         description: 'Por favor, inténtalo de nuevo',
