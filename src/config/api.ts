@@ -10,7 +10,7 @@ export const SUPABASE_CONFIG = {
 
 export const API_CONFIG = {
   // Base URL for the n8n webhook API
-  BASE_URL: 'https://n8n2.srv1037212.hstgr.cloud/webhook',
+  BASE_URL: (import.meta.env.VITE_N8N_BASE_URL as string) || 'https://n8n2.srv1037212.hstgr.cloud/webhook',
   
   // API Endpoints
   ENDPOINTS: {
