@@ -64,6 +64,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useCalendarDragDropEnhanced, snapToQuarterHour, isWithinBusinessHours } from '@/hooks/useCalendarDragDropEnhanced';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useAutoScrollToNow } from '@/hooks/useAutoScrollToNow';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/bookings/BookingModal';
 import { BookingDetailModal, BookingStatus, MonthView } from '@/components/calendar';
@@ -103,16 +104,30 @@ export default function Calendar() {
   const { toast } = useToast();
   const { user, isBarber } = useAuth();
   const isMobile = useIsMobile();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('3day');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [scrollTrigger, setScrollTrigger] = useState(0);
+
+  // Reset to 3-day view and auto-scroll when "Agenda" nav is clicked
+  useEffect(() => {
+    if (location.state?.resetView) {
+      setViewMode('3day');
+      setCurrentDate(new Date());
+      setScrollTrigger(prev => prev + 1);
+      // Clear state so it doesn't re-trigger on refresh
+      navigate('/calendar', { replace: true, state: {} });
+    }
+  }, [location.state?.resetView, navigate]);
 
   // Auto-scroll to current time
   const currentHourHeightForScroll = viewMode === 'day' || viewMode === '3day' ? HOUR_HEIGHT_DAY : HOUR_HEIGHT_WEEK;
   const scrollContainerRef = useAutoScrollToNow(
     START_HOUR,
     currentHourHeightForScroll,
-    [viewMode]
+    [viewMode, scrollTrigger]
   );
   
   // Main container needs to be a fixed height with overflow hidden, header fixed, content scrolls

@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Users, Settings, ListTodo, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -82,6 +82,7 @@ const allNavItems: NavItem[] = [
 
 export default function BottomNav() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isAdmin, isBarber } = useAuth();
 
   const navItems = allNavItems.filter(item => {
@@ -119,6 +120,12 @@ export default function BottomNav() {
             <NavLink
               key={item.id}
               to={item.path}
+              onClick={(e) => {
+                if (item.path === '/calendar') {
+                  e.preventDefault();
+                  navigate('/calendar', { state: { resetView: Date.now() } });
+                }
+              }}
               className={cn(
                 'flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors',
                 'active:bg-muted'
