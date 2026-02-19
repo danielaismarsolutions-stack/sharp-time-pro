@@ -1,10 +1,11 @@
 // API Configuration
 // Configuration for connecting to the backend
 
-// Supabase Configuration (reads from environment variables)
+// Supabase Configuration (reads from environment variables, with fallbacks for deployment)
+// The anon key is a publishable client-side key — safe to embed in frontend code.
 export const SUPABASE_CONFIG = {
-  url: import.meta.env.VITE_SUPABASE_URL as string,
-  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+  url: (import.meta.env.VITE_SUPABASE_URL as string) || 'https://omeeupvetsacxbgojifx.supabase.co',
+  anonKey: (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || 'sb_publishable_Fio9nb2ZT7xPsq22fmlJ5g_NxReiNEV',
 };
 
 export const API_CONFIG = {
