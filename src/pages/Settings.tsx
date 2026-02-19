@@ -33,6 +33,8 @@ import {
   NotificationSettings,
 } from '@/types';
 import { settingsApi } from '@/services/api';
+import { supabaseBusinessHoursApi, mapSingleDbRow } from '@/services/supabaseBusinessHours';
+import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -81,12 +83,53 @@ export default function Settings() {
     loadSettings();
   }, []);
 
+  // Real-time subscription for business_hours table
+  useEffect(() => {
+    if (!user?.businessId) return;
+
+    const channel = supabase
+      .channel('business_hours_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'business_hours',
+          filter: `business_id=eq.${user.businessId}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const mapped = mapSingleDbRow(payload.new as any);
+            if (mapped) {
+              setBusinessHours((prev) => ({
+                ...prev,
+                [mapped.day]: mapped.data,
+              }));
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const mapped = mapSingleDbRow(payload.old as any);
+            if (mapped) {
+              setBusinessHours((prev) => ({
+                ...prev,
+                [mapped.day]: { isOpen: false, openTime: '09:00', closeTime: '18:00' },
+              }));
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.businessId]);
+
   const loadSettings = async () => {
     setIsLoading(true);
     try {
       const [business, hours, booking, notifications] = await Promise.all([
         settingsApi.getBusinessSettings(),
-        settingsApi.getBusinessHours(),
+        supabaseBusinessHoursApi.getAll(),
         settingsApi.getBookingSettings(),
         settingsApi.getNotificationSettings(),
       ]);
@@ -116,7 +159,7 @@ export default function Settings() {
   const saveHoursSettings = async () => {
     setIsSaving(true);
     try {
-      await settingsApi.updateBusinessHours(businessHours);
+      await supabaseBusinessHoursApi.upsertAll(businessHours);
       toast({ title: 'Horario guardado' });
     } catch (error) {
       toast({ title: 'Error al guardar configuración', variant: 'destructive' });
