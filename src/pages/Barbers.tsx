@@ -62,7 +62,6 @@ export default function Barbers() {
       });
       setBarbers(data);
     } catch (error) {
-      console.error('Error loading barbers:', error);
       toast({
         title: 'Error',
         description: 'No se pudieron cargar los barberos',
@@ -128,7 +127,6 @@ export default function Barbers() {
             const result = await supabaseStorageApi.uploadAvatar(avatarFile, newBarber.id);
             await supabaseBarbersApi.updateAvatarUrl(newBarber.id, result.url);
           } catch (uploadError) {
-            console.error('Failed to upload avatar for new barber:', uploadError);
             toast({
               title: 'Advertencia',
               description: 'Barbero creado, pero no se pudo subir la foto',
@@ -140,7 +138,6 @@ export default function Barbers() {
       }
       await loadBarbers();
     } catch (error) {
-      console.error('Error saving barber:', error);
       toast({
         title: 'Error',
         description: 'No se pudo guardar el barbero',
@@ -158,7 +155,6 @@ export default function Barbers() {
       await loadBarbers();
       setEditingBarber((prev) => prev ? { ...prev, schedule } : null);
     } catch (error) {
-      console.error('Error saving schedule:', error);
       toast({
         title: 'Error',
         description: 'No se pudo guardar el horario',
@@ -176,7 +172,6 @@ export default function Barbers() {
       await loadBarbers();
       setEditingBarber((prev) => prev ? { ...prev, time_off: timeOff } : null);
     } catch (error) {
-      console.error('Error saving time off:', error);
       toast({
         title: 'Error',
         description: 'No se pudieron guardar los días libres',

@@ -533,7 +533,6 @@ export const supabaseBarbersApi = {
       try {
         await supabaseStorageApi.deleteAvatar(avatarUrl);
       } catch (error) {
-        console.error('Failed to delete avatar from storage:', error);
         // Continue to update database even if storage deletion fails
       }
     }

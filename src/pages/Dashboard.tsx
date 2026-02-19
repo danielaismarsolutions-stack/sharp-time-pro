@@ -47,9 +47,7 @@ export default function Dashboard() {
       setError(null);
       const data = await supabaseBookingsApi.getAll();
       setBookings(data);
-      console.log('✅ Bookings loaded:', data);
     } catch (err) {
-      console.error('❌ Error loading bookings:', err);
       setError('No se pudieron cargar las citas. Por favor, intente de nuevo.');
     } finally {
       setIsLoading(false);
@@ -102,12 +100,13 @@ export default function Dashboard() {
       let comparison = 0;
       
       switch (sortField) {
-        case 'date':
+        case 'date': {
           // Sort by date first, then by time
           const dateA = `${a.booking_date}T${a.start_time}`;
           const dateB = `${b.booking_date}T${b.start_time}`;
           comparison = dateA.localeCompare(dateB);
           break;
+        }
         case 'client':
           comparison = a.client_name.localeCompare(b.client_name);
           break;

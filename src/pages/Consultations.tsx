@@ -52,7 +52,6 @@ export default function Consultations() {
       const data = await supabaseConsultationsApi.getAll();
       setConsultations(data);
     } catch (error) {
-      console.error('Error fetching consultations:', error);
       toast({
         title: 'Error',
         description: 'No se pudieron cargar las consultas',
@@ -87,16 +86,14 @@ export default function Consultations() {
               service_name: payload.new.service_name,
             },
           });
-          console.log('🔔 New consultation notification created');
-        } catch (error) {
-          console.error('Failed to create consultation notification:', error);
-        }
+        } catch { /* ignored */ }
       }
     });
 
     return () => {
       channel.unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   // Filter counts
@@ -206,10 +203,7 @@ export default function Consultations() {
               service_name: bookingConsultation.service_name,
             },
           });
-          console.log('🔔 Consultation notification created');
-        } catch (error) {
-          console.error('Failed to create notification:', error);
-        }
+        } catch { /* ignored */ }
       }
       
       // Refresh consultations

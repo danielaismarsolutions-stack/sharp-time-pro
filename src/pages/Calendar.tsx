@@ -48,7 +48,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Client, Service } from '@/types';
+import { Client, Service, BookingStatus, BookingSource } from '@/types';
 import { Barber } from '@/types/barber';
 import { ApiBooking, ApiBookingStatus, ApiCalendarEvent } from '@/types/api';
 import { supabaseClientsApi } from '@/services/supabaseClients';
@@ -200,9 +200,7 @@ export default function Calendar() {
       setServices(servicesData);
       setBarbers(barbersData);
       setCalendarEvents(eventBookings);
-      console.log('✅ Calendar data loaded from Supabase:', regularBookings.length, 'bookings,', eventBookings.length, 'events');
     } catch (error) {
-      console.error('Error loading data:', error);
       toast({ title: 'Error al cargar datos', variant: 'destructive' });
     } finally {
       setIsLoading(false);
@@ -236,7 +234,6 @@ export default function Calendar() {
         },
         async (payload) => {
           const newBooking = payload.new as ApiBooking;
-          console.log('🔔 New booking from external source:', newBooking);
           
           // Only create notification if booking was created from web (not from this session)
           if (newBooking.source === 'online') {
@@ -255,10 +252,7 @@ export default function Calendar() {
                   start_time: newBooking.start_time,
                 },
               });
-              console.log('✅ Notification created for online booking');
-            } catch (error) {
-              console.error('Failed to create notification:', error);
-            }
+            } catch { /* ignored */ }
           }
           
           // Refresh bookings list
@@ -1142,8 +1136,8 @@ export default function Calendar() {
             barber: selectedBooking.barber,
             date: selectedBooking.booking_date,
             time: selectedBooking.start_time.substring(0, 5),
-            status: selectedBooking.status.replace('_', '-') as any,
-            source: selectedBooking.source.replace('_', '-') as any,
+            status: selectedBooking.status.replace('_', '-') as BookingStatus,
+            source: selectedBooking.source.replace('_', '-') as BookingSource,
             notes: selectedBooking.notes || '',
             createdAt: selectedBooking.created_at,
           } : null}
@@ -1176,7 +1170,7 @@ export default function Calendar() {
                   booking_date: data.date,
                   start_time: `${data.time}:00`,
                   end_time: endTime,
-                  status: (data.status?.replace('-', '_') || 'confirmed') as any,
+                  status: (data.status?.replace('-', '_') || 'confirmed') as ApiBookingStatus,
                   notes: data.notes || null,
                   barber: data.barber || null,
                 });
@@ -1200,9 +1194,7 @@ export default function Calendar() {
                         start_time: data.time,
                       },
                     });
-                  } catch (notifError) {
-                    console.error('Failed to create notification:', notifError);
-                  }
+                  } catch { /* ignored */ }
                 }
                 
                 toast({ title: 'Cita actualizada correctamente' });
@@ -1244,9 +1236,7 @@ export default function Calendar() {
                         start_time: data.time,
                       },
                     });
-                  } catch (notifError) {
-                    console.error('Failed to create notification:', notifError);
-                  }
+                  } catch { /* ignored */ }
                 }
                 
                 toast({ title: 'Cita creada correctamente' });
@@ -1255,7 +1245,6 @@ export default function Calendar() {
               setIsModalOpen(false);
               setSelectedBooking(null);
             } catch (error) {
-              console.error('Error saving booking:', error);
               toast({ title: 'Error al guardar la cita', variant: 'destructive' });
             }
           }}

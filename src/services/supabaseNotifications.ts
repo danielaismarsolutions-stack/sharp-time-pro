@@ -17,7 +17,7 @@ export interface DbNotification {
   type: DbNotificationType;
   title: string;
   message: string;
-  data: Record<string, any> | null;
+  data: Record<string, unknown> | null;
   is_read: boolean;
   created_at: string;
 }
@@ -33,7 +33,6 @@ export async function fetchNotifications(userId: string, limit = 20): Promise<Db
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('❌ Failed to fetch notifications:', errorText);
     throw new Error(`Failed to fetch notifications: ${response.status}`);
   }
 
@@ -50,7 +49,6 @@ export async function fetchUnreadCount(userId: string): Promise<number> {
   });
 
   if (!response.ok) {
-    console.error('❌ Failed to fetch unread count');
     return 0;
   }
 
@@ -76,7 +74,6 @@ export async function markNotificationAsRead(notificationId: string): Promise<vo
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('❌ Failed to mark notification as read:', errorText);
     throw new Error(`Failed to mark notification as read: ${response.status}`);
   }
 }
@@ -93,7 +90,6 @@ export async function markAllNotificationsAsRead(userId: string): Promise<void> 
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('❌ Failed to mark all notifications as read:', errorText);
     throw new Error(`Failed to mark all notifications as read: ${response.status}`);
   }
 }
@@ -109,7 +105,6 @@ export async function clearAllNotifications(userId: string): Promise<void> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('❌ Failed to clear notifications:', errorText);
     throw new Error(`Failed to clear notifications: ${response.status}`);
   }
 }
@@ -125,7 +120,6 @@ export async function deleteNotification(notificationId: string): Promise<void> 
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('❌ Failed to delete notification:', errorText);
     throw new Error(`Failed to delete notification: ${response.status}`);
   }
 }
@@ -136,7 +130,7 @@ export interface CreateNotificationData {
   type: DbNotificationType;
   title: string;
   message: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export async function createNotification(data: CreateNotificationData): Promise<DbNotification> {
@@ -159,7 +153,6 @@ export async function createNotification(data: CreateNotificationData): Promise<
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('❌ Failed to create notification:', errorText);
     throw new Error(`Failed to create notification: ${response.status}`);
   }
 

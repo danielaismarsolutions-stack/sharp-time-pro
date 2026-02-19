@@ -84,6 +84,7 @@ export default function Settings() {
 
   useEffect(() => {
     loadSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Real-time subscription for business_hours table
@@ -102,7 +103,7 @@ export default function Settings() {
           filter: `business_id=eq.${user.businessId}`,
         },
         () => {
-          supabaseBusinessHoursApi.getAll().then(setBusinessHours).catch(console.error);
+          supabaseBusinessHoursApi.getAll().then(setBusinessHours).catch(() => {});
         }
       )
       .subscribe();

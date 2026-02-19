@@ -6,7 +6,7 @@ import { parse, format, addMinutes, differenceInMinutes, getDay } from 'date-fns
 import { es } from 'date-fns/locale';
 import { ApiBooking } from '@/types/api';
 import { Barber, BarberSchedule } from '@/types/barber';
-import { supabaseBookingsApi } from '@/services/supabaseBookings';
+import { supabaseBookingsApi, UpdateBookingData } from '@/services/supabaseBookings';
 import { createNotification } from '@/services/supabaseNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
@@ -339,7 +339,7 @@ export function useCalendarDragDropEnhanced({
     onBookingsChange(updatedBookings);
 
     try {
-      await supabaseBookingsApi.update(bookingId, previousState as any);
+      await supabaseBookingsApi.update(bookingId, previousState as UpdateBookingData);
       toast({ title: 'Cambio deshecho' });
       setUndoStack(prev => prev.filter(a => a.bookingId !== bookingId));
     } catch (error) {
@@ -523,9 +523,7 @@ export function useCalendarDragDropEnhanced({
               start_time: newStartTime,
             },
           });
-        } catch (notifError) {
-          console.error('Failed to create notification:', notifError);
-        }
+        } catch { /* ignored */ }
       }
 
       // Haptic feedback on success

@@ -31,7 +31,7 @@ export interface Notification {
   message: string;
   createdAt: Date;
   read: boolean;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 interface NotificationContextType {
@@ -73,7 +73,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const loadNotifications = useCallback(async () => {
     if (!userId) {
-      console.log('🔔 No user ID available, skipping notification fetch');
       return;
     }
 
@@ -81,14 +80,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     setError(null);
 
     try {
-      console.log('🔔 Fetching notifications for user:', userId);
       const data = await fetchNotifications(userId, 20);
       const mapped = data.map(mapDbToNotification);
       setNotifications(mapped);
       setUnreadCount(mapped.filter((n) => !n.read).length);
-      console.log('🔔 Notifications loaded:', mapped.length, 'for user:', userId);
     } catch (err) {
-      console.error('Failed to load notifications:', err);
       setError('Error al cargar notificaciones');
     } finally {
       setIsLoading(false);
@@ -109,7 +105,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!isAuthenticated || !userId) return;
 
-    console.log('🔔 Setting up real-time notification subscription for user:', userId);
 
     const channelName = `notifications-${userId}-${Date.now()}`;
     
@@ -124,7 +119,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('🔔 New notification received:', payload.new);
           const newNotif = mapDbToNotification(payload.new as DbNotification);
           setNotifications((prev) => [newNotif, ...prev].slice(0, 20));
           setUnreadCount((prev) => prev + 1);
@@ -139,7 +133,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('🔔 Notification updated:', payload.new);
           const updatedNotif = mapDbToNotification(payload.new as DbNotification);
           setNotifications((prev) =>
             prev.map((n) => (n.id === updatedNotif.id ? updatedNotif : n))
@@ -160,7 +153,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('🔔 Notification deleted:', payload.old);
           const deletedId = (payload.old as { id: string }).id;
           setNotifications((prev) => {
             const updated = prev.filter((n) => n.id !== deletedId);
@@ -169,28 +161,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           });
         }
       )
-      .subscribe((status, err) => {
-        console.log('🔔 Notification subscription status:', status);
-        if (err) {
-          console.error('🔔 Subscription error:', err);
-        }
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time notifications connected successfully');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Real-time channel error - falling back to polling');
-        } else if (status === 'TIMED_OUT') {
-          console.error('❌ Real-time connection timed out');
-        }
-      });
+      .subscribe();
 
     // Fallback: Poll for new notifications every 30 seconds if realtime fails
     const pollInterval = setInterval(() => {
-      console.log('🔔 Polling for notifications...');
       loadNotifications();
     }, 30000);
 
     return () => {
-      console.log('🔔 Cleaning up notification subscription');
       clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
@@ -203,9 +181,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         prev.map((n) => (n.id === id ? { ...n, read: true } : n))
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (err) {
-      console.error('Failed to mark notification as read:', err);
-    }
+    } catch { /* ignored */ }
   }, []);
 
   const markAllAsRead = useCallback(async () => {
@@ -215,9 +191,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       await markAllNotificationsAsRead(userId);
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
-    } catch (err) {
-      console.error('Failed to mark all notifications as read:', err);
-    }
+    } catch { /* ignored */ }
   }, [userId]);
 
   const clearNotificationHandler = useCallback(async (id: string) => {
@@ -228,9 +202,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         setUnreadCount(updated.filter((n) => !n.read).length);
         return updated;
       });
-    } catch (err) {
-      console.error('Failed to delete notification:', err);
-    }
+    } catch { /* ignored */ }
   }, []);
 
   const clearAllHandler = useCallback(async () => {
@@ -240,9 +212,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       await clearAllNotifications(userId);
       setNotifications([]);
       setUnreadCount(0);
-    } catch (err) {
-      console.error('Failed to clear all notifications:', err);
-    }
+    } catch { /* ignored */ }
   }, [userId]);
 
   return (

@@ -61,9 +61,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
         try {
           await supabaseStorageApi.deleteAvatar(barber.avatar_url);
           avatarUrl = null;
-        } catch (err) {
-          console.error('Error deleting avatar:', err);
-        }
+        } catch { /* ignored */ }
       }
 
       // Handle avatar upload if a new file was selected (only for existing barbers)
@@ -75,8 +73,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
           }
           const result = await supabaseStorageApi.uploadAvatar(avatarFile, barber.id);
           avatarUrl = result.url;
-        } catch (uploadError: any) {
-          console.error('Avatar upload error:', uploadError);
+        } catch (uploadError: unknown) {
           toast({
             title: 'Error',
             description: 'No se pudo subir la foto, pero el barbero se guardará sin ella',
@@ -102,7 +99,6 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
 
       onOpenChange(false);
     } catch (error) {
-      console.error('Save error:', error);
       // Error toast is handled by parent component
     } finally {
       setSaving(false);

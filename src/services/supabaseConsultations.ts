@@ -11,7 +11,6 @@ export const supabaseConsultationsApi = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching consultations:', error);
       throw error;
     }
 
@@ -35,7 +34,6 @@ export const supabaseConsultationsApi = {
       .eq('id', id);
 
     if (error) {
-      console.error('Error updating consultation status:', error);
       throw error;
     }
   },
@@ -55,7 +53,6 @@ export const supabaseConsultationsApi = {
       .eq('id', id);
 
     if (error) {
-      console.error('Error marking consultation as scheduled:', error);
       throw error;
     }
   },
@@ -67,7 +64,6 @@ export const supabaseConsultationsApi = {
       .eq('id', id);
 
     if (error) {
-      console.error('Error updating staff notes:', error);
       throw error;
     }
   },

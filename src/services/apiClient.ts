@@ -27,36 +27,28 @@ async function fetchApi<T>(
     },
   };
 
-  try {
-    console.log(`🔄 API Request: ${options.method || 'GET'} ${url}`);
-    
-    const response = await fetch(url, config);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const json = await response.json();
-    
-    // Handle both wrapped response {success, data} and raw data
-    let data: T;
-    if (json && typeof json === 'object' && 'success' in json) {
-      // Wrapped response format
-      if (!json.success) {
-        throw new Error(json.error?.message || 'API request failed');
-      }
-      data = json.data;
-    } else {
-      // Raw data format (array or object directly)
-      data = json;
-    }
-    
-    console.log('✅ API Response:', data);
-    return data;
-  } catch (error) {
-    console.error('❌ API Error:', error);
-    throw error;
+  const response = await fetch(url, config);
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
+
+  const json = await response.json();
+
+  // Handle both wrapped response {success, data} and raw data
+  let data: T;
+  if (json && typeof json === 'object' && 'success' in json) {
+    // Wrapped response format
+    if (!json.success) {
+      throw new Error(json.error?.message || 'API request failed');
+    }
+    data = json.data;
+  } else {
+    // Raw data format (array or object directly)
+    data = json;
+  }
+
+  return data;
 }
 
 // Helper to ensure data is always an array
@@ -143,11 +135,9 @@ export const apiClient = {
   // Placeholder for future client endpoints
   clients: {
     getAll: async () => {
-      console.warn('⚠️ Clients API not implemented yet');
       return [];
     },
     getById: async (_id: string) => {
-      console.warn('⚠️ Clients API not implemented yet');
       return null;
     },
   },
@@ -155,11 +145,9 @@ export const apiClient = {
   // Placeholder for future service endpoints
   services: {
     getAll: async () => {
-      console.warn('⚠️ Services API not implemented yet');
       return [];
     },
     getById: async (_id: string) => {
-      console.warn('⚠️ Services API not implemented yet');
       return null;
     },
   },

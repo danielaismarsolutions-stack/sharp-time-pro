@@ -149,7 +149,6 @@ export default function BookingModal({
         );
         setExistingBookings(barberBookings);
       } catch (error) {
-        console.error('Error fetching bookings:', error);
         setExistingBookings([]);
       }
     };
@@ -299,7 +298,7 @@ export default function BookingModal({
   useEffect(() => {
     if (!booking && !isSlotCreation && selectedBarber && date && !isBarberWorkingOnDate(date, selectedBarber)) {
       // Find next available date
-      let nextDate = new Date();
+      const nextDate = new Date();
       for (let i = 0; i < 60; i++) {
         const checkDate = new Date(nextDate);
         checkDate.setDate(checkDate.getDate() + i);
@@ -309,6 +308,7 @@ export default function BookingModal({
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBarber, booking, isBarberWorkingOnDate, isSlotCreation]);
 
   // Handle new client creation

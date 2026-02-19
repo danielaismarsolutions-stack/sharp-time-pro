@@ -53,6 +53,7 @@ export default function ClientDetail() {
     if (id) {
       loadClientData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadClientData = async () => {
@@ -65,9 +66,7 @@ export default function ClientDetail() {
         return;
       }
       setClientData(data);
-      console.log('✅ Client data loaded:', data);
     } catch (error) {
-      console.error('❌ Error loading client:', error);
       toast({ title: 'Error al cargar cliente', variant: 'destructive' });
       navigate('/clients');
     } finally {
@@ -81,7 +80,6 @@ export default function ClientDetail() {
       setClientData(prev => prev ? { ...prev, ...updated } : null);
       toast({ title: 'Cliente actualizado correctamente' });
     } catch (error) {
-      console.error('Error updating client:', error);
       toast({ title: 'Error al actualizar cliente', variant: 'destructive' });
       throw error;
     }
@@ -93,7 +91,6 @@ export default function ClientDetail() {
       toast({ title: 'Cliente eliminado' });
       navigate('/clients');
     } catch (error) {
-      console.error('Error deleting client:', error);
       toast({ title: 'Error al eliminar cliente', variant: 'destructive' });
     }
   };
@@ -110,7 +107,6 @@ export default function ClientDetail() {
       setIsAddingTag(false);
       toast({ title: 'Etiqueta añadida' });
     } catch (error) {
-      console.error('Error adding tag:', error);
       toast({ title: 'Error al añadir etiqueta', variant: 'destructive' });
     }
   };
@@ -125,7 +121,6 @@ export default function ClientDetail() {
       setClientData(prev => prev ? { ...prev, tags: updatedTags } : null);
       toast({ title: 'Etiqueta eliminada' });
     } catch (error) {
-      console.error('Error removing tag:', error);
       toast({ title: 'Error al eliminar etiqueta', variant: 'destructive' });
     }
   };

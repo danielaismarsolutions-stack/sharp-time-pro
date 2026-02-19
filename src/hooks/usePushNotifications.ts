@@ -25,11 +25,9 @@ export function usePushNotifications(userId: string | null, businessId: string |
     
     try {
       const registration = await navigator.serviceWorker.ready;
-      const subscription = await (registration as any).pushManager.getSubscription();
+      const subscription = await registration.pushManager.getSubscription();
       setIsSubscribed(!!subscription);
-    } catch (e) {
-      console.error('Error checking push subscription:', e);
-    }
+    } catch { /* ignored */ }
   }, [userId]);
 
   useEffect(() => {
@@ -44,49 +42,38 @@ export function usePushNotifications(userId: string | null, businessId: string |
   }, [userId, checkSubscription]);
 
   const subscribe = useCallback(async () => {
-    console.log('🔔 Subscribe called:', { userId, businessId, isSupported });
     if (!userId || !businessId) {
-      console.warn('🔔 Cannot subscribe: missing userId or businessId', { userId, businessId });
       return;
     }
     if (!isSupported) {
-      console.warn('🔔 Cannot subscribe: push not supported');
       return;
     }
     setIsLoading(true);
 
     try {
       // Register service worker
-      console.log('🔔 Registering service worker...');
       const registration = await navigator.serviceWorker.register('/sw.js');
       await navigator.serviceWorker.ready;
-      console.log('🔔 Service worker ready');
 
       // Request permission
-      console.log('🔔 Requesting notification permission...');
       const perm = await Notification.requestPermission();
-      console.log('🔔 Permission result:', perm);
       setPermission(perm);
       
       if (perm !== 'granted') {
-        console.log('🔔 Push notification permission denied');
         setIsLoading(false);
         return;
       }
 
       // Subscribe to push
-      console.log('🔔 Subscribing to push manager...');
       const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-      const subscription = await (registration as any).pushManager.subscribe({
+      const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey.buffer as ArrayBuffer
       });
 
       const subJson = subscription.toJSON();
-      console.log('🔔 Push subscription created:', subJson.endpoint);
 
       // Save to database
-      console.log('🔔 Saving subscription to database...');
       const { error } = await supabase.from('push_subscriptions').upsert({
         user_id: userId,
         business_id: businessId,
@@ -98,15 +85,11 @@ export function usePushNotifications(userId: string | null, businessId: string |
       });
 
       if (error) {
-        console.error('🔔 Error saving push subscription:', error);
         throw error;
       }
       
-      console.log('✅ Push notifications enabled successfully');
       setIsSubscribed(true);
-    } catch (e) {
-      console.error('🔔 Error subscribing to push notifications:', e);
-    } finally {
+    } catch { /* ignored */ } finally {
       setIsLoading(false);
     }
   }, [userId, businessId, isSupported]);
@@ -117,7 +100,7 @@ export function usePushNotifications(userId: string | null, businessId: string |
 
     try {
       const registration = await navigator.serviceWorker.ready;
-      const subscription = await (registration as any).pushManager.getSubscription();
+      const subscription = await registration.pushManager.getSubscription();
       
       if (subscription) {
         await subscription.unsubscribe();
@@ -127,16 +110,11 @@ export function usePushNotifications(userId: string | null, businessId: string |
           .delete()
           .eq('endpoint', subscription.endpoint);
 
-        if (error) {
-          console.error('Error removing push subscription from database:', error);
-        }
+        if (error) { /* ignored */ }
       }
       
-      console.log('✅ Push notifications disabled');
       setIsSubscribed(false);
-    } catch (e) {
-      console.error('Error unsubscribing from push notifications:', e);
-    } finally {
+    } catch { /* ignored */ } finally {
       setIsLoading(false);
     }
   }, [userId]);
