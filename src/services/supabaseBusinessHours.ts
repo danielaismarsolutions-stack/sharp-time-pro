@@ -1,5 +1,6 @@
 // Supabase Business Hours Service
 // Syncs the Settings > Schedule page with the business_hours table
+// Supports multiple shifts per day (delete-all + insert approach)
 import { SUPABASE_CONFIG } from '@/config/api';
 import { getBusinessId } from '@/config/session';
 import { BusinessHours } from '@/types';
@@ -12,7 +13,7 @@ const supabaseHeaders = () => ({
 });
 
 // Database row shape for business_hours table
-interface DbBusinessHour {
+export interface DbBusinessHour {
   id: string;
   business_id: string;
   day_of_week: number; // 0=Sunday, 1=Monday, ... 6=Saturday
@@ -44,36 +45,66 @@ const NUMBER_TO_DAY: Record<number, string> = {
   6: 'saturday',
 };
 
-// Convert database rows to the UI BusinessHours format
+// Convert database rows to the UI BusinessHours format (supports multiple shifts per day)
 const mapDbToBusinessHours = (rows: DbBusinessHour[]): BusinessHours => {
   const hours: BusinessHours = {};
 
+  // Initialize all days as closed with empty shifts
+  Object.values(NUMBER_TO_DAY).forEach((dayName) => {
+    hours[dayName] = { isOpen: false, shifts: [] };
+  });
+
+  // Group rows by day
   rows.forEach((row) => {
     const dayName = NUMBER_TO_DAY[row.day_of_week];
-    if (dayName) {
-      hours[dayName] = {
-        isOpen: row.is_open,
-        openTime: row.open_time ? row.open_time.slice(0, 5) : '09:00', // HH:MM:SS -> HH:MM
-        closeTime: row.close_time ? row.close_time.slice(0, 5) : '18:00',
-      };
+    if (!dayName) return;
+
+    if (row.is_open && row.open_time && row.close_time) {
+      hours[dayName].isOpen = true;
+      hours[dayName].shifts.push({
+        openTime: row.open_time.slice(0, 5), // HH:MM:SS -> HH:MM
+        closeTime: row.close_time.slice(0, 5),
+      });
+    } else if (!row.is_open) {
+      hours[dayName].isOpen = false;
     }
+  });
+
+  // Sort shifts by openTime
+  Object.values(hours).forEach((day) => {
+    day.shifts.sort((a, b) => a.openTime.localeCompare(b.openTime));
   });
 
   return hours;
 };
 
-// Convert a single database row to a partial BusinessHours update
-export const mapSingleDbRow = (row: DbBusinessHour): { day: string; data: BusinessHours[string] } | null => {
-  const dayName = NUMBER_TO_DAY[row.day_of_week];
+// Convert database rows for a single day into a BusinessHours day entry
+export const mapDbRowsForDay = (
+  rows: DbBusinessHour[],
+  dayOfWeek: number
+): { day: string; data: BusinessHours[string] } | null => {
+  const dayName = NUMBER_TO_DAY[dayOfWeek];
   if (!dayName) return null;
+
+  const dayRows = rows.filter((r) => r.day_of_week === dayOfWeek);
+
+  if (dayRows.length === 0) {
+    return { day: dayName, data: { isOpen: false, shifts: [] } };
+  }
+
+  const hasOpenShifts = dayRows.some((r) => r.is_open && r.open_time && r.close_time);
+
+  const shifts = dayRows
+    .filter((r) => r.is_open && r.open_time && r.close_time)
+    .map((r) => ({
+      openTime: r.open_time!.slice(0, 5),
+      closeTime: r.close_time!.slice(0, 5),
+    }))
+    .sort((a, b) => a.openTime.localeCompare(b.openTime));
 
   return {
     day: dayName,
-    data: {
-      isOpen: row.is_open,
-      openTime: row.open_time ? row.open_time.slice(0, 5) : '09:00',
-      closeTime: row.close_time ? row.close_time.slice(0, 5) : '18:00',
-    },
+    data: { isOpen: hasOpenShifts, shifts },
   };
 };
 
@@ -96,7 +127,7 @@ export const supabaseBusinessHoursApi = {
   async getAll(): Promise<BusinessHours> {
     const businessId = getBusinessId();
     const response = await fetch(
-      `${SUPABASE_CONFIG.url}/rest/v1/business_hours?business_id=eq.${businessId}&order=day_of_week.asc`,
+      `${SUPABASE_CONFIG.url}/rest/v1/business_hours?business_id=eq.${businessId}&order=day_of_week.asc,open_time.asc`,
       {
         method: 'GET',
         headers: supabaseHeaders(),
@@ -112,40 +143,76 @@ export const supabaseBusinessHoursApi = {
     return mapDbToBusinessHours(rows);
   },
 
-  /** Upsert all 7 days of business hours (uses the unique constraint on business_id + day_of_week) */
-  async upsertAll(hours: BusinessHours): Promise<BusinessHours> {
+  /** Save all business hours (delete all existing + insert new rows) */
+  async saveAll(hours: BusinessHours): Promise<BusinessHours> {
     const businessId = getBusinessId();
     const now = new Date().toISOString();
 
-    const rows = Object.entries(hours).map(([dayName, dayHours]) => ({
-      business_id: businessId,
-      day_of_week: DAY_TO_NUMBER[dayName],
-      is_open: dayHours.isOpen,
-      open_time: dayHours.openTime + ':00', // HH:MM -> HH:MM:SS
-      close_time: dayHours.closeTime + ':00',
-      updated_at: now,
-    }));
-
-    const response = await fetch(
-      `${SUPABASE_CONFIG.url}/rest/v1/business_hours`,
+    // 1. Delete all existing rows for this business
+    const deleteResponse = await fetch(
+      `${SUPABASE_CONFIG.url}/rest/v1/business_hours?business_id=eq.${businessId}`,
       {
-        method: 'POST',
-        headers: {
-          ...supabaseHeaders(),
-          // Upsert on the unique constraint (business_id, day_of_week)
-          'Prefer': 'return=representation,resolution=merge-duplicates',
-        },
-        body: JSON.stringify(rows),
+        method: 'DELETE',
+        headers: supabaseHeaders(),
       }
     );
 
-    if (!response.ok) {
-      const error = await parseErrorMessage(response);
-      throw new Error(`Failed to save business hours: ${error}`);
+    if (!deleteResponse.ok) {
+      const error = await parseErrorMessage(deleteResponse);
+      throw new Error(`Failed to delete existing business hours: ${error}`);
     }
 
-    const savedRows: DbBusinessHour[] = await response.json();
-    return mapDbToBusinessHours(savedRows);
+    // 2. Build insert rows
+    const rows: Omit<DbBusinessHour, 'id' | 'created_at' | 'updated_at'>[] = [];
+
+    Object.entries(hours).forEach(([dayName, dayData]) => {
+      const dayOfWeek = DAY_TO_NUMBER[dayName];
+      if (dayOfWeek === undefined) return;
+
+      if (dayData.isOpen && dayData.shifts.length > 0) {
+        // Insert one row per shift
+        dayData.shifts.forEach((shift) => {
+          rows.push({
+            business_id: businessId,
+            day_of_week: dayOfWeek,
+            is_open: true,
+            open_time: shift.openTime + ':00', // HH:MM -> HH:MM:SS
+            close_time: shift.closeTime + ':00',
+          });
+        });
+      } else {
+        // Closed day - insert a marker row
+        rows.push({
+          business_id: businessId,
+          day_of_week: dayOfWeek,
+          is_open: false,
+          open_time: null,
+          close_time: null,
+        });
+      }
+    });
+
+    // 3. Insert new rows
+    if (rows.length > 0) {
+      const insertResponse = await fetch(
+        `${SUPABASE_CONFIG.url}/rest/v1/business_hours`,
+        {
+          method: 'POST',
+          headers: supabaseHeaders(),
+          body: JSON.stringify(rows),
+        }
+      );
+
+      if (!insertResponse.ok) {
+        const error = await parseErrorMessage(insertResponse);
+        throw new Error(`Failed to save business hours: ${error}`);
+      }
+
+      const savedRows: DbBusinessHour[] = await insertResponse.json();
+      return mapDbToBusinessHours(savedRows);
+    }
+
+    return hours;
   },
 };
 
