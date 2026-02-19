@@ -269,14 +269,25 @@ export function useReportsData(period: Period) {
 
   // Real-time subscription + polling fallback
   useEffect(() => {
-    const channelName = `reports-bookings-${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
+    const businessId = getBusinessId();
+    const bookingsChannel = supabase
+      .channel(`reports-bookings-${Date.now()}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'bookings', filter: `business_id=eq.${getBusinessId()}` },
+        { event: '*', schema: 'public', table: 'bookings', filter: `business_id=eq.${businessId}` },
         () => {
           queryClient.invalidateQueries({ queryKey: ['reports', 'bookings'] });
+        },
+      )
+      .subscribe();
+
+    const usersChannel = supabase
+      .channel(`reports-users-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'users', filter: `business_id=eq.${businessId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['reports', 'barbers'] });
         },
       )
       .subscribe();
@@ -287,7 +298,8 @@ export function useReportsData(period: Period) {
 
     return () => {
       clearInterval(pollInterval);
-      supabase.removeChannel(channel);
+      supabase.removeChannel(bookingsChannel);
+      supabase.removeChannel(usersChannel);
     };
   }, [queryClient]);
 

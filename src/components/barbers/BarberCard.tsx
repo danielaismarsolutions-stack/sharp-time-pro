@@ -64,6 +64,11 @@ export default function BarberCard({ barber, onEdit, onManageSchedule }: BarberC
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <h3 className="font-semibold text-base truncate">{barber.name}</h3>
+                  {(barber.role === 'admin' || barber.role === 'owner') && (
+                    <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                      {barber.role === 'owner' ? 'Owner' : 'Admin'}
+                    </Badge>
+                  )}
                   {!barber.is_active && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Inactivo</Badge>
                   )}
@@ -139,6 +144,11 @@ export default function BarberCard({ barber, onEdit, onManageSchedule }: BarberC
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-semibold text-lg truncate">{barber.name}</h3>
+                {(barber.role === 'admin' || barber.role === 'owner') && (
+                  <Badge variant="default" className="text-xs">
+                    {barber.role === 'owner' ? 'Owner' : 'Admin'}
+                  </Badge>
+                )}
                 {!barber.is_active && (
                   <Badge variant="secondary" className="text-xs">Inactivo</Badge>
                 )}

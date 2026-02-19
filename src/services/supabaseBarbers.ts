@@ -126,6 +126,7 @@ const mapUserToBarber = (
   phone: user.phone,
   avatar_url: user.avatar_url,
   bio: user.bio,
+  role: user.role,
   schedule,
   time_off: timeOff,
   is_active: user.is_active,
@@ -190,8 +191,8 @@ export const supabaseBarbersApi = {
   },
 
   async getAll(includeInactive = false): Promise<Barber[]> {
-    // Fetch users with role 'barber' from the users table
-    let url = `${SUPABASE_CONFIG.url}/rest/v1/users?business_id=eq.${getBusinessId()}&role=eq.barber&order=full_name.asc`;
+    // Fetch all users with the business_id (all roles: barber, admin, owner)
+    let url = `${SUPABASE_CONFIG.url}/rest/v1/users?business_id=eq.${getBusinessId()}&order=full_name.asc`;
     
     if (!includeInactive) {
       url += '&is_active=eq.true';

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Barber, CreateBarberData, BarberSchedule, TimeOff } from '@/types/barber';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { supabaseStorageApi } from '@/services/supabaseStorage';
+import { supabase } from '@/lib/supabase';
+import { getBusinessId } from '@/config/session';
 import BarberCard from '@/components/barbers/BarberCard';
 import BarberModal from '@/components/barbers/BarberModal';
 import ScheduleEditor from '@/components/barbers/ScheduleEditor';
@@ -74,6 +76,35 @@ export default function Barbers() {
   useEffect(() => {
     loadBarbers();
   }, [loadBarbers]);
+
+  // Realtime subscription: reload barbers when users table changes for this business
+  const loadBarbersRef = useRef(loadBarbers);
+  loadBarbersRef.current = loadBarbers;
+
+  useEffect(() => {
+    let businessId: string;
+    try {
+      businessId = getBusinessId();
+    } catch {
+      return;
+    }
+
+    const channelName = `barbers-sync-${Date.now()}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'users', filter: `business_id=eq.${businessId}` },
+        () => {
+          loadBarbersRef.current();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const filteredBarbers = barbers.filter((barber) =>
     barber.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
