@@ -1,11 +1,12 @@
 import { SUPABASE_CONFIG } from '@/config/api';
+import { getAuthHeaders } from '@/lib/supabase';
 
-export type DbNotificationType = 
-  | 'booking_created' 
-  | 'booking_cancelled' 
-  | 'booking_modified' 
-  | 'booking_reminder' 
-  | 'client_created' 
+export type DbNotificationType =
+  | 'booking_created'
+  | 'booking_cancelled'
+  | 'booking_modified'
+  | 'booking_reminder'
+  | 'client_created'
   | 'consultation_created'
   | 'consultation_updated'
   | 'info';
@@ -21,18 +22,13 @@ export interface DbNotification {
   created_at: string;
 }
 
-const supabaseHeaders = {
-  'apikey': SUPABASE_CONFIG.anonKey,
-  'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
-  'Content-Type': 'application/json',
-};
-
 export async function fetchNotifications(userId: string, limit = 20): Promise<DbNotification[]> {
   const url = `${SUPABASE_CONFIG.url}/rest/v1/notifications?user_id=eq.${userId}&order=created_at.desc&limit=${limit}`;
-  
+  const headers = await getAuthHeaders();
+
   const response = await fetch(url, {
     method: 'GET',
-    headers: supabaseHeaders,
+    headers,
   });
 
   if (!response.ok) {
@@ -46,13 +42,11 @@ export async function fetchNotifications(userId: string, limit = 20): Promise<Db
 
 export async function fetchUnreadCount(userId: string): Promise<number> {
   const url = `${SUPABASE_CONFIG.url}/rest/v1/notifications?user_id=eq.${userId}&is_read=eq.false&select=id`;
-  
+  const headers = await getAuthHeaders();
+
   const response = await fetch(url, {
     method: 'GET',
-    headers: {
-      ...supabaseHeaders,
-      'Prefer': 'count=exact',
-    },
+    headers: { ...headers, 'Prefer': 'count=exact' },
   });
 
   if (!response.ok) {
@@ -72,13 +66,11 @@ export async function fetchUnreadCount(userId: string): Promise<number> {
 
 export async function markNotificationAsRead(notificationId: string): Promise<void> {
   const url = `${SUPABASE_CONFIG.url}/rest/v1/notifications?id=eq.${notificationId}`;
-  
+  const headers = await getAuthHeaders();
+
   const response = await fetch(url, {
     method: 'PATCH',
-    headers: {
-      ...supabaseHeaders,
-      'Prefer': 'return=minimal',
-    },
+    headers: { ...headers, 'Prefer': 'return=minimal' },
     body: JSON.stringify({ is_read: true }),
   });
 
@@ -91,13 +83,11 @@ export async function markNotificationAsRead(notificationId: string): Promise<vo
 
 export async function markAllNotificationsAsRead(userId: string): Promise<void> {
   const url = `${SUPABASE_CONFIG.url}/rest/v1/notifications?user_id=eq.${userId}&is_read=eq.false`;
-  
+  const headers = await getAuthHeaders();
+
   const response = await fetch(url, {
     method: 'PATCH',
-    headers: {
-      ...supabaseHeaders,
-      'Prefer': 'return=minimal',
-    },
+    headers: { ...headers, 'Prefer': 'return=minimal' },
     body: JSON.stringify({ is_read: true }),
   });
 
@@ -110,10 +100,11 @@ export async function markAllNotificationsAsRead(userId: string): Promise<void> 
 
 export async function clearAllNotifications(userId: string): Promise<void> {
   const url = `${SUPABASE_CONFIG.url}/rest/v1/notifications?user_id=eq.${userId}`;
-  
+  const headers = await getAuthHeaders();
+
   const response = await fetch(url, {
     method: 'DELETE',
-    headers: supabaseHeaders,
+    headers,
   });
 
   if (!response.ok) {
@@ -125,10 +116,11 @@ export async function clearAllNotifications(userId: string): Promise<void> {
 
 export async function deleteNotification(notificationId: string): Promise<void> {
   const url = `${SUPABASE_CONFIG.url}/rest/v1/notifications?id=eq.${notificationId}`;
-  
+  const headers = await getAuthHeaders();
+
   const response = await fetch(url, {
     method: 'DELETE',
-    headers: supabaseHeaders,
+    headers,
   });
 
   if (!response.ok) {
@@ -149,13 +141,11 @@ export interface CreateNotificationData {
 
 export async function createNotification(data: CreateNotificationData): Promise<DbNotification> {
   const url = `${SUPABASE_CONFIG.url}/rest/v1/notifications`;
-  
+  const headers = await getAuthHeaders();
+
   const response = await fetch(url, {
     method: 'POST',
-    headers: {
-      ...supabaseHeaders,
-      'Prefer': 'return=representation',
-    },
+    headers: { ...headers, 'Prefer': 'return=representation' },
     body: JSON.stringify({
       user_id: data.user_id,
       business_id: data.business_id,

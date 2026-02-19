@@ -1,13 +1,12 @@
 // Supabase Barbers Service - Uses 'users' table + normalized schedule tables
 import { SUPABASE_CONFIG } from '@/config/api';
+import { getAuthHeaders } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
 import { Barber, CreateBarberData, UpdateBarberData, DEFAULT_SCHEDULE, BarberSchedule, BarberDaySchedule, TimeOff } from '@/types/barber';
 import { supabaseStorageApi } from './supabaseStorage';
 
-const supabaseHeaders = () => ({
-  'apikey': SUPABASE_CONFIG.anonKey,
-  'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
-  'Content-Type': 'application/json',
+const supabaseHeaders = async () => ({
+  ...(await getAuthHeaders()),
   'Prefer': 'return=representation',
 });
 
@@ -158,7 +157,7 @@ export const supabaseBarbersApi = {
       `${SUPABASE_CONFIG.url}/rest/v1/barber_schedules?barber_id=eq.${barberId}&order=day_of_week.asc,start_time.asc`,
       {
         method: 'GET',
-        headers: supabaseHeaders(),
+        headers: await supabaseHeaders(),
       }
     );
 
@@ -177,7 +176,7 @@ export const supabaseBarbersApi = {
       `${SUPABASE_CONFIG.url}/rest/v1/barber_time_off?barber_id=eq.${barberId}&order=start_date.asc`,
       {
         method: 'GET',
-        headers: supabaseHeaders(),
+        headers: await supabaseHeaders(),
       }
     );
 
@@ -200,7 +199,7 @@ export const supabaseBarbersApi = {
 
     const response = await fetch(url, {
       method: 'GET',
-      headers: supabaseHeaders(),
+      headers: await supabaseHeaders(),
     });
 
     if (!response.ok) {
@@ -229,7 +228,7 @@ export const supabaseBarbersApi = {
       `${SUPABASE_CONFIG.url}/rest/v1/users?id=eq.${barberId}&business_id=eq.${getBusinessId()}`,
       {
         method: 'GET',
-        headers: supabaseHeaders(),
+        headers: await supabaseHeaders(),
       }
     );
 
@@ -266,7 +265,7 @@ export const supabaseBarbersApi = {
       `${SUPABASE_CONFIG.url}/rest/v1/users`,
       {
         method: 'POST',
-        headers: supabaseHeaders(),
+        headers: await supabaseHeaders(),
         body: JSON.stringify(payload),
       }
     );
@@ -305,7 +304,7 @@ export const supabaseBarbersApi = {
       `${SUPABASE_CONFIG.url}/rest/v1/users?id=eq.${barberId}&business_id=eq.${getBusinessId()}`,
       {
         method: 'PATCH',
-        headers: supabaseHeaders(),
+        headers: await supabaseHeaders(),
         body: JSON.stringify(payload),
       }
     );
@@ -348,7 +347,7 @@ export const supabaseBarbersApi = {
       `${SUPABASE_CONFIG.url}/rest/v1/barber_schedules?barber_id=eq.${barberId}`,
       {
         method: 'DELETE',
-        headers: supabaseHeaders(),
+        headers: await supabaseHeaders(),
       }
     );
 
@@ -381,7 +380,7 @@ export const supabaseBarbersApi = {
         `${SUPABASE_CONFIG.url}/rest/v1/barber_schedules`,
         {
           method: 'POST',
-          headers: supabaseHeaders(),
+          headers: await supabaseHeaders(),
           body: JSON.stringify(rows),
         }
       );
@@ -405,7 +404,7 @@ export const supabaseBarbersApi = {
       `${SUPABASE_CONFIG.url}/rest/v1/barber_time_off?barber_id=eq.${barberId}`,
       {
         method: 'DELETE',
-        headers: supabaseHeaders(),
+        headers: await supabaseHeaders(),
       }
     );
 
@@ -428,7 +427,7 @@ export const supabaseBarbersApi = {
         `${SUPABASE_CONFIG.url}/rest/v1/barber_time_off`,
         {
           method: 'POST',
-          headers: supabaseHeaders(),
+          headers: await supabaseHeaders(),
           body: JSON.stringify(rows),
         }
       );
@@ -464,7 +463,7 @@ export const supabaseBarbersApi = {
       `${SUPABASE_CONFIG.url}/rest/v1/barber_time_off`,
       {
         method: 'POST',
-        headers: supabaseHeaders(),
+        headers: await supabaseHeaders(),
         body: JSON.stringify(payload),
       }
     );
@@ -489,7 +488,7 @@ export const supabaseBarbersApi = {
       `${SUPABASE_CONFIG.url}/rest/v1/barber_time_off?id=eq.${timeOffId}`,
       {
         method: 'DELETE',
-        headers: supabaseHeaders(),
+        headers: await supabaseHeaders(),
       }
     );
 
@@ -509,7 +508,7 @@ export const supabaseBarbersApi = {
       `${SUPABASE_CONFIG.url}/rest/v1/users?id=eq.${barberId}&business_id=eq.${getBusinessId()}`,
       {
         method: 'PATCH',
-        headers: supabaseHeaders(),
+        headers: await supabaseHeaders(),
         body: JSON.stringify({
           avatar_url: avatarUrl,
           updated_at: new Date().toISOString(),

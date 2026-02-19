@@ -1,10 +1,10 @@
 // API Configuration
 // Configuration for connecting to the backend
 
-// Supabase Configuration
+// Supabase Configuration (reads from environment variables)
 export const SUPABASE_CONFIG = {
-  url: 'https://omeeupvetsacxbgojifx.supabase.co',
-  anonKey: 'sb_publishable_Fio9nb2ZT7xPsq22fmlJ5g_NxReiNEV',
+  url: import.meta.env.VITE_SUPABASE_URL as string,
+  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
 };
 
 export const API_CONFIG = {

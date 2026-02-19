@@ -2,13 +2,12 @@
 // Syncs the Settings > Schedule page with the business_hours table
 // Supports multiple shifts per day (delete-all + insert approach)
 import { SUPABASE_CONFIG } from '@/config/api';
+import { getAuthHeaders } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
 import { BusinessHours } from '@/types';
 
-const supabaseHeaders = () => ({
-  'apikey': SUPABASE_CONFIG.anonKey,
-  'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
-  'Content-Type': 'application/json',
+const supabaseHeaders = async () => ({
+  ...(await getAuthHeaders()),
   'Prefer': 'return=representation',
 });
 
@@ -130,7 +129,7 @@ export const supabaseBusinessHoursApi = {
       `${SUPABASE_CONFIG.url}/rest/v1/business_hours?business_id=eq.${businessId}&order=day_of_week.asc,open_time.asc`,
       {
         method: 'GET',
-        headers: supabaseHeaders(),
+        headers: await supabaseHeaders(),
       }
     );
 
@@ -153,7 +152,7 @@ export const supabaseBusinessHoursApi = {
       `${SUPABASE_CONFIG.url}/rest/v1/business_hours?business_id=eq.${businessId}`,
       {
         method: 'DELETE',
-        headers: supabaseHeaders(),
+        headers: await supabaseHeaders(),
       }
     );
 
@@ -198,7 +197,7 @@ export const supabaseBusinessHoursApi = {
         `${SUPABASE_CONFIG.url}/rest/v1/business_hours`,
         {
           method: 'POST',
-          headers: supabaseHeaders(),
+          headers: await supabaseHeaders(),
           body: JSON.stringify(rows),
         }
       );
