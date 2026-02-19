@@ -5,6 +5,7 @@ import TopBar from './TopBar';
 import BottomNav from './BottomNav';
 import { MobileDrawerMenu } from '@/components/calendar/MobileDrawerMenu';
 import { cn } from '@/lib/utils';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 export default function DashboardLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -56,7 +57,9 @@ export default function DashboardLayout() {
           isCalendarPage ? 'overflow-hidden' : 'overflow-auto',
           isMobile && !isCalendarPage && 'pb-16'
         )}>
-          <Outlet />
+          <ErrorBoundary compact>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
 
