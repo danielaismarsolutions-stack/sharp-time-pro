@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,14 +14,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast({
         title: 'Credenciales incompletas',
@@ -32,7 +32,7 @@ export default function LoginPage() {
     }
 
     setIsSubmitting(true);
-    
+
     try {
       await login(email, password, rememberMe);
       toast({
@@ -41,9 +41,10 @@ export default function LoginPage() {
       });
       navigate('/calendar');
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Por favor, verifica tus credenciales e inténtalo de nuevo.';
       toast({
         title: 'Error de inicio de sesión',
-        description: 'Por favor, verifica tus credenciales e inténtalo de nuevo.',
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -71,7 +72,7 @@ export default function LoginPage() {
             </CardDescription>
           </div>
         </CardHeader>
-        
+
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -86,17 +87,16 @@ export default function LoginPage() {
                 className="h-11"
               />
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Contraseña</Label>
-                <button
-                  type="button"
+                <Link
+                  to="/forgot-password"
                   className="text-sm text-primary hover:underline"
-                  onClick={() => toast({ title: 'Restablecer contraseña', description: '¡Función próximamente!' })}
                 >
                   ¿Olvidaste tu contraseña?
-                </button>
+                </Link>
               </div>
               <Input
                 id="password"
@@ -108,7 +108,7 @@ export default function LoginPage() {
                 className="h-11"
               />
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="remember"
@@ -119,7 +119,7 @@ export default function LoginPage() {
                 Recuérdame durante 30 días
               </Label>
             </div>
-            
+
             <Button
               type="submit"
               className="w-full h-11"
@@ -135,12 +135,6 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              Modo demo: Usa cualquier email y contraseña para acceder
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>

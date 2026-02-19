@@ -2,6 +2,7 @@
 // Handles all booking-related operations with Supabase
 
 import { SUPABASE_CONFIG } from '@/config/api';
+import { getAuthHeaders } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
 import { ApiBooking, ApiBookingStatus, ApiBookingSource, ApiBookingType } from '@/types/api';
 
@@ -78,11 +79,7 @@ export interface BookingFilters {
 
 // ==================== Helper Functions ====================
 
-const supabaseHeaders = {
-  'apikey': SUPABASE_CONFIG.anonKey,
-  'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
-  'Content-Type': 'application/json',
-};
+// Headers are now fetched dynamically to include the authenticated user's JWT
 
 // Map DB booking to API booking (no transformation needed, same structure)
 const mapDbToApiBooking = (dbBooking: DbBooking): ApiBooking => dbBooking;
@@ -129,16 +126,15 @@ export const supabaseBookingsApi = {
     
     console.log(`🔄 Fetching bookings from: ${url.toString()}`);
     
-    const response = await fetch(url.toString(), {
-      headers: supabaseHeaders,
-    });
-    
+    const headers = await getAuthHeaders();
+    const response = await fetch(url.toString(), { headers });
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ Failed to fetch bookings:', errorText);
       throw new Error('Failed to fetch bookings');
     }
-    
+
     const data: DbBooking[] = await response.json();
     console.log('✅ Bookings loaded:', data.length);
     
@@ -153,10 +149,9 @@ export const supabaseBookingsApi = {
     url.searchParams.append('id', `eq.${bookingId}`);
     url.searchParams.append('business_id', `eq.${getBusinessId()}`);
     
-    const response = await fetch(url.toString(), {
-      headers: supabaseHeaders,
-    });
-    
+    const headers = await getAuthHeaders();
+    const response = await fetch(url.toString(), { headers });
+
     if (!response.ok) {
       throw new Error('Failed to fetch booking');
     }
@@ -184,13 +179,11 @@ export const supabaseBookingsApi = {
     };
     
     console.log('🔄 Creating booking:', payload);
-    
+
+    const headers = await getAuthHeaders();
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        ...supabaseHeaders,
-        'Prefer': 'return=representation',
-      },
+      headers: { ...headers, 'Prefer': 'return=representation' },
       body: JSON.stringify(payload),
     });
     
@@ -218,13 +211,11 @@ export const supabaseBookingsApi = {
     };
     
     console.log('🔄 Updating booking:', bookingId, payload);
-    
+
+    const headers = await getAuthHeaders();
     const response = await fetch(url, {
       method: 'PATCH',
-      headers: {
-        ...supabaseHeaders,
-        'Prefer': 'return=representation',
-      },
+      headers: { ...headers, 'Prefer': 'return=representation' },
       body: JSON.stringify(payload),
     });
     
@@ -252,10 +243,11 @@ export const supabaseBookingsApi = {
     const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings?id=eq.${bookingId}&business_id=eq.${getBusinessId()}`;
     
     console.log('🔄 Deleting booking:', bookingId);
-    
+
+    const headers = await getAuthHeaders();
     const response = await fetch(url, {
       method: 'DELETE',
-      headers: supabaseHeaders,
+      headers,
     });
     
     if (!response.ok) {
@@ -397,7 +389,8 @@ async function checkEventConflicts(
   url.searchParams.append('barber', `eq.${barber}`);
   url.searchParams.append('select', 'id,client_name,start_time,end_time,status,booking_type');
 
-  const response = await fetch(url.toString(), { headers: supabaseHeaders });
+  const headers = await getAuthHeaders();
+  const response = await fetch(url.toString(), { headers });
   if (!response.ok) {
     console.error('Failed to check conflicts');
     return [];
@@ -484,12 +477,10 @@ export const supabaseEventBookingsApi = {
     console.log('🔄 Creating event booking:', payload);
 
     const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings`;
+    const headers = await getAuthHeaders();
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        ...supabaseHeaders,
-        'Prefer': 'return=representation',
-      },
+      headers: { ...headers, 'Prefer': 'return=representation' },
       body: JSON.stringify(payload),
     });
 
@@ -556,12 +547,10 @@ export const supabaseEventBookingsApi = {
     console.log('🔄 Updating event booking:', eventId, payload);
 
     const url = `${SUPABASE_CONFIG.url}/rest/v1/bookings?id=eq.${eventId}&business_id=eq.${getBusinessId()}`;
+    const headers = await getAuthHeaders();
     const response = await fetch(url, {
       method: 'PATCH',
-      headers: {
-        ...supabaseHeaders,
-        'Prefer': 'return=representation',
-      },
+      headers: { ...headers, 'Prefer': 'return=representation' },
       body: JSON.stringify(payload),
     });
 
@@ -586,9 +575,10 @@ export const supabaseEventBookingsApi = {
 
     console.log('🔄 Deleting event booking:', eventId);
 
+    const headers = await getAuthHeaders();
     const response = await fetch(url, {
       method: 'DELETE',
-      headers: supabaseHeaders,
+      headers,
     });
 
     if (!response.ok) {

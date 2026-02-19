@@ -2,6 +2,7 @@
 // Direct connection to Supabase for clients CRUD operations
 
 import { SUPABASE_CONFIG } from '@/config/api';
+import { getAuthHeaders } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
 import { Client, Booking } from '@/types';
 
@@ -87,43 +88,38 @@ function mapClientToDb(client: Partial<Client>): Partial<DbClient> {
   return db;
 }
 
-// Generic Supabase fetch wrapper
+// Generic Supabase fetch wrapper with authenticated headers
 async function supabaseFetch<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${SUPABASE_CONFIG.url}/rest/v1${endpoint}`;
-  
+  const authHeaders = await getAuthHeaders();
+
   const config: RequestInit = {
     ...options,
     headers: {
-      'apikey': SUPABASE_CONFIG.anonKey,
-      'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
-      'Content-Type': 'application/json',
-      'Prefer': options.method === 'POST' ? 'return=representation' : 
+      ...authHeaders,
+      'Prefer': options.method === 'POST' ? 'return=representation' :
                 options.method === 'PATCH' ? 'return=representation' : 'return=minimal',
       ...options.headers,
     },
   };
 
-  console.log(`🔄 Supabase Request: ${options.method || 'GET'} ${url}`);
-  
   const response = await fetch(url, config);
-  
+
   if (!response.ok) {
     const errorText = await response.text();
     console.error('❌ Supabase Error:', errorText);
     throw new Error(`Supabase error: ${response.status} - ${errorText}`);
   }
-  
+
   // Handle empty responses (204 No Content)
   if (response.status === 204) {
     return undefined as T;
   }
-  
-  const data = await response.json();
-  console.log('✅ Supabase Response:', data);
-  return data;
+
+  return await response.json();
 }
 
 export interface ClientWithBookings extends Client {
