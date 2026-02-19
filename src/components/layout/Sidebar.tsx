@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -39,12 +39,22 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   const navItems = allNavItems.filter(item => !item.adminOnly || isAdmin);
 
+  const navigate = useNavigate();
+
   const NavItem = ({ icon: Icon, label, path }: typeof navItems[0]) => {
     const isActive = location.pathname === path || location.pathname.startsWith(path + '/');
-    
+
+    const handleClick = (e: React.MouseEvent) => {
+      if (path === '/calendar') {
+        e.preventDefault();
+        navigate('/calendar', { state: { resetView: Date.now() } });
+      }
+    };
+
     const content = (
       <Link
         to={path}
+        onClick={handleClick}
         className={cn(
           'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
           'hover:bg-sidebar-accent',
