@@ -31,7 +31,7 @@ export interface Notification {
   message: string;
   createdAt: Date;
   read: boolean;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 interface NotificationContextType {

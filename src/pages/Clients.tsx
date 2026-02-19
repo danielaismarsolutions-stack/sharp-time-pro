@@ -60,6 +60,7 @@ export default function Clients() {
 
   useEffect(() => {
     loadClients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadClients = async () => {
@@ -137,11 +138,12 @@ export default function Clients() {
         case 'totalSpent':
           comparison = Number(a.totalSpent) - Number(b.totalSpent);
           break;
-        case 'lastVisit':
+        case 'lastVisit': {
           const dateA = a.lastVisit ? new Date(a.lastVisit).getTime() : 0;
           const dateB = b.lastVisit ? new Date(b.lastVisit).getTime() : 0;
           comparison = dateA - dateB;
           break;
+        }
       }
       return sortOrder === 'asc' ? comparison : -comparison;
     });

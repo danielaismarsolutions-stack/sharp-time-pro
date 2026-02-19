@@ -75,7 +75,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
           }
           const result = await supabaseStorageApi.uploadAvatar(avatarFile, barber.id);
           avatarUrl = result.url;
-        } catch (uploadError: any) {
+        } catch (uploadError: unknown) {
           console.error('Avatar upload error:', uploadError);
           toast({
             title: 'Error',

@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import { parse, format, addMinutes, differenceInMinutes } from 'date-fns';
 import { ApiBooking } from '@/types/api';
-import { supabaseBookingsApi } from '@/services/supabaseBookings';
+import { supabaseBookingsApi, UpdateBookingData } from '@/services/supabaseBookings';
 import { useToast } from '@/hooks/use-toast';
 
 interface UseCalendarDragDropOptions {
@@ -43,7 +43,7 @@ export function useCalendarDragDrop({
     onBookingsChange(updatedBookings);
     
     try {
-      await supabaseBookingsApi.update(bookingId, previousState as any);
+      await supabaseBookingsApi.update(bookingId, previousState as UpdateBookingData);
       toast({ title: 'Cambio deshecho' });
       
       // Remove from undo stack

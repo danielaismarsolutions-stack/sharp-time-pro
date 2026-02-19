@@ -97,6 +97,7 @@ export default function Consultations() {
     return () => {
       channel.unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   // Filter counts

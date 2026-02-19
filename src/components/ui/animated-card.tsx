@@ -26,7 +26,7 @@ export function AnimatedCard({
   const rotateZ = useTransform(x, [-150, 0, 150], [-5, 0, 5]);
   const [isDragging, setIsDragging] = useState(false);
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     setIsDragging(false);
     if (info.offset.x < -100 && onSwipeLeft) {
       onSwipeLeft();
@@ -133,7 +133,7 @@ export function PullToRefresh({
   const pullProgress = useTransform(y, [0, 80], [0, 1]);
   const [isPulling, setIsPulling] = useState(false);
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     setIsPulling(false);
     if (info.offset.y > 80) {
       onRefresh();

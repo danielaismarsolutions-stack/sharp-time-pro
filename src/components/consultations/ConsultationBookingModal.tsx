@@ -152,6 +152,7 @@ export function ConsultationBookingModal({
     } else {
       setBookedSlots([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, formData.barberId, barbers]);
 
   const selectedService = services.find((s) => s.id === formData.serviceId);
@@ -222,7 +223,7 @@ export function ConsultationBookingModal({
     setIsLoading(true);
     try {
       // First, find or create client
-      let clientId = await findOrCreateClient();
+      const clientId = await findOrCreateClient();
       
       const startTime = formData.time + ':00';
       const endTime = calculateEndTime(formData.time, effectiveDuration) + ':00';

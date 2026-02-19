@@ -17,7 +17,7 @@ export interface DbNotification {
   type: DbNotificationType;
   title: string;
   message: string;
-  data: Record<string, any> | null;
+  data: Record<string, unknown> | null;
   is_read: boolean;
   created_at: string;
 }
@@ -136,7 +136,7 @@ export interface CreateNotificationData {
   type: DbNotificationType;
   title: string;
   message: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export async function createNotification(data: CreateNotificationData): Promise<DbNotification> {

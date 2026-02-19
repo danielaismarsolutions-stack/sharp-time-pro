@@ -48,7 +48,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Client, Service } from '@/types';
+import { Client, Service, BookingStatus, BookingSource } from '@/types';
 import { Barber } from '@/types/barber';
 import { ApiBooking, ApiBookingStatus, ApiCalendarEvent } from '@/types/api';
 import { supabaseClientsApi } from '@/services/supabaseClients';
@@ -1142,8 +1142,8 @@ export default function Calendar() {
             barber: selectedBooking.barber,
             date: selectedBooking.booking_date,
             time: selectedBooking.start_time.substring(0, 5),
-            status: selectedBooking.status.replace('_', '-') as any,
-            source: selectedBooking.source.replace('_', '-') as any,
+            status: selectedBooking.status.replace('_', '-') as BookingStatus,
+            source: selectedBooking.source.replace('_', '-') as BookingSource,
             notes: selectedBooking.notes || '',
             createdAt: selectedBooking.created_at,
           } : null}
@@ -1176,7 +1176,7 @@ export default function Calendar() {
                   booking_date: data.date,
                   start_time: `${data.time}:00`,
                   end_time: endTime,
-                  status: (data.status?.replace('-', '_') || 'confirmed') as any,
+                  status: (data.status?.replace('-', '_') || 'confirmed') as ApiBookingStatus,
                   notes: data.notes || null,
                   barber: data.barber || null,
                 });

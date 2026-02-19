@@ -44,9 +44,10 @@ export const supabaseStorageApi = {
           url: publicUrl,
           path: data.path,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (attempt === retries) {
-          throw new Error(`Failed to upload avatar after ${retries + 1} attempts: ${error.message}`);
+          const message = error instanceof Error ? error.message : String(error);
+          throw new Error(`Failed to upload avatar after ${retries + 1} attempts: ${message}`);
         }
         // Wait before retry (exponential backoff: 1s, 2s)
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));

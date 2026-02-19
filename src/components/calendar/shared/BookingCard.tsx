@@ -85,8 +85,8 @@ interface CardButtonProps {
   isDragging: boolean;
   isDraggable: boolean;
   dragStyle?: React.CSSProperties;
-  dragAttributes: Record<string, any>;
-  dragListeners: Record<string, any> | undefined;
+  dragAttributes: Record<string, unknown>;
+  dragListeners: Record<string, unknown> | undefined;
   onClick: () => void;
   isMobile?: boolean;
   isPendingMove?: boolean;

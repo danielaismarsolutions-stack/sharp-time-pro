@@ -53,6 +53,7 @@ export default function ClientDetail() {
     if (id) {
       loadClientData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadClientData = async () => {
