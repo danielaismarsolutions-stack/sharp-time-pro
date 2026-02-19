@@ -190,8 +190,8 @@ export const supabaseBarbersApi = {
   },
 
   async getAll(includeInactive = false): Promise<Barber[]> {
-    // Fetch all users with the business_id (all roles: barber, admin, owner)
-    let url = `${SUPABASE_CONFIG.url}/rest/v1/users?business_id=eq.${getBusinessId()}&order=full_name.asc`;
+    // Fetch barbers and admins (owners are not barbers, they only manage)
+    let url = `${SUPABASE_CONFIG.url}/rest/v1/users?business_id=eq.${getBusinessId()}&role=neq.owner&order=full_name.asc`;
     
     if (!includeInactive) {
       url += '&is_active=eq.true';
