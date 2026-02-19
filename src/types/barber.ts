@@ -35,6 +35,7 @@ export interface Barber {
   phone: string | null;
   avatar_url: string | null;
   bio: string | null;
+  role: string;                      // 'barber' | 'admin' | 'owner'
   schedule: BarberSchedule;
   time_off: TimeOff[];
   is_active: boolean;

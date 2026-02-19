@@ -257,6 +257,34 @@ export default function Calendar() {
     };
   }, [user?.id, loadData]);
 
+  // Real-time subscription for users table changes (new barbers added externally)
+  const loadDataRef = useRef(loadData);
+  loadDataRef.current = loadData;
+
+  useEffect(() => {
+    let businessId: string;
+    try {
+      businessId = getBusinessId();
+    } catch {
+      return;
+    }
+
+    const channel = supabase
+      .channel(`calendar-users-sync-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'users', filter: `business_id=eq.${businessId}` },
+        () => {
+          loadDataRef.current();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Current hour height based on view mode
   const currentHourHeight = viewMode === 'day' ? HOUR_HEIGHT_DAY : HOUR_HEIGHT_WEEK;
 
