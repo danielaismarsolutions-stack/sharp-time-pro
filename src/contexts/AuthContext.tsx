@@ -20,7 +20,6 @@ interface AuthContextType {
   isBarber: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
 }
 
@@ -184,13 +183,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`,
-    });
-    if (error) throw new Error(error.message);
-  };
-
   const updatePassword = async (newPassword: string) => {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw new Error(error.message);
@@ -208,7 +200,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isBarber,
       login,
       logout,
-      resetPassword,
       updatePassword,
     }}>
       {children}

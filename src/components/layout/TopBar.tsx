@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { format } from 'date-fns';
-import { Bell, Search, Command, Check, Trash2, Settings, HelpCircle, User, Loader2, Menu } from 'lucide-react';
+import { Bell, Search, Command, Check, Trash2, Settings, HelpCircle, User, Loader2, Menu, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +24,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 
 interface TopBarProps {
   onSearchOpen?: () => void;
@@ -31,6 +33,7 @@ interface TopBarProps {
 }
 
 export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarProps) {
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { 
@@ -224,6 +227,13 @@ export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarPr
               <User className="h-4 w-4 mr-2" />
               Mi perfil
             </DropdownMenuItem>
+            <DropdownMenuItem
+              className="min-h-[44px] cursor-pointer"
+              onClick={() => setChangePasswordOpen(true)}
+            >
+              <KeyRound className="h-4 w-4 mr-2" />
+              Cambiar contraseña
+            </DropdownMenuItem>
             <DropdownMenuItem className="min-h-[44px] cursor-pointer">
               <HelpCircle className="h-4 w-4 mr-2" />
               Ayuda y soporte
@@ -238,6 +248,8 @@ export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarPr
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
     </header>
   );
 }
