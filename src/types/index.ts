@@ -58,11 +58,15 @@ export interface BusinessSettings {
   description: string;
 }
 
+export interface BusinessHoursShift {
+  openTime: string; // HH:MM format
+  closeTime: string; // HH:MM format
+}
+
 export interface BusinessHours {
   [day: string]: {
     isOpen: boolean;
-    openTime: string;
-    closeTime: string;
+    shifts: BusinessHoursShift[];
   };
 }
 

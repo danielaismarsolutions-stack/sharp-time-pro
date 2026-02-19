@@ -152,13 +152,13 @@ export const mockBusinessSettings: BusinessSettings = {
 };
 
 export const mockBusinessHours: BusinessHours = {
-  monday: { isOpen: true, openTime: '09:00', closeTime: '20:00' },
-  tuesday: { isOpen: true, openTime: '09:00', closeTime: '20:00' },
-  wednesday: { isOpen: true, openTime: '09:00', closeTime: '20:00' },
-  thursday: { isOpen: true, openTime: '09:00', closeTime: '20:00' },
-  friday: { isOpen: true, openTime: '09:00', closeTime: '21:00' },
-  saturday: { isOpen: true, openTime: '10:00', closeTime: '18:00' },
-  sunday: { isOpen: false, openTime: '10:00', closeTime: '14:00' },
+  monday: { isOpen: true, shifts: [{ openTime: '09:00', closeTime: '20:00' }] },
+  tuesday: { isOpen: true, shifts: [{ openTime: '09:00', closeTime: '20:00' }] },
+  wednesday: { isOpen: true, shifts: [{ openTime: '09:00', closeTime: '20:00' }] },
+  thursday: { isOpen: true, shifts: [{ openTime: '09:00', closeTime: '20:00' }] },
+  friday: { isOpen: true, shifts: [{ openTime: '09:00', closeTime: '21:00' }] },
+  saturday: { isOpen: true, shifts: [{ openTime: '10:00', closeTime: '18:00' }] },
+  sunday: { isOpen: false, shifts: [] },
 };
 
 export const mockBookingSettings: BookingSettings = {

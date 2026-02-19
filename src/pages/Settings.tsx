@@ -9,6 +9,8 @@ import {
   Loader2,
   BellRing,
   AlertTriangle,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,11 +31,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   BusinessSettings,
   BusinessHours,
+  BusinessHoursShift,
   BookingSettings,
   NotificationSettings,
 } from '@/types';
 import { settingsApi } from '@/services/api';
-import { supabaseBusinessHoursApi, mapSingleDbRow } from '@/services/supabaseBusinessHours';
+import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -84,6 +87,7 @@ export default function Settings() {
   }, []);
 
   // Real-time subscription for business_hours table
+  // Refetches all hours on any change (multiple rows per day makes partial merges complex)
   useEffect(() => {
     if (!user?.businessId) return;
 
@@ -97,24 +101,8 @@ export default function Settings() {
           table: 'business_hours',
           filter: `business_id=eq.${user.businessId}`,
         },
-        (payload) => {
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const mapped = mapSingleDbRow(payload.new as any);
-            if (mapped) {
-              setBusinessHours((prev) => ({
-                ...prev,
-                [mapped.day]: mapped.data,
-              }));
-            }
-          } else if (payload.eventType === 'DELETE') {
-            const mapped = mapSingleDbRow(payload.old as any);
-            if (mapped) {
-              setBusinessHours((prev) => ({
-                ...prev,
-                [mapped.day]: { isOpen: false, openTime: '09:00', closeTime: '18:00' },
-              }));
-            }
-          }
+        () => {
+          supabaseBusinessHoursApi.getAll().then(setBusinessHours).catch(console.error);
         }
       )
       .subscribe();
@@ -159,7 +147,7 @@ export default function Settings() {
   const saveHoursSettings = async () => {
     setIsSaving(true);
     try {
-      await supabaseBusinessHoursApi.upsertAll(businessHours);
+      await supabaseBusinessHoursApi.saveAll(businessHours);
       toast({ title: 'Horario guardado' });
     } catch (error) {
       toast({ title: 'Error al guardar configuración', variant: 'destructive' });
@@ -192,11 +180,61 @@ export default function Settings() {
     }
   };
 
-  const updateHours = (day: string, field: 'isOpen' | 'openTime' | 'closeTime', value: any) => {
+  const toggleDayOpen = (day: string, isOpen: boolean) => {
     setBusinessHours((prev) => ({
       ...prev,
-      [day]: { ...prev[day], [field]: value },
+      [day]: {
+        isOpen,
+        shifts: isOpen && (!prev[day] || prev[day].shifts.length === 0)
+          ? [{ openTime: '09:00', closeTime: '18:00' }]
+          : prev[day]?.shifts || [],
+      },
     }));
+  };
+
+  const addShift = (day: string) => {
+    setBusinessHours((prev) => {
+      const current = prev[day] || { isOpen: true, shifts: [] };
+      const lastShift = current.shifts[current.shifts.length - 1];
+      const newOpenTime = lastShift ? lastShift.closeTime : '09:00';
+      return {
+        ...prev,
+        [day]: {
+          ...current,
+          shifts: [...current.shifts, { openTime: newOpenTime, closeTime: '20:00' }],
+        },
+      };
+    });
+  };
+
+  const removeShift = (day: string, shiftIndex: number) => {
+    setBusinessHours((prev) => {
+      const current = prev[day];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [day]: {
+          ...current,
+          shifts: current.shifts.filter((_, i) => i !== shiftIndex),
+        },
+      };
+    });
+  };
+
+  const updateShift = (day: string, shiftIndex: number, updates: Partial<BusinessHoursShift>) => {
+    setBusinessHours((prev) => {
+      const current = prev[day];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [day]: {
+          ...current,
+          shifts: current.shifts.map((shift, i) =>
+            i === shiftIndex ? { ...shift, ...updates } : shift
+          ),
+        },
+      };
+    });
   };
 
   if (isLoading) {
@@ -300,39 +338,63 @@ export default function Settings() {
           <Card className="border-border">
             <CardHeader>
               <CardTitle>Horario del Negocio</CardTitle>
-              <CardDescription>Configura el horario de apertura para cada día</CardDescription>
+              <CardDescription>Configura el horario de apertura para cada día. Puedes añadir varios turnos por día.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {dayNames.map((day, index) => {
-                const hours = businessHours[day] || { isOpen: false, openTime: '09:00', closeTime: '18:00' };
+                const dayData = businessHours[day] || { isOpen: false, shifts: [] };
                 return (
-                  <div key={day} className="flex items-center gap-4">
-                    <div className="w-28">
-                      <Label>{dayLabels[index]}</Label>
+                  <div key={day} className="rounded-lg border p-3 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        checked={dayData.isOpen}
+                        onCheckedChange={(checked) => toggleDayOpen(day, checked)}
+                      />
+                      <Label className="font-semibold w-24">{dayLabels[index]}</Label>
+                      {!dayData.isOpen && (
+                        <span className="text-muted-foreground text-sm">Cerrado</span>
+                      )}
                     </div>
-                    <Switch
-                      checked={hours.isOpen}
-                      onCheckedChange={(checked) => updateHours(day, 'isOpen', checked)}
-                    />
-                    {hours.isOpen && (
-                      <>
-                        <Input
-                          type="time"
-                          value={hours.openTime}
-                          onChange={(e) => updateHours(day, 'openTime', e.target.value)}
-                          className="w-32"
-                        />
-                        <span className="text-muted-foreground">a</span>
-                        <Input
-                          type="time"
-                          value={hours.closeTime}
-                          onChange={(e) => updateHours(day, 'closeTime', e.target.value)}
-                          className="w-32"
-                        />
-                      </>
-                    )}
-                    {!hours.isOpen && (
-                      <span className="text-muted-foreground">Cerrado</span>
+                    {dayData.isOpen && (
+                      <div className="pl-12 space-y-2">
+                        {dayData.shifts.map((shift, shiftIndex) => (
+                          <div key={shiftIndex} className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground w-16">Turno {shiftIndex + 1}</span>
+                            <Input
+                              type="time"
+                              value={shift.openTime}
+                              onChange={(e) => updateShift(day, shiftIndex, { openTime: e.target.value })}
+                              className="w-32"
+                            />
+                            <span className="text-muted-foreground">a</span>
+                            <Input
+                              type="time"
+                              value={shift.closeTime}
+                              onChange={(e) => updateShift(day, shiftIndex, { closeTime: e.target.value })}
+                              className="w-32"
+                            />
+                            {dayData.shifts.length > 1 && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeShift(day, shiftIndex)}
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => addShift(day)}
+                          className="border-dashed text-xs"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Añadir turno
+                        </Button>
+                      </div>
                     )}
                   </div>
                 );
