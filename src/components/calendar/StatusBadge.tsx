@@ -16,8 +16,8 @@ const statusConfig: Record<string, { label: string; dotClass: string; badgeClass
   },
   confirmed: {
     label: 'Confirmada',
-    dotClass: 'bg-blue-400',
-    badgeClass: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    dotClass: 'bg-violet-400',
+    badgeClass: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
   },
   completed: {
     label: 'Completada',

@@ -32,7 +32,7 @@ import ClientModal from '@/components/clients/ClientModal';
 
 const statusConfig: Record<string, { label: string; class: string }> = {
   pending: { label: 'Pendiente', class: 'bg-yellow-500/20 text-yellow-500' },
-  confirmed: { label: 'Confirmada', class: 'bg-blue-500/20 text-blue-500' },
+  confirmed: { label: 'Confirmada', class: 'bg-violet-500/20 text-violet-500' },
   completed: { label: 'Completada', class: 'bg-green-500/20 text-green-500' },
   cancelled: { label: 'Cancelada', class: 'bg-red-500/20 text-red-500' },
   'no-show': { label: 'No asistió', class: 'bg-gray-500/20 text-gray-500' },

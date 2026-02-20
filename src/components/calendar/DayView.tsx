@@ -26,7 +26,7 @@ const HOUR_HEIGHT = 80; // pixels per hour
 // Status-based colors with left border
 const statusColors: Record<BookingStatus, { bg: string; border: string; text: string }> = {
   pending: { bg: 'bg-amber-50', border: 'border-l-amber-400', text: 'text-amber-900' },
-  confirmed: { bg: 'bg-blue-50', border: 'border-l-blue-400', text: 'text-blue-900' },
+  confirmed: { bg: 'bg-violet-50', border: 'border-l-violet-400', text: 'text-violet-900' },
   completed: { bg: 'bg-emerald-50', border: 'border-l-emerald-400', text: 'text-emerald-900' },
   cancelled: { bg: 'bg-rose-50', border: 'border-l-rose-400', text: 'text-rose-900' },
   'no-show': { bg: 'bg-purple-50', border: 'border-l-purple-400', text: 'text-purple-900' },
