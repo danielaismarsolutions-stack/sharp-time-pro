@@ -315,11 +315,11 @@ export interface EventConflict {
 
 // ==================== Validation ====================
 
-function normalizeTime(time: string): string {
+export function normalizeTime(time: string): string {
   return time.length === 5 ? `${time}:00` : time;
 }
 
-function validateEventData(data: CreateEventBookingData): string | null {
+export function validateEventData(data: CreateEventBookingData): string | null {
   if (!data.event_name?.trim()) {
     return 'El nombre del evento es requerido';
   }
@@ -349,7 +349,7 @@ function validateEventData(data: CreateEventBookingData): string | null {
 
 // ==================== Conflict Detection ====================
 
-function timesOverlap(
+export function timesOverlap(
   startA: string,
   endA: string,
   startB: string,
