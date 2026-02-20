@@ -1,6 +1,6 @@
 // Shared BookingCard component with drag-and-drop support and consistent text sizing
 import React, { forwardRef } from 'react';
-import { useDraggable } from '@dnd-kit/core';
+import { useDraggable, DraggableAttributes } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Clock, User, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -85,7 +85,7 @@ interface CardButtonProps {
   isDragging: boolean;
   isDraggable: boolean;
   dragStyle?: React.CSSProperties;
-  dragAttributes: Record<string, unknown>;
+  dragAttributes: DraggableAttributes;
   dragListeners: Record<string, unknown> | undefined;
   onClick: () => void;
   isMobile?: boolean;

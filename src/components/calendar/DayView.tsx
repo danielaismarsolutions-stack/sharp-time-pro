@@ -29,6 +29,7 @@ const statusColors: Record<BookingStatus, { bg: string; border: string; text: st
   confirmed: { bg: 'bg-blue-50', border: 'border-l-blue-400', text: 'text-blue-900' },
   completed: { bg: 'bg-emerald-50', border: 'border-l-emerald-400', text: 'text-emerald-900' },
   cancelled: { bg: 'bg-rose-50', border: 'border-l-rose-400', text: 'text-rose-900' },
+  'no-show': { bg: 'bg-purple-50', border: 'border-l-purple-400', text: 'text-purple-900' },
   no_show: { bg: 'bg-purple-50', border: 'border-l-purple-400', text: 'text-purple-900' },
 };
 

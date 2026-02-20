@@ -37,6 +37,7 @@ import {
 } from '@/types';
 import { settingsApi } from '@/services/api';
 import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
+import { supabaseBusinessesApi } from '@/services/supabaseBusinesses';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,11 +59,12 @@ export default function Settings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [businessSettings, setBusinessSettings] = useState<BusinessSettings>({
+  const [businessSettings, setBusinessSettings] = useState({
     businessName: '',
     address: '',
     phone: '',
     email: '',
+    contactEmail: '',
     description: '',
     logo: '',
   });
@@ -116,13 +118,19 @@ export default function Settings() {
   const loadSettings = async () => {
     setIsLoading(true);
     try {
-      const [business, hours, booking, notifications] = await Promise.all([
-        settingsApi.getBusinessSettings(),
+      const [businessData, hours, booking, notifications] = await Promise.all([
+        supabaseBusinessesApi.get(),
         supabaseBusinessHoursApi.getAll(),
         settingsApi.getBookingSettings(),
         settingsApi.getNotificationSettings(),
       ]);
-      setBusinessSettings(business);
+      setBusinessSettings((prev) => ({
+        ...prev,
+        businessName: businessData.businessName,
+        phone: businessData.phone,
+        address: businessData.address,
+        contactEmail: businessData.contactEmail,
+      }));
       setBusinessHours(hours);
       setBookingSettings(booking);
       setNotificationSettings(notifications);
@@ -136,7 +144,12 @@ export default function Settings() {
   const saveBusinessSettings = async () => {
     setIsSaving(true);
     try {
-      await settingsApi.updateBusinessSettings(businessSettings);
+      await supabaseBusinessesApi.update({
+        businessName: businessSettings.businessName,
+        phone: businessSettings.phone,
+        address: businessSettings.address,
+        contactEmail: businessSettings.contactEmail,
+      });
       toast({ title: 'Configuración guardada' });
     } catch (error) {
       toast({ title: 'Error al guardar configuración', variant: 'destructive' });
@@ -303,11 +316,11 @@ export default function Settings() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Correo electrónico</Label>
+                  <Label>Correo electrónico de contacto</Label>
                   <Input
                     type="email"
-                    value={businessSettings.email}
-                    onChange={(e) => setBusinessSettings({ ...businessSettings, email: e.target.value })}
+                    value={businessSettings.contactEmail}
+                    onChange={(e) => setBusinessSettings({ ...businessSettings, contactEmail: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
