@@ -216,14 +216,14 @@ export default function Barbers() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[50vh]">
+      <div className="flex items-center justify-center h-[50vh] px-4 sm:px-6">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 pb-16 sm:pb-6">
+    <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 pb-16 sm:pb-6">
       {/* Header - Compact on mobile */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
