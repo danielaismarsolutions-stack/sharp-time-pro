@@ -108,9 +108,12 @@ export function EventModal({
     color: '#d1d5db',
   });
 
-  // Reset form when opening or when event changes
+  // Populate form when the modal opens
   useEffect(() => {
+    if (!open) return;
+
     if (event) {
+      // Edit mode: pre-populate all fields from the existing event
       setDate(new Date(event.event_date + 'T00:00:00'));
       const barberObj = barbers.find((b) => b.name === event.barber);
       setFormData({
@@ -124,7 +127,7 @@ export function EventModal({
         color: event.color || '#d1d5db',
       });
     } else {
-      // Use selectedTime if provided (from slot click/drag), otherwise current time
+      // Create mode: use slot time or current time
       let startTime: string;
       if (selectedTime) {
         startTime = selectedTime;
@@ -132,7 +135,6 @@ export function EventModal({
         const now = new Date();
         startTime = `${now.getHours().toString().padStart(2, '0')}:${(Math.ceil(now.getMinutes() / 15) * 15 % 60).toString().padStart(2, '0')}`;
       }
-      // Default end time: 1 hour after start
       const [startH, startM] = startTime.split(':').map(Number);
       const endH = startH + Math.floor((startM + 60) / 60);
       const endM = (startM + 60) % 60;
@@ -150,7 +152,8 @@ export function EventModal({
         color: '#d1d5db',
       });
     }
-  }, [event, selectedDate, selectedTime, open, barbers]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // Filtered end time slots (must be after start)
   const endTimeSlots = useMemo(() => {
