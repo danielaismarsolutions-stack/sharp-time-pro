@@ -49,6 +49,7 @@ const viewModeOptions = [
   { value: 'agenda' as ViewMode, label: 'Agenda', icon: List },
   { value: 'day' as ViewMode, label: 'Día', icon: LayoutGrid },
   { value: '3day' as ViewMode, label: '3 Días', icon: Columns3 },
+  { value: 'month' as ViewMode, label: 'Mes', icon: Calendar },
 ];
 
 export function MobileDrawerMenu({

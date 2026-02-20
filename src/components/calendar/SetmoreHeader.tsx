@@ -345,30 +345,28 @@ export function SetmoreHeader({
       <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-card">
         <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)}>
           <TabsList className="h-9">
-            <TabsTrigger value="agenda" className="text-xs px-2 md:px-3 min-h-[40px]">
+            <TabsTrigger value="agenda" className="text-xs px-1.5 md:px-3 min-h-[40px]">
               <List className="h-4 w-4 mr-1" />
               Agenda
             </TabsTrigger>
-            <TabsTrigger value="day" className="text-xs px-2 md:px-3 min-h-[40px]">
+            <TabsTrigger value="day" className="text-xs px-1.5 md:px-3 min-h-[40px]">
               <LayoutGrid className="h-4 w-4 mr-1" />
               Día
             </TabsTrigger>
-            <TabsTrigger value="3day" className="text-xs px-2 md:px-3 min-h-[40px]">
+            <TabsTrigger value="3day" className="text-xs px-1.5 md:px-3 min-h-[40px]">
               <CalendarIcon className="h-4 w-4 mr-1" />
               3 Días
             </TabsTrigger>
             {!isMobile && (
-              <>
-                <TabsTrigger value="week" className="text-xs px-2 md:px-3 min-h-[40px]">
-                  <LayoutGrid className="h-4 w-4 mr-1" />
-                  Semana
-                </TabsTrigger>
-                <TabsTrigger value="month" className="text-xs px-2 md:px-3 min-h-[40px]">
-                  <CalendarIcon className="h-4 w-4 mr-1" />
-                  Mes
-                </TabsTrigger>
-              </>
+              <TabsTrigger value="week" className="text-xs px-1.5 md:px-3 min-h-[40px]">
+                <LayoutGrid className="h-4 w-4 mr-1" />
+                Semana
+              </TabsTrigger>
             )}
+            <TabsTrigger value="month" className="text-xs px-1.5 md:px-3 min-h-[40px]">
+              <CalendarIcon className="h-4 w-4 mr-1" />
+              Mes
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
