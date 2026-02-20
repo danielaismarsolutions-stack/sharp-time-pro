@@ -1295,6 +1295,7 @@ export default function Calendar() {
           onSave={handleSaveEvent}
           selectedDate={selectedDate}
           selectedTime={selectedTime}
+          defaultBarberId={user?.id}
         />
 
         {/* Event Detail Modal */}
