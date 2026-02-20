@@ -11,7 +11,7 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { ApiBooking } from '@/types/api';
+import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 // Icons removed - using compact text-only version for month view
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -28,6 +28,8 @@ interface MonthViewProps {
   services: Service[];
   onDateClick: (date: Date) => void;
   onBookingClick: (booking: ApiBooking) => void;
+  getEventsForDay?: (date: Date) => ApiCalendarEvent[];
+  onEventClick?: (event: ApiCalendarEvent) => void;
 }
 
 const MAX_VISIBLE_BOOKINGS = 3;
@@ -69,7 +71,7 @@ const getServicePastelColor = (booking: ApiBooking, services: Service[]) => {
   return pastelColors[hash % pastelColors.length];
 };
 
-export function MonthView({ currentDate, bookings, services, onDateClick, onBookingClick }: MonthViewProps) {
+export function MonthView({ currentDate, bookings, services, onDateClick, onBookingClick, getEventsForDay, onEventClick }: MonthViewProps) {
   const isMobile = useIsMobile();
   
   // Generate calendar days grid
@@ -120,9 +122,25 @@ export function MonthView({ currentDate, bookings, services, onDateClick, onBook
         {calendarDays.map((day, idx) => {
           const dateKey = format(day, 'yyyy-MM-dd');
           const dayBookings = bookingsByDate[dateKey] || [];
+          const dayEvents = getEventsForDay ? getEventsForDay(day) : [];
           const isCurrentMonth = isSameMonth(day, currentDate);
           const isTodayDate = isToday(day);
-          const hasMore = dayBookings.length > MAX_VISIBLE_BOOKINGS;
+
+          // Merge bookings and events into a single sorted list
+          type DayItem =
+            | { type: 'booking'; data: ApiBooking }
+            | { type: 'event'; data: ApiCalendarEvent };
+
+          const items: DayItem[] = [
+            ...dayBookings.map((b) => ({ type: 'booking' as const, data: b })),
+            ...dayEvents.map((e) => ({ type: 'event' as const, data: e })),
+          ].sort((a, b) => {
+            const timeA = a.type === 'booking' ? a.data.start_time : a.data.start_time;
+            const timeB = b.type === 'booking' ? b.data.start_time : b.data.start_time;
+            return timeA.localeCompare(timeB);
+          });
+
+          const hasMore = items.length > MAX_VISIBLE_BOOKINGS;
 
           return (
             <div
@@ -148,19 +166,32 @@ export function MonthView({ currentDate, bookings, services, onDateClick, onBook
                 </span>
               </div>
 
-              {/* Bookings - no gaps between cards */}
+              {/* Bookings & Events - no gaps between cards */}
               <div className="flex flex-col">
-                {dayBookings.slice(0, MAX_VISIBLE_BOOKINGS).map((booking) => {
-                  const colorClasses = getServicePastelColor(booking, services);
+                {items.slice(0, MAX_VISIBLE_BOOKINGS).map((item) => {
+                  if (item.type === 'booking') {
+                    const colorClasses = getServicePastelColor(item.data, services);
+                    return (
+                      <MonthBookingCard
+                        key={item.data.id}
+                        booking={item.data}
+                        colorClasses={colorClasses}
+                        isMobile={isMobile}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onBookingClick(item.data);
+                        }}
+                      />
+                    );
+                  }
                   return (
-                    <MonthBookingCard
-                      key={booking.id}
-                      booking={booking}
-                      colorClasses={colorClasses}
+                    <MonthEventCard
+                      key={item.data.id}
+                      event={item.data}
                       isMobile={isMobile}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onBookingClick(booking);
+                        onEventClick?.(item.data);
                       }}
                     />
                   );
@@ -173,7 +204,7 @@ export function MonthView({ currentDate, bookings, services, onDateClick, onBook
                       onDateClick(day);
                     }}
                   >
-                    +{dayBookings.length - MAX_VISIBLE_BOOKINGS} más
+                    +{items.length - MAX_VISIBLE_BOOKINGS} más
                   </button>
                 )}
               </div>
@@ -255,4 +286,77 @@ function MonthBookingCard({ booking, colorClasses, isMobile, onClick }: MonthBoo
       </Tooltip>
     </TooltipProvider>
   );
+}
+
+interface MonthEventCardProps {
+  event: ApiCalendarEvent;
+  isMobile: boolean;
+  onClick: (e: React.MouseEvent) => void;
+}
+
+function MonthEventCard({ event, isMobile, onClick }: MonthEventCardProps) {
+  const startTime = event.start_time.substring(0, 5);
+  const endTime = event.end_time.substring(0, 5);
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={onClick}
+            className={cn(
+              'w-full text-left rounded-sm border-l-2 transition-all overflow-hidden',
+              'hover:brightness-95',
+              isMobile ? 'px-0.5' : 'px-1',
+            )}
+            style={{
+              height: isMobile ? '12px' : '16px',
+              backgroundColor: event.color ? `${event.color}40` : '#d1d5db40',
+              borderLeftColor: event.color || '#d1d5db',
+            }}
+          >
+            <div className="flex items-center gap-0.5 whitespace-nowrap overflow-hidden">
+              <span className={cn(
+                'font-bold leading-none truncate',
+                isMobile ? 'text-[6px]' : 'text-[8px]'
+              )}
+              style={{ color: event.color ? darkenColor(event.color) : '#374151' }}
+              >
+                {startTime}
+              </span>
+              <span className={cn(
+                'font-medium leading-none truncate',
+                isMobile ? 'text-[6px]' : 'text-[8px]'
+              )}
+              style={{ color: event.color ? darkenColor(event.color) : '#374151' }}
+              >
+                {event.name.length > 6 ? event.name.substring(0, 6) + '…' : event.name}
+              </span>
+            </div>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="max-w-xs">
+          <div className="space-y-1">
+            <p className="font-bold">{startTime} - {endTime}</p>
+            <p className="font-semibold">{event.name}</p>
+            {event.location && (
+              <p className="text-sm opacity-80">{event.location}</p>
+            )}
+            {event.barber && (
+              <p className="text-sm opacity-70">Barbero: {event.barber}</p>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+// Darken a hex color for text contrast against its light background
+function darkenColor(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const factor = 0.4;
+  return `rgb(${Math.round(r * factor)}, ${Math.round(g * factor)}, ${Math.round(b * factor)})`;
 }

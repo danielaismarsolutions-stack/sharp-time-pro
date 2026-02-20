@@ -943,6 +943,8 @@ export default function Calendar() {
             setViewMode('day');
           }}
           onBookingClick={(booking) => openBookingDetail(booking)}
+          getEventsForDay={getEventsForDay}
+          onEventClick={openEventDetail}
         />
       </div>
     </div>
