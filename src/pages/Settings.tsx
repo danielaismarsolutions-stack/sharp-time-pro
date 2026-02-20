@@ -370,33 +370,35 @@ export default function Settings() {
                       )}
                     </div>
                     {dayData.isOpen && (
-                      <div className="pl-12 space-y-2">
+                      <div className="pl-0 md:pl-12 space-y-2 mt-2">
                         {dayData.shifts.map((shift, shiftIndex) => (
-                          <div key={shiftIndex} className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground w-16">Turno {shiftIndex + 1}</span>
-                            <Input
-                              type="time"
-                              value={shift.openTime}
-                              onChange={(e) => updateShift(day, shiftIndex, { openTime: e.target.value })}
-                              className="w-32"
-                            />
-                            <span className="text-muted-foreground">a</span>
-                            <Input
-                              type="time"
-                              value={shift.closeTime}
-                              onChange={(e) => updateShift(day, shiftIndex, { closeTime: e.target.value })}
-                              className="w-32"
-                            />
-                            {dayData.shifts.length > 1 && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeShift(day, shiftIndex)}
-                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
+                          <div key={shiftIndex} className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+                            <span className="text-xs text-muted-foreground w-auto md:w-16 shrink-0">Turno {shiftIndex + 1}</span>
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Input
+                                type="time"
+                                value={shift.openTime}
+                                onChange={(e) => updateShift(day, shiftIndex, { openTime: e.target.value })}
+                                className="w-full md:w-32 min-w-[100px]"
+                              />
+                              <span className="text-muted-foreground shrink-0">a</span>
+                              <Input
+                                type="time"
+                                value={shift.closeTime}
+                                onChange={(e) => updateShift(day, shiftIndex, { closeTime: e.target.value })}
+                                className="w-full md:w-32 min-w-[100px]"
+                              />
+                              {dayData.shifts.length > 1 && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeShift(day, shiftIndex)}
+                                  className="h-8 w-8 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         ))}
                         <Button
