@@ -67,7 +67,7 @@ import { useAutoScrollToNow } from '@/hooks/useAutoScrollToNow';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import BookingModal from '@/components/bookings/BookingModal';
-import { BookingDetailModal, BookingStatus, MonthView } from '@/components/calendar';
+import { BookingDetailModal, MonthView } from '@/components/calendar';
 import { BarberLegend } from '@/components/calendar/BarberLegend';
 import { MoveBookingConfirmDialog } from '@/components/calendar/MoveBookingConfirmDialog';
 import { CreateChoiceDialog } from '@/components/calendar/CreateChoiceDialog';
@@ -470,7 +470,7 @@ export default function Calendar() {
         confirmed: 'confirmada',
         completed: 'completada',
         cancelled: 'cancelada',
-        no_show: 'no presentado',
+        'no-show': 'no presentado',
       };
       toast({ title: `Cita marcada como ${statusLabels[status]}` });
     } catch (error) {

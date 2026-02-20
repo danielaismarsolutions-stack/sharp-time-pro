@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show' | 'no-show';
 
 interface StatusBadgeProps {
   status: BookingStatus;
@@ -8,7 +8,7 @@ interface StatusBadgeProps {
   showLabel?: boolean;
 }
 
-const statusConfig: Record<BookingStatus, { label: string; dotClass: string; badgeClass: string }> = {
+const statusConfig: Record<string, { label: string; dotClass: string; badgeClass: string }> = {
   pending: {
     label: 'Pendiente',
     dotClass: 'bg-amber-400',
@@ -30,6 +30,11 @@ const statusConfig: Record<BookingStatus, { label: string; dotClass: string; bad
     badgeClass: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
   },
   no_show: {
+    label: 'No presentado',
+    dotClass: 'bg-purple-400',
+    badgeClass: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  },
+  'no-show': {
     label: 'No presentado',
     dotClass: 'bg-purple-400',
     badgeClass: 'bg-purple-500/20 text-purple-400 border-purple-500/30',

@@ -242,7 +242,7 @@ export function BookingDetailModal({
                   variant="outline"
                   size="sm"
                   className="justify-start h-7 text-[11px] px-2"
-                  onClick={() => onStatusChange(currentBooking.id, 'no_show')}
+                  onClick={() => onStatusChange(currentBooking.id, 'no_show' as BookingStatus)}
                 >
                   <AlertCircle className="h-3 w-3 mr-1.5 text-purple-400" />
                   No presentado

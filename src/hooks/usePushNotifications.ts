@@ -25,7 +25,8 @@ export function usePushNotifications(userId: string | null, businessId: string |
     
     try {
       const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const subscription = await (registration as any).pushManager.getSubscription();
       setIsSubscribed(!!subscription);
     } catch { /* ignored */ }
   }, [userId]);
@@ -66,7 +67,8 @@ export function usePushNotifications(userId: string | null, businessId: string |
 
       // Subscribe to push
       const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-      const subscription = await registration.pushManager.subscribe({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const subscription = await (registration as any).pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey.buffer as ArrayBuffer
       });
@@ -100,7 +102,8 @@ export function usePushNotifications(userId: string | null, businessId: string |
 
     try {
       const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const subscription = await (registration as any).pushManager.getSubscription();
       
       if (subscription) {
         await subscription.unsubscribe();
