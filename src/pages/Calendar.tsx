@@ -1172,6 +1172,7 @@ export default function Calendar() {
                   end_time: endTime,
                   status: (data.status?.replace('-', '_') || 'confirmed') as ApiBookingStatus,
                   notes: data.notes || null,
+                  user_id: data.barberId || null,
                   barber: data.barber || null,
                 });
                 
@@ -1202,6 +1203,7 @@ export default function Calendar() {
                 const newBooking = await supabaseBookingsApi.create({
                   client_id: data.clientId || '',
                   service_id: data.serviceId || '',
+                  user_id: data.barberId || null,
                   booking_date: data.date || '',
                   start_time: `${data.time}:00`,
                   end_time: endTime,
