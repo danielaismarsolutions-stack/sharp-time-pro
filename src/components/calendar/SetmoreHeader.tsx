@@ -345,8 +345,8 @@ export function SetmoreHeader({
       </div>
 
       {/* View Switcher + Barber Filter Row */}
-      <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-card overflow-hidden">
-        <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)} className="min-w-0">
+      <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-card">
+        <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)} className="min-w-0 overflow-hidden">
           <TabsList className="h-9">
             <TabsTrigger value="agenda" className="text-xs px-1.5 md:px-3 min-h-[40px]">
               <List className="h-4 w-4 mr-1" />
