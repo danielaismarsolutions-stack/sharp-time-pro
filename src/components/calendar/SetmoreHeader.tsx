@@ -345,8 +345,8 @@ export function SetmoreHeader({
       </div>
 
       {/* View Switcher + Barber Filter Row */}
-      <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-card">
-        <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)}>
+      <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-card overflow-hidden">
+        <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)} className="min-w-0">
           <TabsList className="h-9">
             <TabsTrigger value="agenda" className="text-xs px-1.5 md:px-3 min-h-[40px]">
               <List className="h-4 w-4 mr-1" />
@@ -373,7 +373,7 @@ export function SetmoreHeader({
           </TabsList>
         </Tabs>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {/* Refresh Button */}
           {onRefresh && (
             <Button
@@ -393,7 +393,7 @@ export function SetmoreHeader({
             value={selectedBarber || 'all'}
             onValueChange={(v) => onBarberChange(v === 'all' ? null : v)}
           >
-            <SelectTrigger className="w-[100px] md:w-[140px] h-9">
+            <SelectTrigger className="w-[76px] md:w-[140px] h-9">
               <Filter className="h-4 w-4 mr-1 shrink-0" />
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
