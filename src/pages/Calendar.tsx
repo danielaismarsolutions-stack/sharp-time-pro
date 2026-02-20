@@ -207,6 +207,43 @@ export default function Calendar() {
     }
   }, [toast]);
 
+  // Silent refresh: re-fetches bookings without showing the loading spinner
+  const silentRefresh = useCallback(async () => {
+    try {
+      const allBookingsData = await supabaseBookingsApi.getAll();
+
+      const regularBookings: ApiBooking[] = [];
+      const eventBookings: ApiCalendarEvent[] = [];
+
+      for (const b of allBookingsData) {
+        if (b.booking_type === 'event') {
+          eventBookings.push({
+            id: b.id,
+            business_id: b.business_id,
+            name: b.event_name || b.client_name || '',
+            event_date: b.booking_date,
+            start_time: b.start_time,
+            end_time: b.end_time,
+            repeat: (b.recurrence_rule as { frequency?: string } | null)?.frequency as ApiCalendarEvent['repeat'] || 'none',
+            location: b.location || null,
+            notes: b.notes || null,
+            barber: b.barber || null,
+            color: b.color || '#d1d5db',
+            created_at: b.created_at,
+            updated_at: b.updated_at,
+          });
+        } else {
+          regularBookings.push(b);
+        }
+      }
+
+      setBookings(regularBookings);
+      setCalendarEvents(eventBookings);
+    } catch {
+      // Silent — don't show error toast for background refreshes
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -218,53 +255,72 @@ export default function Calendar() {
     }
   }, [isBarber, user?.name]);
 
+  // Keep a stable ref to silentRefresh so the polling interval doesn't re-mount
+  const silentRefreshRef = useRef(silentRefresh);
+  silentRefreshRef.current = silentRefresh;
+
   // Real-time subscription for bookings from web/external sources
   useEffect(() => {
     if (!user?.id) return;
-    
+
+    let businessId: string;
+    try {
+      businessId = getBusinessId();
+    } catch {
+      return;
+    }
+
     const channel = supabase
-      .channel('bookings-realtime')
+      .channel(`bookings-realtime-${Date.now()}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'bookings',
-          filter: `business_id=eq.${getBusinessId()}`,
+          filter: `business_id=eq.${businessId}`,
         },
         async (payload) => {
-          const newBooking = payload.new as ApiBooking;
-          
-          // Only create notification if booking was created from web (not from this session)
-          if (newBooking.source === 'online') {
-            try {
-              await createNotification({
-                user_id: user.id,
-                business_id: getBusinessId(),
-                type: 'booking_created',
-                title: 'Nueva reserva online',
-                message: `${newBooking.client_name} ha reservado ${newBooking.service_name} para el ${format(new Date(newBooking.booking_date), 'dd/MM/yyyy', { locale: es })} a las ${newBooking.start_time.substring(0, 5)}`,
-                metadata: {
-                  booking_id: newBooking.id,
-                  client_name: newBooking.client_name,
-                  service_name: newBooking.service_name,
-                  booking_date: newBooking.booking_date,
-                  start_time: newBooking.start_time,
-                },
-              });
-            } catch { /* ignored */ }
+          // Create notification for new online bookings
+          if (payload.eventType === 'INSERT') {
+            const newBooking = payload.new as ApiBooking;
+            if (newBooking.source === 'online') {
+              try {
+                await createNotification({
+                  user_id: user.id,
+                  business_id: businessId,
+                  type: 'booking_created',
+                  title: 'Nueva reserva online',
+                  message: `${newBooking.client_name} ha reservado ${newBooking.service_name} para el ${format(new Date(newBooking.booking_date), 'dd/MM/yyyy', { locale: es })} a las ${newBooking.start_time.substring(0, 5)}`,
+                  metadata: {
+                    booking_id: newBooking.id,
+                    client_name: newBooking.client_name,
+                    service_name: newBooking.service_name,
+                    booking_date: newBooking.booking_date,
+                    start_time: newBooking.start_time,
+                  },
+                });
+              } catch { /* ignored */ }
+            }
           }
-          
-          // Refresh bookings list
-          loadData();
+
+          // Silently refresh bookings (no loading spinner)
+          silentRefreshRef.current();
         }
       )
       .subscribe();
-    
+
+    // Polling fallback: refresh every 15 seconds in case the real-time
+    // WebSocket connection drops silently
+    const pollInterval = setInterval(() => {
+      silentRefreshRef.current();
+    }, 15_000);
+
     return () => {
+      clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
-  }, [user?.id, loadData]);
+  }, [user?.id]);
 
   // Real-time subscription for users table changes (new barbers added externally)
   const loadDataRef = useRef(loadData);
