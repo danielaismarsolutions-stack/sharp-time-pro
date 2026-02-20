@@ -354,6 +354,7 @@ export default function BookingModal({
         serviceName: selectedService?.name || '',
         serviceDuration: selectedService?.duration || 30,
         servicePrice: selectedService?.price || 0,
+        barberId: selectedBarber?.id || null,
         barber: selectedBarber?.name || null,
         date: format(date, 'yyyy-MM-dd'),
         time: formData.time,

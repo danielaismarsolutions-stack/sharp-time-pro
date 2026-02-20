@@ -43,6 +43,7 @@ export interface DbBooking {
 export interface CreateBookingData {
   client_id: string;
   service_id: string;
+  user_id?: string | null;
   booking_date: string;
   start_time: string;
   end_time: string;
@@ -65,6 +66,7 @@ export interface UpdateBookingData {
   status?: ApiBookingStatus;
   notes?: string | null;
   cancellation_reason?: string | null;
+  user_id?: string | null;
   barber?: string | null;
 }
 
