@@ -339,13 +339,6 @@ export function validateEventData(data: CreateEventBookingData): string | null {
     return 'La hora de inicio debe ser anterior a la hora de fin';
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const bookingDate = new Date(data.booking_date + 'T00:00:00');
-  if (bookingDate < today) {
-    return 'No se pueden crear eventos en fechas pasadas';
-  }
-
   return null;
 }
 
@@ -396,9 +389,9 @@ async function checkEventConflicts(
 
   return rows.filter((row) => {
     if (excludeId && row.id === excludeId) return false;
-    // Include confirmed/pending bookings and all events
+    // Only check against bookings, not other events
+    if (row.booking_type === 'event') return false;
     const isRelevant =
-      row.booking_type === 'event' ||
       row.status === 'confirmed' ||
       row.status === 'pending';
     if (!isRelevant) return false;
