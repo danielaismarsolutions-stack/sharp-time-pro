@@ -141,6 +141,7 @@ export default function Calendar() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string | undefined>();
+  const [selectedEndTime, setSelectedEndTime] = useState<string | undefined>();
   const [isSlotCreation, setIsSlotCreation] = useState(false);
   const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
 
@@ -511,9 +512,10 @@ export default function Calendar() {
   };
 
   // Open choice dialog (booking vs event) for new creation
-  const openCreateChoice = (date?: Date, time?: string) => {
+  const openCreateChoice = (date?: Date, time?: string, endTime?: string) => {
     setSelectedDate(date);
     setSelectedTime(time);
+    setSelectedEndTime(endTime);
     setIsSlotCreation(!!date); // slot creation when triggered from a calendar slot
     setSelectedBooking(null);
     setSelectedEvent(null);
@@ -526,9 +528,10 @@ export default function Calendar() {
     setIsModalOpen(true);
   };
 
-  const openNewEvent = (date?: Date, time?: string) => {
+  const openNewEvent = (date?: Date, time?: string, endTime?: string) => {
     if (date) setSelectedDate(date);
     if (time) setSelectedTime(time);
+    if (endTime) setSelectedEndTime(endTime);
     setSelectedEvent(null);
     setIsEventModalOpen(true);
   };
@@ -1009,6 +1012,7 @@ export default function Calendar() {
           onClick={() => {
             setIsSlotCreation(false);
             setSelectedTime(undefined);
+            setSelectedEndTime(undefined);
             openCreateChoice();
           }}
         >
@@ -1026,8 +1030,8 @@ export default function Calendar() {
                 services={services}
                 onDateChange={setCurrentDate}
                 onBookingClick={openBookingDetail}
-                onSlotClick={(date, time) => {
-                  openCreateChoice(date, time);
+                onSlotClick={(date, time, endTime) => {
+                  openCreateChoice(date, time, endTime);
                 }}
                 hourHeight={HOUR_HEIGHT_DAY}
                 barberNames={barberNames}
@@ -1280,7 +1284,7 @@ export default function Calendar() {
           open={isChoiceDialogOpen}
           onOpenChange={setIsChoiceDialogOpen}
           onChooseBooking={() => openNewBooking(selectedDate, selectedTime)}
-          onChooseEvent={() => openNewEvent(selectedDate, selectedTime)}
+          onChooseEvent={() => openNewEvent(selectedDate, selectedTime, selectedEndTime)}
         />
 
         {/* Event Modal for new/edit events */}
@@ -1295,6 +1299,7 @@ export default function Calendar() {
           onSave={handleSaveEvent}
           selectedDate={selectedDate}
           selectedTime={selectedTime}
+          selectedEndTime={selectedEndTime}
           defaultBarberId={user?.id}
         />
 
