@@ -79,6 +79,8 @@ export function ThreeDayView({
   const touchStartRef = useRef<{ clientX: number; clientY: number; date: Date; gridY: number; rectTop: number } | null>(null);
   const touchModeRef = useRef<'undetermined' | 'selecting' | 'scrolling'>('undetermined');
   const touchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref to block the click event that fires after a drag-selection mouseup
+  const dragJustCompletedRef = useRef(false);
 
   // Update current time every minute
   useEffect(() => {
@@ -132,6 +134,11 @@ export function ThreeDayView({
 
   // Handle slot click - only if not dragging a booking card
   const handleSlotClick = (date: Date, e: React.MouseEvent<HTMLDivElement>) => {
+    // Block the click event that fires right after a drag-selection mouseup
+    if (dragJustCompletedRef.current) {
+      dragJustCompletedRef.current = false;
+      return;
+    }
     if (isSelecting || isDragging) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
@@ -163,6 +170,7 @@ export function ThreeDayView({
       const startTime = yToTime(Math.min(selectionStart.y, selectionEnd));
       const endTime = yToTime(Math.max(selectionStart.y, selectionEnd));
       if (startTime !== endTime) {
+        dragJustCompletedRef.current = true;
         onSlotClick(selectionStart.date, startTime, endTime);
       }
     }
