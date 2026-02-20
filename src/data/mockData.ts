@@ -76,7 +76,7 @@ const generateBookings = (): Booking[] => {
     const service = mockServices.filter(s => s.isActive)[index % mockServices.filter(s => s.isActive).length];
     const bookingHour = parseInt(time.split(':')[0]);
     
-    let status: Booking['status'] = 'confirmed';
+    let status: Booking['status'];
     if (bookingHour < currentHour) {
       status = Math.random() > 0.1 ? 'completed' : 'no-show';
     } else if (bookingHour === currentHour) {
