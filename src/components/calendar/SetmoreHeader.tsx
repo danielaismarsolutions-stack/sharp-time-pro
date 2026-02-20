@@ -270,7 +270,10 @@ export function SetmoreHeader({
                   Ajustes
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem className="min-h-[44px] cursor-pointer">
+              <DropdownMenuItem
+                className="min-h-[44px] cursor-pointer"
+                onClick={() => navigate('/settings?tab=account')}
+              >
                 <User className="h-4 w-4 mr-2" />
                 Mi perfil
               </DropdownMenuItem>
