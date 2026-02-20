@@ -414,9 +414,9 @@ export default function ClientDetail() {
                     return (
                       <div
                         key={booking.id}
-                        className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                        className="flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
                       >
-                        <div className="w-12 h-12 rounded-lg bg-card flex flex-col items-center justify-center border border-border">
+                        <div className="w-12 h-12 shrink-0 rounded-lg bg-card flex flex-col items-center justify-center border border-border">
                           <span className="text-xs text-muted-foreground">
                             {format(new Date(booking.date), 'MMM', { locale: es })}
                           </span>
@@ -424,27 +424,27 @@ export default function ClientDetail() {
                             {format(new Date(booking.date), 'd')}
                           </span>
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium">{booking.serviceName}</span>
-                            <Badge className={cn('text-xs', status.class)}>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className="font-medium truncate">{booking.serviceName}</span>
+                            <Badge className={cn('text-xs shrink-0', status.class)}>
                               {status.label}
                             </Badge>
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-3 md:gap-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
+                              <Clock className="h-3 w-3 shrink-0" />
                               {booking.time}
                             </span>
                             <span>{booking.serviceDuration} min</span>
                           </div>
                           {booking.notes && (
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-xs text-muted-foreground mt-1 truncate">
                               Nota: {booking.notes}
                             </p>
                           )}
                         </div>
-                        <div className="text-right">
+                        <div className="text-right shrink-0">
                           <p className="font-bold">€{Number(booking.servicePrice).toFixed(2)}</p>
                         </div>
                       </div>

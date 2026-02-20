@@ -31,7 +31,7 @@ export default function DashboardLayout() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background flex w-full">
+    <div className="min-h-screen bg-background flex w-full overflow-x-hidden max-w-[100vw]">
       {/* Sidebar - hidden on mobile and on calendar page */}
       {!isMobile && !isCalendarPage && (
         <div className="fixed left-0 top-0 z-40 h-screen">
@@ -53,8 +53,8 @@ export default function DashboardLayout() {
         {/* Hide TopBar on calendar page - it has its own header */}
         {!isCalendarPage && <TopBar isMobile={isMobile} onMenuClick={() => setIsMobileMenuOpen(true)} />}
         <main className={cn(
-          'flex-1 scrollbar-dark',
-          isCalendarPage ? 'overflow-hidden' : 'overflow-auto',
+          'flex-1 scrollbar-dark overflow-x-hidden',
+          isCalendarPage ? 'overflow-y-hidden' : 'overflow-y-auto',
           isMobile && !isCalendarPage && 'pb-16'
         )}>
           <ErrorBoundary compact>

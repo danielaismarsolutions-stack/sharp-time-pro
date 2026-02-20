@@ -216,26 +216,26 @@ export default function Consultations() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6 overflow-x-hidden w-full max-w-full">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
-          <MessageSquare className="h-6 w-6 text-primary" />
+        <h1 className="text-xl md:text-2xl font-semibold flex items-center gap-2">
+          <MessageSquare className="h-5 w-5 md:h-6 md:w-6 text-primary" />
           Consultas
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-muted-foreground text-sm mt-1">
           Solicitudes de consulta pendientes
         </p>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5 md:gap-2">
         {filterOptions.map((option) => (
           <button
             key={option.value}
             onClick={() => setActiveFilter(option.value)}
             className={cn(
-              'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
+              'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs md:text-sm font-medium transition-colors min-h-[36px]',
               activeFilter === option.value
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-muted hover:bg-muted/80 text-foreground'
