@@ -81,6 +81,7 @@ interface EventModalProps {
   onSave: (data: EventFormData) => Promise<void>;
   selectedDate?: Date;
   selectedTime?: string; // HH:mm format
+  selectedEndTime?: string; // HH:mm format (from drag selection)
   defaultBarberId?: string; // Pre-select barber (e.g. the logged-in user)
 }
 
@@ -94,6 +95,7 @@ export function EventModal({
   onSave,
   selectedDate,
   selectedTime,
+  selectedEndTime,
   defaultBarberId,
 }: EventModalProps) {
   const { toast } = useToast();
@@ -137,10 +139,15 @@ export function EventModal({
         const now = new Date();
         startTime = `${now.getHours().toString().padStart(2, '0')}:${(Math.ceil(now.getMinutes() / 15) * 15 % 60).toString().padStart(2, '0')}`;
       }
-      const [startH, startM] = startTime.split(':').map(Number);
-      const endH = startH + Math.floor((startM + 60) / 60);
-      const endM = (startM + 60) % 60;
-      const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+      let endTime: string;
+      if (selectedEndTime) {
+        endTime = selectedEndTime;
+      } else {
+        const [startH, startM] = startTime.split(':').map(Number);
+        const endH = startH + Math.floor((startM + 60) / 60);
+        const endM = (startM + 60) % 60;
+        endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+      }
 
       // Default barber to the logged-in user if they exist in the barbers list
       const resolvedBarberId = defaultBarberId && barbers.some((b) => b.id === defaultBarberId)

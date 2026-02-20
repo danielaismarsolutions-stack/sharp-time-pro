@@ -26,7 +26,7 @@ interface ThreeDayViewProps {
   services: Service[];
   onDateChange: (date: Date) => void;
   onBookingClick: (booking: ApiBooking) => void;
-  onSlotClick: (date: Date, time: string) => void;
+  onSlotClick: (date: Date, time: string, endTime?: string) => void;
   hourHeight?: number;
   barberNames?: string[];
   isDragging?: boolean;
@@ -163,7 +163,7 @@ export function ThreeDayView({
       const startTime = yToTime(Math.min(selectionStart.y, selectionEnd));
       const endTime = yToTime(Math.max(selectionStart.y, selectionEnd));
       if (startTime !== endTime) {
-        onSlotClick(selectionStart.date, startTime);
+        onSlotClick(selectionStart.date, startTime, endTime);
       }
     }
     setSelectionStart(null);
@@ -234,7 +234,7 @@ export function ThreeDayView({
       const endTime = yToTime(Math.max(selectionStart.y, selectionEnd));
       if (startTime !== endTime) {
         e.preventDefault(); // Prevent subsequent click event from firing
-        onSlotClick(selectionStart.date, startTime);
+        onSlotClick(selectionStart.date, startTime, endTime);
       }
     }
     touchStartRef.current = null;
