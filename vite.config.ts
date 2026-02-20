@@ -15,6 +15,26 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React core (always needed)
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          // Charts — only loaded on /reports and /dashboard
+          "vendor-recharts": ["recharts"],
+          // Animations — loaded by pages that use motion
+          "vendor-framer": ["framer-motion"],
+          // Drag & drop — only /calendar and /services
+          "vendor-dnd": ["@dnd-kit/core", "@dnd-kit/sortable", "@dnd-kit/utilities"],
+          // Supabase SDK
+          "vendor-supabase": ["@supabase/supabase-js"],
+          // Date utilities
+          "vendor-date-fns": ["date-fns"],
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: "happy-dom",
