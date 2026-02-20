@@ -6,7 +6,7 @@ export default function Terms() {
       <section>
         <h2 className="text-xl font-semibold">1. Identificación del titular</h2>
         <p>
-          El presente sitio web y la aplicación <strong>Sharp Time Pro</strong> (en adelante, la
+          El presente sitio web y la aplicación <strong>Nexio</strong> (en adelante, la
           «Plataforma») son propiedad de <strong>SmartFlow Labs</strong>, empresa individual
           (eenmanszaak) inscrita en la Cámara de Comercio de los Países Bajos con número KvK{' '}
           <strong>97425559</strong>.

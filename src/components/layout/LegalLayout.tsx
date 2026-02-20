@@ -19,7 +19,7 @@ export default function LegalLayout({ title, lastUpdated, children }: LegalLayou
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <span className="font-semibold text-lg">Sharp Time Pro</span>
+          <span className="font-semibold text-lg">Nexio</span>
         </div>
       </header>
 

@@ -13,6 +13,7 @@ import {
   LayoutGrid,
   Columns3,
 } from 'lucide-react';
+import { NexioMark } from '@/components/NexioLogo';
 import {
   Sheet,
   SheetContent,
@@ -79,10 +80,8 @@ export function MobileDrawerMenu({
         {/* Header with logo */}
         <SheetHeader className="p-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Scissors className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <SheetTitle className="text-lg font-semibold">BarberPro</SheetTitle>
+            <NexioMark size="lg" />
+            <SheetTitle className="text-lg font-semibold">Nexio</SheetTitle>
           </div>
         </SheetHeader>
 

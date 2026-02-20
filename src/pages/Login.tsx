@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Scissors, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { NexioMark } from '@/components/NexioLogo';
 import { useToast } from '@/hooks/use-toast';
 import LegalFooter from '@/components/layout/LegalFooter';
 
@@ -65,8 +66,8 @@ export default function LoginPage() {
 
         <Card className="w-full max-w-md relative">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center">
-            <Scissors className="w-8 h-8 text-primary" />
+          <div className="mx-auto">
+            <NexioMark size="lg" className="w-16 h-16" />
           </div>
           <div>
             <CardTitle className="text-2xl font-bold">Bienvenido de nuevo</CardTitle>

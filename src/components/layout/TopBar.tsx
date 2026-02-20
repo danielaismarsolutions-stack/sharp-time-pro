@@ -66,7 +66,7 @@ export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarPr
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <h1 className="font-bold text-lg">BarberPro</h1>
+            <h1 className="font-bold text-lg">Nexio</h1>
           </>
         )}
         {!isMobile && (

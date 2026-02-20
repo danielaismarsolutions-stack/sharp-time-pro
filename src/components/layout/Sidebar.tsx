@@ -13,6 +13,7 @@ import {
   UserCog,
   MessageSquare,
 } from 'lucide-react';
+import { NexioMark } from '@/components/NexioLogo';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -95,16 +96,12 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       )}>
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Scissors className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="font-semibold text-sidebar-foreground">BarberPro</span>
+            <NexioMark size="md" />
+            <span className="font-semibold text-sidebar-foreground">Nexio</span>
           </div>
         )}
         {collapsed && (
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <Scissors className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <NexioMark size="md" />
         )}
       </div>
 

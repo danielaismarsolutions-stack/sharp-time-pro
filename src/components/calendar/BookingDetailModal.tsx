@@ -266,7 +266,7 @@ export function BookingDetailModal({
                   className="justify-start h-7 text-[11px] px-2"
                   onClick={() => onStatusChange(currentBooking.id, 'confirmed')}
                 >
-                  <CheckCircle className="h-3 w-3 mr-1.5 text-blue-400" />
+                  <CheckCircle className="h-3 w-3 mr-1.5 text-violet-400" />
                   Confirmar
                 </Button>
               )}
