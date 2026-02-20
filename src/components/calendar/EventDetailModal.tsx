@@ -124,7 +124,6 @@ export function EventDetailModal({
               size="sm"
               className="flex-1 text-xs h-8"
               onClick={() => {
-                onClose();
                 onEdit(event);
               }}
             >
