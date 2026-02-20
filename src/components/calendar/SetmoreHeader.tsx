@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Menu, ChevronDown, Bell, List, LayoutGrid, Calendar as CalendarIcon, Filter, Settings, HelpCircle, User, Check, Trash2, Loader2 } from 'lucide-react';
+import { Menu, ChevronDown, Bell, List, LayoutGrid, Calendar as CalendarIcon, Filter, Settings, HelpCircle, User, Check, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -46,6 +46,8 @@ interface SetmoreHeaderProps {
   selectedBarber: string | null;
   onBarberChange: (barber: string | null) => void;
   isMobile?: boolean;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export function SetmoreHeader({
@@ -58,6 +60,8 @@ export function SetmoreHeader({
   selectedBarber,
   onBarberChange,
   isMobile = false,
+  onRefresh,
+  isRefreshing = false,
 }: SetmoreHeaderProps) {
   const { user, logout, isAdmin, isBarber } = useAuth();
   const navigate = useNavigate();
@@ -368,6 +372,20 @@ export function SetmoreHeader({
           </TabsList>
         </Tabs>
 
+        <div className="flex items-center gap-2">
+          {/* Refresh Button */}
+          {onRefresh && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+            </Button>
+          )}
+
         {/* Barber Filter - hidden for barber users (they auto-filter to their own bookings) */}
         {barberNames.length > 0 && !isBarber && (
           <Select
@@ -388,6 +406,7 @@ export function SetmoreHeader({
             </SelectContent>
           </Select>
         )}
+        </div>
       </div>
     </div>
   );

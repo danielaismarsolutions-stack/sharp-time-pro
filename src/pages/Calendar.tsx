@@ -150,6 +150,7 @@ export default function Calendar() {
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isEventDetailOpen, setIsEventDetailOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<ApiCalendarEvent | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Set view mode based on screen size
   useEffect(() => {
@@ -243,6 +244,13 @@ export default function Calendar() {
       // Silent — don't show error toast for background refreshes
     }
   }, []);
+
+  // Manual refresh triggered by the refresh button (shows spinner on the button)
+  const handleManualRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await silentRefresh();
+    setIsRefreshing(false);
+  }, [silentRefresh]);
 
   useEffect(() => {
     loadData();
@@ -1033,6 +1041,8 @@ export default function Calendar() {
             selectedBarber={selectedBarber}
             onBarberChange={setSelectedBarber}
             isMobile={isMobile}
+            onRefresh={handleManualRefresh}
+            isRefreshing={isRefreshing}
           />
         </div>
 
