@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Building2,
   Clock,
@@ -46,9 +47,27 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const dayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
+const VALID_TABS = ['business', 'hours', 'booking', 'notifications', 'account'];
+
 export default function Settings() {
   const { toast } = useToast();
   const { user, logout } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(
+    tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'business'
+  );
+
+  useEffect(() => {
+    if (tabParam && VALID_TABS.includes(tabParam) && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchParams(value === 'business' ? {} : { tab: value }, { replace: true });
+  };
   const {
     permission,
     isSubscribed,
@@ -266,7 +285,7 @@ export default function Settings() {
         <p className="text-muted-foreground text-sm">Gestiona la configuración de tu negocio</p>
       </div>
 
-      <Tabs defaultValue="business" className="space-y-4 md:space-y-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 md:space-y-6">
         <TabsList className="w-full overflow-x-auto flex justify-start h-auto p-1">
           <TabsTrigger value="business" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <Building2 className="h-4 w-4" />

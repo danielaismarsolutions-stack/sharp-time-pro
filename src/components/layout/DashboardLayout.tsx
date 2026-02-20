@@ -45,7 +45,7 @@ export default function DashboardLayout() {
       {/* Main content */}
       <div
         className={cn(
-          'flex-1 flex flex-col min-h-screen transition-all duration-300',
+          'flex-1 flex flex-col min-h-screen transition-all duration-300 w-full min-w-0',
           !isMobile && !isCalendarPage && (sidebarCollapsed ? 'ml-16' : 'ml-60'),
           (isMobile || isCalendarPage) && 'ml-0'
         )}
@@ -53,7 +53,7 @@ export default function DashboardLayout() {
         {/* Hide TopBar on calendar page - it has its own header */}
         {!isCalendarPage && <TopBar isMobile={isMobile} onMenuClick={() => setIsMobileMenuOpen(true)} />}
         <main className={cn(
-          'flex-1 scrollbar-dark overflow-x-hidden',
+          'flex-1 scrollbar-dark overflow-x-hidden w-full max-w-full',
           isCalendarPage ? 'overflow-y-hidden' : 'overflow-y-auto',
           isMobile && !isCalendarPage && 'pb-16'
         )}>
