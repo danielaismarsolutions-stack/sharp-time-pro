@@ -81,6 +81,7 @@ interface EventModalProps {
   onSave: (data: EventFormData) => Promise<void>;
   selectedDate?: Date;
   selectedTime?: string; // HH:mm format
+  defaultBarberId?: string; // Pre-select barber (e.g. the logged-in user)
 }
 
 // ==================== Component ====================
@@ -93,6 +94,7 @@ export function EventModal({
   onSave,
   selectedDate,
   selectedTime,
+  defaultBarberId,
 }: EventModalProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -140,6 +142,11 @@ export function EventModal({
       const endM = (startM + 60) % 60;
       const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
 
+      // Default barber to the logged-in user if they exist in the barbers list
+      const resolvedBarberId = defaultBarberId && barbers.some((b) => b.id === defaultBarberId)
+        ? defaultBarberId
+        : '';
+
       setDate(selectedDate || new Date());
       setFormData({
         name: '',
@@ -148,7 +155,7 @@ export function EventModal({
         repeat: 'none',
         location: '',
         notes: '',
-        barberId: '',
+        barberId: resolvedBarberId,
         color: '#d1d5db',
       });
     }
