@@ -81,10 +81,10 @@ export default function ClientModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone) {
+    if (!formData.name || !formData.phone || !formData.email) {
       toast({
         title: 'Campos incompletos',
-        description: 'El nombre y teléfono son obligatorios',
+        description: 'El nombre, teléfono y correo electrónico son obligatorios',
         variant: 'destructive',
       });
       return;
@@ -156,7 +156,7 @@ export default function ClientModal({
           <div className="space-y-1">
             <Label className="flex items-center gap-1.5 text-xs">
               <Mail className="h-3 w-3" />
-              Correo electrónico
+              Correo electrónico *
             </Label>
             <Input
               type="email"
