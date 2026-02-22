@@ -715,7 +715,7 @@ export default function Calendar() {
 
             {/* Bookings overlay */}
             {dayBookings.map((booking) => {
-              const style = getBookingPosition(booking, HOUR_HEIGHT_DAY);
+              const style = getBookingPosition(booking, HOUR_HEIGHT_DAY, START_HOUR);
               const overlapInfo = getOverlapInfo(dayBookings, booking);
               const colorClasses = getServicePastelColor(booking, services);
               
@@ -746,7 +746,7 @@ export default function Calendar() {
 
             {/* Events overlay */}
             {getEventsForDay(currentDate).map((event) => {
-              const evtStyle = getEventPosition(event, HOUR_HEIGHT_DAY);
+              const evtStyle = getEventPosition(event, HOUR_HEIGHT_DAY, START_HOUR);
               return (
                 <EventCard
                   key={event.id}
