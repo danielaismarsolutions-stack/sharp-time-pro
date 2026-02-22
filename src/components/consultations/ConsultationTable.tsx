@@ -13,7 +13,7 @@ import { StatusDropdown } from './StatusDropdown';
 import { Consultation, ConsultationStatus } from '@/types/consultation';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Phone, Mail, MessageCircle, Image, FileText, User, ChevronDown, ChevronUp } from 'lucide-react';
+import { Phone, Mail, MessageCircle, Image, FileText, User, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ConsultationTableProps {
@@ -22,6 +22,7 @@ interface ConsultationTableProps {
   onViewPhoto: (consultation: Consultation) => void;
   onAddNotes: (consultation: Consultation) => void;
   onRowClick: (consultation: Consultation) => void;
+  onDelete: (consultation: Consultation) => void;
 }
 
 export function ConsultationTable({
@@ -30,6 +31,7 @@ export function ConsultationTable({
   onViewPhoto,
   onAddNotes,
   onRowClick,
+  onDelete,
 }: ConsultationTableProps) {
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
 
@@ -197,6 +199,15 @@ export function ConsultationTable({
                       onClick={() => onAddNotes(consultation)}
                     >
                       <FileText className="h-4 w-4" />
+                    </Button>
+
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => onDelete(consultation)}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </TableCell>
