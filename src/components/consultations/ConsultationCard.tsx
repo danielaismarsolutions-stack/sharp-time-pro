@@ -6,7 +6,7 @@ import { StatusDropdown } from './StatusDropdown';
 import { Consultation, ConsultationStatus } from '@/types/consultation';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Phone, Mail, MessageCircle, Image, FileText, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { Phone, Mail, MessageCircle, Image, FileText, ChevronDown, ChevronUp, User, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ConsultationCardProps {
@@ -15,6 +15,7 @@ interface ConsultationCardProps {
   onViewPhoto: () => void;
   onAddNotes: () => void;
   onClick: () => void;
+  onDelete: () => void;
 }
 
 export function ConsultationCard({
@@ -23,6 +24,7 @@ export function ConsultationCard({
   onViewPhoto,
   onAddNotes,
   onClick,
+  onDelete,
 }: ConsultationCardProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -158,6 +160,18 @@ export function ConsultationCard({
           >
             <FileText className="h-4 w-4" />
             Notas
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </CardContent>

@@ -13,7 +13,7 @@ import { StatusBadge } from './StatusBadge';
 import { Consultation, ConsultationStatus } from '@/types/consultation';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Phone, Mail, MessageCircle, Calendar, User, FileText, Loader2, ImageIcon } from 'lucide-react';
+import { Phone, Mail, MessageCircle, Calendar, User, FileText, Loader2, ImageIcon, Trash2 } from 'lucide-react';
 
 interface ConsultationDetailModalProps {
   open: boolean;
@@ -22,6 +22,7 @@ interface ConsultationDetailModalProps {
   onStatusChange: (status: ConsultationStatus) => Promise<void>;
   onNotesChange: (notes: string) => Promise<void>;
   onConvertToBooking?: () => void;
+  onDelete?: () => void;
 }
 
 export function ConsultationDetailModal({
@@ -31,6 +32,7 @@ export function ConsultationDetailModal({
   onStatusChange,
   onNotesChange,
   onConvertToBooking,
+  onDelete,
 }: ConsultationDetailModalProps) {
   const [notes, setNotes] = useState(consultation.staff_notes || '');
   const [savingNotes, setSavingNotes] = useState(false);
@@ -193,6 +195,18 @@ export function ConsultationDetailModal({
                 Llamar
               </Button>
             </a>
+
+            {onDelete && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 h-7 text-[11px] text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
+                onClick={onDelete}
+              >
+                <Trash2 className="h-3 w-3" />
+                Eliminar
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>

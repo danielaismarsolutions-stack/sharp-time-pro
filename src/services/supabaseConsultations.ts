@@ -57,6 +57,17 @@ export const supabaseConsultationsApi = {
     }
   },
 
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('consultations')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw error;
+    }
+  },
+
   async updateStaffNotes(id: string, staffNotes: string): Promise<void> {
     const { error } = await supabase
       .from('consultations')

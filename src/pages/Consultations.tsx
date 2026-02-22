@@ -15,6 +15,16 @@ import { ConsultationDetailModal } from '@/components/consultations/Consultation
 import { ConsultationBookingModal } from '@/components/consultations/ConsultationBookingModal';
 import { PhotoModal } from '@/components/consultations/PhotoModal';
 import { NotesModal } from '@/components/consultations/NotesModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 
 type FilterStatus = 'all' | ConsultationStatus;
@@ -45,6 +55,9 @@ export default function Consultations() {
   const [photoConsultation, setPhotoConsultation] = useState<Consultation | null>(null);
   const [notesModalOpen, setNotesModalOpen] = useState(false);
   const [notesConsultation, setNotesConsultation] = useState<Consultation | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConsultation, setDeleteConsultation] = useState<Consultation | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Fetch consultations
   const fetchConsultations = async () => {
@@ -215,6 +228,37 @@ export default function Consultations() {
     }
   };
 
+  const openDeleteConfirm = (consultation: Consultation) => {
+    setDeleteConsultation(consultation);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteConsultation) return;
+    setDeleting(true);
+    try {
+      await supabaseConsultationsApi.delete(deleteConsultation.id);
+      setConsultations((prev) => prev.filter((c) => c.id !== deleteConsultation.id));
+      if (selectedConsultation?.id === deleteConsultation.id) {
+        setSelectedConsultation(null);
+      }
+      toast({
+        title: 'Consulta eliminada',
+        description: `La consulta de ${deleteConsultation.client_name} ha sido eliminada`,
+      });
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'No se pudo eliminar la consulta',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteConfirmOpen(false);
+      setDeleteConsultation(null);
+    }
+  };
+
   return (
     <div className="space-y-4 md:space-y-6 p-4 md:p-6 overflow-x-hidden w-full max-w-full">
       {/* Header */}
@@ -296,6 +340,7 @@ export default function Consultations() {
                 onViewPhoto={() => openPhotoModal(consultation)}
                 onAddNotes={() => openNotesModal(consultation)}
                 onClick={() => setSelectedConsultation(consultation)}
+                onDelete={() => openDeleteConfirm(consultation)}
               />
             </motion.div>
           ))}
@@ -312,6 +357,7 @@ export default function Consultations() {
             onViewPhoto={openPhotoModal}
             onAddNotes={openNotesModal}
             onRowClick={setSelectedConsultation}
+            onDelete={openDeleteConfirm}
           />
         </motion.div>
       )}
@@ -325,6 +371,10 @@ export default function Consultations() {
           onStatusChange={(status) => handleStatusChange(selectedConsultation.id, status)}
           onNotesChange={(notes) => handleNotesChange(selectedConsultation.id, notes)}
           onConvertToBooking={() => openBookingModal(selectedConsultation)}
+          onDelete={() => {
+            setSelectedConsultation(null);
+            openDeleteConfirm(selectedConsultation);
+          }}
         />
       )}
 
@@ -358,6 +408,28 @@ export default function Consultations() {
           onSave={(notes) => handleNotesChange(notesConsultation.id, notes)}
         />
       )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar consulta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará permanentemente la consulta de <strong>{deleteConsultation?.client_name}</strong> para <strong>{deleteConsultation?.service_name}</strong>. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
