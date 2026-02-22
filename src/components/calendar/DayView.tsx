@@ -87,17 +87,11 @@ export function DayView({ currentDate, bookings, onBookingClick }: DayViewProps)
             {HOURS.map((hour) => (
               <div
                 key={hour}
-                className="relative"
-                style={{ height: HOUR_HEIGHT }}
+                className="h-[80px] flex items-start justify-end pr-3 pt-1"
               >
-                {hour !== 0 && (
-                  <span
-                    className="absolute right-3 text-sm text-muted-foreground font-medium leading-none"
-                    style={{ top: 0, transform: 'translateY(-50%)' }}
-                  >
-                    {hour.toString().padStart(2, '0')}:00
-                  </span>
-                )}
+                <span className="text-sm text-muted-foreground font-medium">
+                  {hour.toString().padStart(2, '0')}:00
+                </span>
               </div>
             ))}
           </div>
