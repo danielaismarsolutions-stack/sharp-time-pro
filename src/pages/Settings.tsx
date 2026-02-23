@@ -41,6 +41,8 @@ import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
 import { supabaseBusinessesApi } from '@/services/supabaseBusinesses';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirmAction } from '@/hooks/useConfirmAction';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
@@ -51,6 +53,7 @@ const VALID_TABS = ['business', 'hours', 'booking', 'notifications', 'account'];
 
 export default function Settings() {
   const { toast } = useToast();
+  const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const { user, logout } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
@@ -161,6 +164,13 @@ export default function Settings() {
   };
 
   const saveBusinessSettings = async () => {
+    const confirmed = await confirm({
+      title: 'Guardar configuración del negocio',
+      description: '¿Confirmar los cambios en la configuración del negocio?',
+      confirmLabel: 'Guardar',
+    });
+    if (!confirmed) return;
+
     setIsSaving(true);
     try {
       await supabaseBusinessesApi.update({
@@ -178,6 +188,13 @@ export default function Settings() {
   };
 
   const saveHoursSettings = async () => {
+    const confirmed = await confirm({
+      title: 'Guardar horario del negocio',
+      description: '¿Confirmar los cambios en el horario del negocio?',
+      confirmLabel: 'Guardar',
+    });
+    if (!confirmed) return;
+
     setIsSaving(true);
     try {
       await supabaseBusinessHoursApi.saveAll(businessHours);
@@ -190,6 +207,13 @@ export default function Settings() {
   };
 
   const saveBookingSettings = async () => {
+    const confirmed = await confirm({
+      title: 'Guardar configuración de reservas',
+      description: '¿Confirmar los cambios en la configuración de reservas?',
+      confirmLabel: 'Guardar',
+    });
+    if (!confirmed) return;
+
     setIsSaving(true);
     try {
       await settingsApi.updateBookingSettings(bookingSettings);
@@ -202,6 +226,13 @@ export default function Settings() {
   };
 
   const saveNotificationSettings = async () => {
+    const confirmed = await confirm({
+      title: 'Guardar configuración de notificaciones',
+      description: '¿Confirmar los cambios en la configuración de notificaciones?',
+      confirmLabel: 'Guardar',
+    });
+    if (!confirmed) return;
+
     setIsSaving(true);
     try {
       await settingsApi.updateNotificationSettings(notificationSettings);
@@ -730,6 +761,9 @@ export default function Settings() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Generic Confirmation Dialog */}
+      <ConfirmActionDialog {...confirmDialogProps} />
     </div>
   );
 }

@@ -31,12 +31,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Service } from '@/types';
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirmAction } from '@/hooks/useConfirmAction';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import ServiceModal from '@/components/services/ServiceModal';
 import { SortableServiceCard } from '@/components/services/SortableServiceCard';
 import { AnimatedCard } from '@/components/ui/animated-card';
 
 export default function Services() {
   const { toast } = useToast();
+  const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -112,6 +115,15 @@ export default function Services() {
   };
 
   const handleSaveService = async (serviceData: Partial<Service>) => {
+    const confirmed = await confirm({
+      title: editingService ? 'Actualizar servicio' : 'Crear servicio',
+      description: editingService
+        ? `¿Confirmar los cambios en el servicio "${serviceData.name || editingService.name}"?`
+        : `¿Confirmar la creación del servicio "${serviceData.name}"?`,
+      confirmLabel: editingService ? 'Actualizar' : 'Crear',
+    });
+    if (!confirmed) return;
+
     try {
       if (editingService) {
         // Update existing service
@@ -127,10 +139,10 @@ export default function Services() {
       setEditingService(null);
       setIsModalOpen(false);
     } catch (error) {
-      toast({ 
-        title: 'Error al guardar servicio', 
+      toast({
+        title: 'Error al guardar servicio',
         description: 'Por favor, inténtalo de nuevo',
-        variant: 'destructive' 
+        variant: 'destructive'
       });
       throw error; // Re-throw to keep modal open
     }
@@ -138,24 +150,34 @@ export default function Services() {
 
   const handleToggleActive = async (service: Service) => {
     const newStatus = !service.isActive;
-    
+
+    const confirmed = await confirm({
+      title: newStatus ? 'Activar servicio' : 'Desactivar servicio',
+      description: newStatus
+        ? `¿Activar el servicio "${service.name}"?`
+        : `¿Desactivar el servicio "${service.name}"? Los clientes no podrán reservarlo.`,
+      confirmLabel: newStatus ? 'Activar' : 'Desactivar',
+      variant: newStatus ? 'default' : 'destructive',
+    });
+    if (!confirmed) return;
+
     // Optimistic update
     setTogglingId(service.id);
-    setServices((prev) => 
+    setServices((prev) =>
       prev.map((s) => s.id === service.id ? { ...s, isActive: newStatus } : s)
     );
-    
+
     try {
       await supabaseServicesApi.update(service.id, { isActive: newStatus });
       toast({ title: `Servicio ${newStatus ? 'activado' : 'desactivado'}` });
     } catch (error) {
       // Rollback on error
-      setServices((prev) => 
+      setServices((prev) =>
         prev.map((s) => s.id === service.id ? { ...s, isActive: !newStatus } : s)
       );
-      toast({ 
-        title: 'Error al actualizar estado', 
-        variant: 'destructive' 
+      toast({
+        title: 'Error al actualizar estado',
+        variant: 'destructive'
       });
     } finally {
       setTogglingId(null);
@@ -166,19 +188,27 @@ export default function Services() {
     // Soft delete (set inactive)
     const service = services.find(s => s.id === id);
     if (!service) return;
-    
+
+    const confirmed = await confirm({
+      title: '¿Desactivar servicio?',
+      description: `Se desactivará el servicio "${service.name}". Los clientes no podrán reservarlo.`,
+      confirmLabel: 'Desactivar',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
+
     // Optimistic update
     setServices((prev) => prev.map((s) => s.id === id ? { ...s, isActive: false } : s));
-    
+
     try {
       await supabaseServicesApi.delete(id);
       toast({ title: 'Servicio desactivado' });
     } catch (error) {
       // Rollback
       setServices((prev) => prev.map((s) => s.id === id ? { ...s, isActive: true } : s));
-      toast({ 
-        title: 'Error al desactivar servicio', 
-        variant: 'destructive' 
+      toast({
+        title: 'Error al desactivar servicio',
+        variant: 'destructive'
       });
     }
   };
@@ -384,6 +414,9 @@ export default function Services() {
         onSave={handleSaveService}
         service={editingService}
       />
+
+      {/* Generic Confirmation Dialog */}
+      <ConfirmActionDialog {...confirmDialogProps} />
     </div>
   );
 }

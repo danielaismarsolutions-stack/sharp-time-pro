@@ -28,6 +28,8 @@ import { Client, Booking } from '@/types';
 import { supabaseClientsApi, ClientWithBookings } from '@/services/supabaseClients';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useConfirmAction } from '@/hooks/useConfirmAction';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import ClientModal from '@/components/clients/ClientModal';
 
 const statusConfig: Record<string, { label: string; class: string }> = {
@@ -43,6 +45,7 @@ export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const [clientData, setClientData] = useState<ClientWithBookings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -75,6 +78,13 @@ export default function ClientDetail() {
   };
 
   const handleSaveClient = async (updates: Partial<Client>) => {
+    const confirmed = await confirm({
+      title: 'Actualizar cliente',
+      description: `¿Confirmar los cambios en el cliente "${updates.name || clientData?.name}"?`,
+      confirmLabel: 'Actualizar',
+    });
+    if (!confirmed) return;
+
     try {
       const updated = await supabaseClientsApi.update(id!, updates);
       setClientData(prev => prev ? { ...prev, ...updated } : null);
@@ -86,6 +96,14 @@ export default function ClientDetail() {
   };
 
   const handleDeleteClient = async () => {
+    const confirmed = await confirm({
+      title: '¿Eliminar cliente?',
+      description: `Se eliminará permanentemente el cliente "${clientData?.name}". Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
+
     try {
       await supabaseClientsApi.delete(id!);
       toast({ title: 'Cliente eliminado' });
@@ -97,9 +115,16 @@ export default function ClientDetail() {
 
   const handleAddTag = async () => {
     if (!newTag.trim() || !clientData) return;
-    
+
+    const confirmed = await confirm({
+      title: 'Añadir etiqueta',
+      description: `¿Añadir la etiqueta "${newTag.trim()}" al cliente?`,
+      confirmLabel: 'Añadir',
+    });
+    if (!confirmed) return;
+
     const updatedTags = [...(clientData.tags || []), newTag.trim()];
-    
+
     try {
       await supabaseClientsApi.updateTags(id!, updatedTags);
       setClientData(prev => prev ? { ...prev, tags: updatedTags } : null);
@@ -113,9 +138,17 @@ export default function ClientDetail() {
 
   const handleRemoveTag = async (tagToRemove: string) => {
     if (!clientData) return;
-    
+
+    const confirmed = await confirm({
+      title: '¿Eliminar etiqueta?',
+      description: `¿Eliminar la etiqueta "${tagToRemove}" del cliente?`,
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
+
     const updatedTags = (clientData.tags || []).filter(t => t !== tagToRemove);
-    
+
     try {
       await supabaseClientsApi.updateTags(id!, updatedTags);
       setClientData(prev => prev ? { ...prev, tags: updatedTags } : null);
@@ -464,6 +497,9 @@ export default function ClientDetail() {
         client={clientData}
         onSave={handleSaveClient}
       />
+
+      {/* Generic Confirmation Dialog */}
+      <ConfirmActionDialog {...confirmDialogProps} />
     </div>
   );
 }

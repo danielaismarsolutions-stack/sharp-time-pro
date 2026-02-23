@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { MessageSquare, Inbox } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirmAction } from '@/hooks/useConfirmAction';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
@@ -41,6 +43,7 @@ const filterOptions: { value: FilterStatus; label: string }[] = [
 export default function Consultations() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const isMobile = useIsMobile();
   
   const [consultations, setConsultations] = useState<Consultation[]>([]);
@@ -135,6 +138,14 @@ export default function Consultations() {
 
   // Handlers
   const handleStatusChange = async (id: string, status: ConsultationStatus) => {
+    const confirmed = await confirm({
+      title: 'Cambiar estado de consulta',
+      description: `¿Estás seguro de marcar esta consulta como "${STATUS_CONFIG[status].label}"?`,
+      confirmLabel: 'Confirmar',
+      variant: status === 'cancelled' ? 'destructive' : 'default',
+    });
+    if (!confirmed) return;
+
     try {
       await supabaseConsultationsApi.updateStatus(id, status);
       toast({
@@ -158,6 +169,13 @@ export default function Consultations() {
   };
 
   const handleNotesChange = async (id: string, notes: string) => {
+    const confirmed = await confirm({
+      title: 'Guardar notas',
+      description: '¿Confirmar los cambios en las notas de esta consulta?',
+      confirmLabel: 'Guardar',
+    });
+    if (!confirmed) return;
+
     try {
       await supabaseConsultationsApi.updateStaffNotes(id, notes);
       toast({
@@ -408,6 +426,9 @@ export default function Consultations() {
           onSave={(notes) => handleNotesChange(notesConsultation.id, notes)}
         />
       )}
+
+      {/* Generic Confirmation Dialog */}
+      <ConfirmActionDialog {...confirmDialogProps} />
 
       {/* Delete Confirmation */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
