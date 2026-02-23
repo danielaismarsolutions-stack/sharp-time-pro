@@ -148,6 +148,27 @@ export default function Consultations() {
 
     try {
       await supabaseConsultationsApi.updateStatus(id, status);
+
+      // Create notification for consultation status change
+      if (user?.id) {
+        const consultation = consultations.find((c) => c.id === id);
+        try {
+          await createNotification({
+            user_id: user.id,
+            business_id: getBusinessId(),
+            type: 'consultation_updated',
+            title: 'Estado de consulta actualizado',
+            message: `${user.name} marcó la consulta de ${consultation?.client_name || 'cliente'} como "${STATUS_CONFIG[status].label}"`,
+            metadata: {
+              consultation_id: id,
+              client_name: consultation?.client_name,
+              new_status: status,
+              modified_by: user.name,
+            },
+          });
+        } catch { /* ignored */ }
+      }
+
       toast({
         title: 'Estado actualizado',
         description: `La consulta se marcó como "${STATUS_CONFIG[status].label}"`,
@@ -227,11 +248,12 @@ export default function Consultations() {
             business_id: getBusinessId(),
             type: 'consultation_updated',
             title: 'Consulta programada',
-            message: `La consulta de ${bookingConsultation.client_name} para ${bookingConsultation.service_name} ha sido convertida a reserva`,
+            message: `${user.name} convirtió la consulta de ${bookingConsultation.client_name} (${bookingConsultation.service_name}) a reserva`,
             metadata: {
               consultation_id: bookingConsultation.id,
               client_name: bookingConsultation.client_name,
               service_name: bookingConsultation.service_name,
+              modified_by: user.name,
             },
           });
         } catch { /* ignored */ }
@@ -260,6 +282,25 @@ export default function Consultations() {
       if (selectedConsultation?.id === deleteConsultation.id) {
         setSelectedConsultation(null);
       }
+
+      // Create notification for consultation deletion
+      if (user?.id) {
+        try {
+          await createNotification({
+            user_id: user.id,
+            business_id: getBusinessId(),
+            type: 'consultation_deleted',
+            title: 'Consulta eliminada',
+            message: `${user.name} eliminó la consulta de ${deleteConsultation.client_name}`,
+            metadata: {
+              consultation_id: deleteConsultation.id,
+              client_name: deleteConsultation.client_name,
+              deleted_by: user.name,
+            },
+          });
+        } catch { /* ignored */ }
+      }
+
       toast({
         title: 'Consulta eliminada',
         description: `La consulta de ${deleteConsultation.client_name} ha sido eliminada`,

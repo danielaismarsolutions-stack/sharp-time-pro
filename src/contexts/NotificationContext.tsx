@@ -12,16 +12,33 @@ import {
   clearAllNotifications,
   deleteNotification,
 } from '@/services/supabaseNotifications';
-import { CalendarPlus, CalendarX, CalendarCog, Bell, User, Info, MessageSquare, MessageSquareText } from 'lucide-react';
+import { CalendarPlus, CalendarX, CalendarCog, CalendarMinus, Bell, User, UserPlus, UserCog, UserX, Info, MessageSquare, MessageSquareText, MessageSquareX, CalendarCheck, Scissors, SquarePen, SquareX, Clock, CalendarOff, Building2, Settings } from 'lucide-react';
 
-export type NotificationType = 
-  | 'booking_created' 
-  | 'booking_cancelled' 
-  | 'booking_modified' 
-  | 'booking_reminder' 
-  | 'client_created' 
+export type NotificationType =
+  | 'booking_created'
+  | 'booking_cancelled'
+  | 'booking_modified'
+  | 'booking_deleted'
+  | 'booking_status_changed'
+  | 'booking_reminder'
+  | 'event_created'
+  | 'event_modified'
+  | 'event_deleted'
+  | 'client_created'
+  | 'client_modified'
+  | 'client_deleted'
   | 'consultation_created'
   | 'consultation_updated'
+  | 'consultation_deleted'
+  | 'service_created'
+  | 'service_modified'
+  | 'service_deleted'
+  | 'barber_created'
+  | 'barber_modified'
+  | 'schedule_modified'
+  | 'time_off_modified'
+  | 'business_hours_modified'
+  | 'business_settings_modified'
   | 'info';
 
 export interface Notification {
@@ -256,14 +273,48 @@ export function getNotificationIcon(type: NotificationType) {
       return CalendarX;
     case 'booking_modified':
       return CalendarCog;
+    case 'booking_deleted':
+      return CalendarMinus;
+    case 'booking_status_changed':
+      return CalendarCheck;
     case 'booking_reminder':
       return Bell;
+    case 'event_created':
+      return CalendarPlus;
+    case 'event_modified':
+      return CalendarCog;
+    case 'event_deleted':
+      return CalendarMinus;
     case 'client_created':
-      return User;
+      return UserPlus;
+    case 'client_modified':
+      return UserCog;
+    case 'client_deleted':
+      return UserX;
     case 'consultation_created':
       return MessageSquare;
     case 'consultation_updated':
       return MessageSquareText;
+    case 'consultation_deleted':
+      return MessageSquareX;
+    case 'service_created':
+      return Scissors;
+    case 'service_modified':
+      return SquarePen;
+    case 'service_deleted':
+      return SquareX;
+    case 'barber_created':
+      return UserPlus;
+    case 'barber_modified':
+      return UserCog;
+    case 'schedule_modified':
+      return Clock;
+    case 'time_off_modified':
+      return CalendarOff;
+    case 'business_hours_modified':
+      return Clock;
+    case 'business_settings_modified':
+      return Settings;
     default:
       return Info;
   }
@@ -275,17 +326,45 @@ export function getNotificationIconColor(type: NotificationType): string {
     case 'booking_created':
       return 'text-green-500';
     case 'booking_cancelled':
+    case 'booking_deleted':
       return 'text-destructive';
     case 'booking_modified':
+    case 'booking_status_changed':
       return 'text-orange-500';
     case 'booking_reminder':
       return 'text-blue-500';
+    case 'event_created':
+      return 'text-green-500';
+    case 'event_modified':
+      return 'text-orange-500';
+    case 'event_deleted':
+      return 'text-destructive';
     case 'client_created':
-      return 'text-primary';
+    case 'barber_created':
+      return 'text-green-500';
+    case 'client_modified':
+    case 'barber_modified':
+      return 'text-orange-500';
+    case 'client_deleted':
+      return 'text-destructive';
     case 'consultation_created':
       return 'text-violet-500';
     case 'consultation_updated':
       return 'text-blue-500';
+    case 'consultation_deleted':
+      return 'text-destructive';
+    case 'service_created':
+      return 'text-green-500';
+    case 'service_modified':
+      return 'text-orange-500';
+    case 'service_deleted':
+      return 'text-destructive';
+    case 'schedule_modified':
+    case 'time_off_modified':
+      return 'text-blue-500';
+    case 'business_hours_modified':
+    case 'business_settings_modified':
+      return 'text-primary';
     default:
       return 'text-muted-foreground';
   }
@@ -297,13 +376,33 @@ export function getNotificationPath(notification: Notification): string | null {
     case 'booking_created':
     case 'booking_cancelled':
     case 'booking_modified':
+    case 'booking_deleted':
+    case 'booking_status_changed':
     case 'booking_reminder':
+    case 'event_created':
+    case 'event_modified':
+    case 'event_deleted':
       return '/calendar';
     case 'client_created':
+    case 'client_modified':
+    case 'client_deleted':
       return notification.data?.client_id ? `/clients/${notification.data.client_id}` : '/clients';
     case 'consultation_created':
     case 'consultation_updated':
+    case 'consultation_deleted':
       return '/consultations';
+    case 'service_created':
+    case 'service_modified':
+    case 'service_deleted':
+      return '/services';
+    case 'barber_created':
+    case 'barber_modified':
+    case 'schedule_modified':
+    case 'time_off_modified':
+      return '/barbers';
+    case 'business_hours_modified':
+    case 'business_settings_modified':
+      return '/settings';
     default:
       return null;
   }
