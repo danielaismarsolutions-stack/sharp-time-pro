@@ -14,6 +14,8 @@ import BarberModal from '@/components/barbers/BarberModal';
 import ScheduleEditor from '@/components/barbers/ScheduleEditor';
 import TimeOffManager from '@/components/barbers/TimeOffManager';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirmAction } from '@/hooks/useConfirmAction';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Plus,
@@ -48,6 +50,7 @@ export default function Barbers() {
   const [editingBarber, setEditingBarber] = useState<Barber | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const { toast } = useToast();
+  const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const isMobile = useIsMobile();
 
   const loadBarbers = useCallback(async () => {
@@ -112,6 +115,15 @@ export default function Barbers() {
   );
 
   const handleSaveBarber = async (data: CreateBarberData, avatarFile?: File | null) => {
+    const confirmed = await confirm({
+      title: selectedBarber ? 'Actualizar barbero' : 'Crear barbero',
+      description: selectedBarber
+        ? `¿Confirmar los cambios en el barbero "${data.name}"?`
+        : `¿Confirmar la creación del barbero "${data.name}"?`,
+      confirmLabel: selectedBarber ? 'Actualizar' : 'Crear',
+    });
+    if (!confirmed) return;
+
     try {
       if (selectedBarber) {
         // Updating existing barber - avatar already handled in modal
@@ -149,6 +161,14 @@ export default function Barbers() {
 
   const handleSaveSchedule = async (schedule: BarberSchedule) => {
     if (!editingBarber) return;
+
+    const confirmed = await confirm({
+      title: 'Actualizar horario',
+      description: `¿Confirmar los cambios en el horario de ${editingBarber.name}?`,
+      confirmLabel: 'Guardar',
+    });
+    if (!confirmed) return;
+
     try {
       await supabaseBarbersApi.updateSchedule(editingBarber.id, schedule);
       toast({ title: 'Horario actualizado' });
@@ -166,6 +186,14 @@ export default function Barbers() {
 
   const handleSaveTimeOff = async (timeOff: TimeOff[]) => {
     if (!editingBarber) return;
+
+    const confirmed = await confirm({
+      title: 'Actualizar días libres',
+      description: `¿Confirmar los cambios en los días libres de ${editingBarber.name}?`,
+      confirmLabel: 'Guardar',
+    });
+    if (!confirmed) return;
+
     try {
       await supabaseBarbersApi.updateTimeOff(editingBarber.id, timeOff);
       toast({ title: 'Días libres actualizados' });
@@ -396,6 +424,9 @@ export default function Barbers() {
           </SheetContent>
         </Sheet>
       )}
+
+      {/* Generic Confirmation Dialog */}
+      <ConfirmActionDialog {...confirmDialogProps} />
     </div>
   );
 }

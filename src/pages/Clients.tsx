@@ -38,6 +38,8 @@ import { Client } from '@/types';
 import { supabaseClientsApi } from '@/services/supabaseClients';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useConfirmAction } from '@/hooks/useConfirmAction';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import ClientModal from '@/components/clients/ClientModal';
 import { AnimatedCard, AnimatedList, AnimatedListItem } from '@/components/ui/animated-card';
 
@@ -49,6 +51,7 @@ const ITEMS_PER_PAGE = 10;
 export default function Clients() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -156,6 +159,15 @@ export default function Clients() {
   );
 
   const handleSaveClient = async (clientData: Partial<Client>) => {
+    const confirmed = await confirm({
+      title: editingClient ? 'Actualizar cliente' : 'Crear cliente',
+      description: editingClient
+        ? `¿Confirmar los cambios en el cliente "${clientData.name || editingClient.name}"?`
+        : `¿Confirmar la creación del cliente "${clientData.name}"?`,
+      confirmLabel: editingClient ? 'Actualizar' : 'Crear',
+    });
+    if (!confirmed) return;
+
     try {
       if (editingClient) {
         const updated = await supabaseClientsApi.update(editingClient.id, clientData);
@@ -169,23 +181,32 @@ export default function Clients() {
       setEditingClient(null);
       setIsModalOpen(false);
     } catch (error) {
-      toast({ 
-        title: 'Error al guardar cliente', 
-        variant: 'destructive' 
+      toast({
+        title: 'Error al guardar cliente',
+        variant: 'destructive'
       });
       throw error;
     }
   };
 
   const handleDeleteClient = async (id: string) => {
+    const client = clients.find((c) => c.id === id);
+    const confirmed = await confirm({
+      title: '¿Eliminar cliente?',
+      description: `Se eliminará permanentemente el cliente "${client?.name || ''}". Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
+
     try {
       await supabaseClientsApi.delete(id);
       setClients((prev) => prev.filter((c) => c.id !== id));
       toast({ title: 'Cliente eliminado' });
     } catch (error) {
-      toast({ 
-        title: 'Error al eliminar cliente', 
-        variant: 'destructive' 
+      toast({
+        title: 'Error al eliminar cliente',
+        variant: 'destructive'
       });
     }
   };
@@ -577,6 +598,9 @@ export default function Clients() {
         client={editingClient}
         onSave={handleSaveClient}
       />
+
+      {/* Generic Confirmation Dialog */}
+      <ConfirmActionDialog {...confirmDialogProps} />
     </motion.div>
   );
 }

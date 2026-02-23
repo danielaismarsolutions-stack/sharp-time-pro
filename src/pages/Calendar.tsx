@@ -66,6 +66,8 @@ import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useAutoScrollToNow } from '@/hooks/useAutoScrollToNow';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useConfirmAction } from '@/hooks/useConfirmAction';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import BookingModal from '@/components/bookings/BookingModal';
 import { BookingDetailModal, MonthView } from '@/components/calendar';
 import { BarberLegend } from '@/components/calendar/BarberLegend';
@@ -104,6 +106,7 @@ export default function Calendar() {
   const { toast } = useToast();
   const { user, isBarber } = useAuth();
   const isMobile = useIsMobile();
+  const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const location = useLocation();
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('3day');
@@ -456,9 +459,25 @@ export default function Calendar() {
   };
 
   const handleStatusChange = async (bookingId: string, status: BookingStatus) => {
+    const statusLabels: Record<BookingStatus, string> = {
+      pending: 'pendiente',
+      confirmed: 'confirmada',
+      completed: 'completada',
+      cancelled: 'cancelada',
+      'no-show': 'no presentado',
+    };
+
+    const confirmed = await confirm({
+      title: 'Cambiar estado de cita',
+      description: `¿Estás seguro de marcar esta cita como "${statusLabels[status]}"?`,
+      confirmLabel: 'Confirmar',
+      variant: status === 'cancelled' ? 'destructive' : 'default',
+    });
+    if (!confirmed) return;
+
     const previousBookings = [...bookings];
     const previousSelected = selectedBooking;
-    
+
     setBookings((prev) =>
       prev.map((b) =>
         b.id === bookingId
@@ -471,16 +490,9 @@ export default function Calendar() {
         prev ? { ...prev, status: status as ApiBookingStatus, updated_at: new Date().toISOString() } : null
       );
     }
-    
+
     try {
       await supabaseBookingsApi.updateStatus(bookingId, status as ApiBookingStatus);
-      const statusLabels: Record<BookingStatus, string> = {
-        pending: 'pendiente',
-        confirmed: 'confirmada',
-        completed: 'completada',
-        cancelled: 'cancelada',
-        'no-show': 'no presentado',
-      };
       toast({ title: `Cita marcada como ${statusLabels[status]}` });
     } catch (error) {
       setBookings(previousBookings);
@@ -490,11 +502,19 @@ export default function Calendar() {
   };
 
   const handleDeleteBooking = async (bookingId: string) => {
+    const confirmed = await confirm({
+      title: '¿Eliminar cita?',
+      description: 'Se eliminará permanentemente esta cita. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
+
     const previousBookings = [...bookings];
     setBookings((prev) => prev.filter((b) => b.id !== bookingId));
     setIsDetailOpen(false);
     setSelectedBooking(null);
-    
+
     try {
       await supabaseBookingsApi.delete(bookingId);
       toast({ title: 'Cita eliminada correctamente' });
@@ -553,6 +573,14 @@ export default function Calendar() {
   };
 
   const handleDeleteEvent = async (eventId: string) => {
+    const confirmed = await confirm({
+      title: '¿Eliminar evento?',
+      description: 'Se eliminará permanentemente este evento. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
+
     const previous = [...calendarEvents];
     setCalendarEvents((prev) => prev.filter((e) => e.id !== eventId));
     setIsEventDetailOpen(false);
@@ -589,6 +617,15 @@ export default function Calendar() {
   };
 
   const handleSaveEvent = async (data: EventFormData) => {
+    const confirmed = await confirm({
+      title: selectedEvent ? 'Actualizar evento' : 'Crear evento',
+      description: selectedEvent
+        ? '¿Confirmar los cambios en este evento?'
+        : '¿Confirmar la creación de este nuevo evento?',
+      confirmLabel: selectedEvent ? 'Actualizar' : 'Crear',
+    });
+    if (!confirmed) return;
+
     try {
       if (selectedEvent) {
         // Update existing event
@@ -1172,10 +1209,19 @@ export default function Calendar() {
             return newClient;
           }}
           onSave={async (data) => {
+            const confirmed = await confirm({
+              title: selectedBooking ? 'Actualizar cita' : 'Crear cita',
+              description: selectedBooking
+                ? `¿Confirmar los cambios en la cita de ${data.clientName}?`
+                : `¿Confirmar la creación de la cita para ${data.clientName}?`,
+              confirmLabel: selectedBooking ? 'Actualizar' : 'Crear',
+            });
+            if (!confirmed) return;
+
             try {
               const selectedService = services.find(s => s.id === data.serviceId);
               const duration = selectedService?.duration || data.serviceDuration || 30;
-              
+
               const [hours, minutes] = (data.time || '09:00').split(':').map(Number);
               const endHours = hours + Math.floor((minutes + duration) / 60);
               const endMinutes = (minutes + duration) % 60;
@@ -1316,6 +1362,9 @@ export default function Calendar() {
           onEdit={handleEditEvent}
           onDelete={handleDeleteEvent}
         />
+
+        {/* Generic Confirmation Dialog */}
+        <ConfirmActionDialog {...confirmDialogProps} />
       </div>
     </DndContext>
   );
