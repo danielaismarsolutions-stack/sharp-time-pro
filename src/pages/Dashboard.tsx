@@ -65,14 +65,17 @@ export default function Dashboard() {
   };
 
   // Get unique barbers for filter dropdown
+  // Filter out events from all dashboard calculations
+  const actualBookings = useMemo(() => bookings.filter(b => b.booking_type !== 'event'), [bookings]);
+
   const uniqueBarbers = useMemo(() => {
-    const barbers = new Set(bookings.map(b => b.barber || 'Sin asignar'));
+    const barbers = new Set(actualBookings.map(b => b.barber || 'Sin asignar'));
     return Array.from(barbers).sort();
-  }, [bookings]);
+  }, [actualBookings]);
 
   // Filter and sort bookings
   const filteredAndSortedBookings = useMemo(() => {
-    let result = [...bookings];
+    let result = bookings.filter(b => b.booking_type !== 'event');
 
     // Apply search filter
     if (searchQuery.trim()) {
@@ -170,24 +173,24 @@ export default function Dashboard() {
   const today = new Date();
   const yesterday = subDays(today, 1);
   
-  const todayBookings = bookings.filter(b => isSameDay(parseISO(b.booking_date), today));
-  const yesterdayBookings = bookings.filter(b => isSameDay(parseISO(b.booking_date), yesterday));
+  const todayBookings = actualBookings.filter(b => isSameDay(parseISO(b.booking_date), today));
+  const yesterdayBookings = actualBookings.filter(b => isSameDay(parseISO(b.booking_date), yesterday));
   
   const todayRevenue = todayBookings.reduce((sum, b) => sum + b.service_price, 0);
   const yesterdayRevenue = yesterdayBookings.reduce((sum, b) => sum + b.service_price, 0);
   
   const stats = {
-    totalBookings: bookings.length,
-    confirmedBookings: bookings.filter(b => b.status === 'confirmed').length,
+    totalBookings: actualBookings.length,
+    confirmedBookings: actualBookings.filter(b => b.status === 'confirmed').length,
     todayRevenue,
     yesterdayRevenue,
-    averagePrice: bookings.length > 0 
-      ? bookings.reduce((sum, b) => sum + b.service_price, 0) / bookings.length 
+    averagePrice: actualBookings.length > 0 
+      ? actualBookings.reduce((sum, b) => sum + b.service_price, 0) / actualBookings.length 
       : 0,
   };
 
   // Calculate stats per barber
-  const barberStats = bookings.reduce((acc, booking) => {
+  const barberStats = actualBookings.reduce((acc, booking) => {
     const barberName = booking.barber || 'Sin asignar';
     if (!acc[barberName]) {
       acc[barberName] = { totalBookings: 0, totalRevenue: 0 };
