@@ -63,7 +63,7 @@ export function SetmoreHeader({
   onRefresh,
   isRefreshing = false,
 }: SetmoreHeaderProps) {
-  const { user, logout, isAdmin, isBarber } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const {
     notifications,
@@ -387,8 +387,8 @@ export function SetmoreHeader({
             </Button>
           )}
 
-        {/* Barber Filter - hidden for barber users (they auto-filter to their own bookings) */}
-        {barberNames.length > 0 && !isBarber && (
+        {/* Barber Filter - shown for all users; barber users default to their own name */}
+        {barberNames.length > 0 && (
           <Select
             value={selectedBarber || 'all'}
             onValueChange={(v) => onBarberChange(v === 'all' ? null : v)}
