@@ -61,6 +61,7 @@ export default function ServiceModal({
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [priceInput, setPriceInput] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -86,6 +87,7 @@ export default function ServiceModal({
           bufferBefore: service.bufferBefore || 0,
           bufferAfter: service.bufferAfter || 5,
         });
+        setPriceInput(service.price ? String(service.price) : '');
       } else {
         setFormData({
           name: '',
@@ -97,6 +99,7 @@ export default function ServiceModal({
           bufferBefore: 0,
           bufferAfter: 5,
         });
+        setPriceInput('');
       }
     }
   }, [service, open]);
@@ -233,14 +236,18 @@ export default function ServiceModal({
                 Precio (€) *
               </Label>
               <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.price}
+                type="text"
+                inputMode="decimal"
+                value={priceInput}
                 onChange={(e) => {
-                  setFormData({ ...formData, price: parseFloat(e.target.value) || 0 });
-                  if (errors.price) setErrors({ ...errors, price: undefined });
+                  const val = e.target.value;
+                  if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
+                    setPriceInput(val);
+                    setFormData({ ...formData, price: val === '' ? 0 : parseFloat(val) || 0 });
+                    if (errors.price) setErrors({ ...errors, price: undefined });
+                  }
                 }}
+                placeholder="Ej: 15"
                 className={cn("h-8 text-xs", errors.price && 'border-destructive')}
               />
               {errors.price && (
