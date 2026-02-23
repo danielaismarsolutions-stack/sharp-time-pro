@@ -44,6 +44,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { getBusinessId } from '@/config/session';
+import { createNotification } from '@/services/supabaseNotifications';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -179,6 +181,23 @@ export default function Settings() {
         address: businessSettings.address,
         contactEmail: businessSettings.contactEmail,
       });
+
+      // Create notification for business settings update
+      if (user?.id) {
+        try {
+          await createNotification({
+            user_id: user.id,
+            business_id: getBusinessId(),
+            type: 'business_settings_modified',
+            title: 'Configuración del negocio modificada',
+            message: `${user.name} actualizó la configuración del negocio`,
+            metadata: {
+              modified_by: user.name,
+            },
+          });
+        } catch { /* ignored */ }
+      }
+
       toast({ title: 'Configuración guardada' });
     } catch (error) {
       toast({ title: 'Error al guardar configuración', variant: 'destructive' });
@@ -198,6 +217,23 @@ export default function Settings() {
     setIsSaving(true);
     try {
       await supabaseBusinessHoursApi.saveAll(businessHours);
+
+      // Create notification for business hours update
+      if (user?.id) {
+        try {
+          await createNotification({
+            user_id: user.id,
+            business_id: getBusinessId(),
+            type: 'business_hours_modified',
+            title: 'Horario del negocio modificado',
+            message: `${user.name} actualizó el horario del negocio`,
+            metadata: {
+              modified_by: user.name,
+            },
+          });
+        } catch { /* ignored */ }
+      }
+
       toast({ title: 'Horario guardado' });
     } catch (error) {
       toast({ title: 'Error al guardar configuración', variant: 'destructive' });

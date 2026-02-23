@@ -32,6 +32,9 @@ import { Service } from '@/types';
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
+import { useAuth } from '@/contexts/AuthContext';
+import { getBusinessId } from '@/config/session';
+import { createNotification } from '@/services/supabaseNotifications';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import ServiceModal from '@/components/services/ServiceModal';
 import { SortableServiceCard } from '@/components/services/SortableServiceCard';
@@ -40,6 +43,7 @@ import { AnimatedCard } from '@/components/ui/animated-card';
 export default function Services() {
   const { toast } = useToast();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
+  const { user } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -129,11 +133,49 @@ export default function Services() {
         // Update existing service
         const updated = await supabaseServicesApi.update(editingService.id, serviceData);
         setServices((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+
+        // Create notification for service update
+        if (user?.id) {
+          try {
+            await createNotification({
+              user_id: user.id,
+              business_id: getBusinessId(),
+              type: 'service_modified',
+              title: 'Servicio modificado',
+              message: `${user.name} actualizó el servicio "${serviceData.name || editingService.name}"`,
+              metadata: {
+                service_id: editingService.id,
+                service_name: serviceData.name || editingService.name,
+                modified_by: user.name,
+              },
+            });
+          } catch { /* ignored */ }
+        }
+
         toast({ title: 'Servicio actualizado correctamente' });
       } else {
         // Create new service
         const created = await supabaseServicesApi.create(serviceData as Omit<Service, 'id'>);
         setServices((prev) => [...prev, created]);
+
+        // Create notification for service creation
+        if (user?.id) {
+          try {
+            await createNotification({
+              user_id: user.id,
+              business_id: getBusinessId(),
+              type: 'service_created',
+              title: 'Nuevo servicio',
+              message: `${user.name} creó el servicio "${serviceData.name}"`,
+              metadata: {
+                service_id: created.id,
+                service_name: serviceData.name,
+                created_by: user.name,
+              },
+            });
+          } catch { /* ignored */ }
+        }
+
         toast({ title: 'Servicio creado correctamente' });
       }
       setEditingService(null);
@@ -169,6 +211,26 @@ export default function Services() {
 
     try {
       await supabaseServicesApi.update(service.id, { isActive: newStatus });
+
+      // Create notification for service status change
+      if (user?.id) {
+        try {
+          await createNotification({
+            user_id: user.id,
+            business_id: getBusinessId(),
+            type: 'service_modified',
+            title: newStatus ? 'Servicio activado' : 'Servicio desactivado',
+            message: `${user.name} ${newStatus ? 'activó' : 'desactivó'} el servicio "${service.name}"`,
+            metadata: {
+              service_id: service.id,
+              service_name: service.name,
+              new_status: newStatus ? 'active' : 'inactive',
+              modified_by: user.name,
+            },
+          });
+        } catch { /* ignored */ }
+      }
+
       toast({ title: `Servicio ${newStatus ? 'activado' : 'desactivado'}` });
     } catch (error) {
       // Rollback on error
@@ -202,6 +264,25 @@ export default function Services() {
 
     try {
       await supabaseServicesApi.delete(id);
+
+      // Create notification for service deletion
+      if (user?.id) {
+        try {
+          await createNotification({
+            user_id: user.id,
+            business_id: getBusinessId(),
+            type: 'service_deleted',
+            title: 'Servicio desactivado',
+            message: `${user.name} desactivó el servicio "${service.name}"`,
+            metadata: {
+              service_id: id,
+              service_name: service.name,
+              deleted_by: user.name,
+            },
+          });
+        } catch { /* ignored */ }
+      }
+
       toast({ title: 'Servicio desactivado' });
     } catch (error) {
       // Rollback
