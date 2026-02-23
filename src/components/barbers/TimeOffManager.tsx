@@ -136,7 +136,9 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
   );
 
   // Form content - shared between Dialog and Drawer
-  const FormContent = () => (
+  // NOTE: This is a JSX variable, NOT a component function, so that React
+  // preserves the DOM (and input focus) across re-renders when typing.
+  const formContent = (
     <div className="space-y-5 pt-2">
       <DatePickerField
         label="Fecha inicio"
@@ -160,15 +162,15 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
         />
       </div>
       <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-3">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={() => setDialogOpen(false)}
           className="h-12 sm:h-10 text-base sm:text-sm"
         >
           Cancelar
         </Button>
-        <Button 
-          onClick={handleAdd} 
+        <Button
+          onClick={handleAdd}
           disabled={saving || !startDate || !endDate}
           className="h-12 sm:h-10 text-base sm:text-sm"
         >
@@ -205,7 +207,7 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
               <DrawerHeader className="pb-2">
                 <DrawerTitle>Añadir Días Libres</DrawerTitle>
               </DrawerHeader>
-              <FormContent />
+              {formContent}
             </DrawerContent>
           </Drawer>
         ) : (
@@ -217,7 +219,7 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
               <DialogHeader>
                 <DialogTitle>Añadir Días Libres</DialogTitle>
               </DialogHeader>
-              <FormContent />
+              {formContent}
             </DialogContent>
           </Dialog>
         )}
