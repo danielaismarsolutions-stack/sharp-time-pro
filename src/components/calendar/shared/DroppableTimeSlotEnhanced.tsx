@@ -28,6 +28,8 @@ interface DroppableTimeSlotEnhancedProps {
   draggedBookingServiceName?: string;
   /** Color classes for the dragged booking's barber */
   draggedBookingColorClasses?: { bg: string; border: string; text: string };
+  /** Closed minute ranges within a partially-open hour (e.g., [{startMinute:0, endMinute:15}]) */
+  closedMinuteRanges?: { startMinute: number; endMinute: number }[];
 }
 
 export function DroppableTimeSlotEnhanced({
@@ -48,6 +50,7 @@ export function DroppableTimeSlotEnhanced({
   draggedBookingClientName,
   draggedBookingServiceName,
   draggedBookingColorClasses,
+  closedMinuteRanges,
 }: DroppableTimeSlotEnhancedProps) {
   const { isOver, setNodeRef } = useDroppable({
     id,
@@ -80,8 +83,10 @@ export function DroppableTimeSlotEnhanced({
     <div
       ref={setNodeRef}
       className={cn(
-        'border-b border-border transition-colors duration-200 relative',
-        // Always-visible closed/unavailable hours
+        'border-b border-border relative',
+        // Only transition when NOT closed (closed slots must stay fixed)
+        !isClosed && 'transition-colors duration-200',
+        // Always-visible closed/unavailable hours — no hover/active overrides
         isClosed && !isDragging && 'bg-neutral-200/70',
         // When user is dragging - show zone validity
         isDragging && isOutsideBusinessHours && 'bg-muted/40',
@@ -225,6 +230,18 @@ export function DroppableTimeSlotEnhanced({
           )}
         </>
       )}
+
+      {/* Partial-hour closed overlays for sub-hour business/barber schedule boundaries */}
+      {!isClosed && closedMinuteRanges && closedMinuteRanges.length > 0 && closedMinuteRanges.map((range, i) => (
+        <div
+          key={i}
+          className="absolute left-0 right-0 bg-neutral-200/70 pointer-events-none"
+          style={{
+            top: (range.startMinute / 60) * hourHeight,
+            height: ((range.endMinute - range.startMinute) / 60) * hourHeight,
+          }}
+        />
+      ))}
 
       {children}
     </div>

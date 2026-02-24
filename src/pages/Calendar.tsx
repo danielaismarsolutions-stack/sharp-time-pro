@@ -483,6 +483,93 @@ export default function Calendar() {
     return false;
   }, [businessHours, selectedBarber, barbers]);
 
+  // Compute closed minute ranges within a partially-open hour for sub-hour shading.
+  // Returns the portions of the hour (0–60 min) that are NOT covered by open shifts.
+  const getClosedMinuteRanges = useCallback((hour: number, date: Date): { startMinute: number; endMinute: number }[] => {
+    // If the whole hour is closed, the full bg is already applied — no partial ranges needed
+    if (isHourClosed(hour, date)) return [];
+
+    const dayName = DAY_INDEX_TO_NAME[date.getDay()];
+    const slotStart = hour * 60;
+    const slotEnd = (hour + 1) * 60;
+
+    // Collect all applicable shift sets that must overlap
+    const shiftSets: { start: string; end: string }[][] = [];
+
+    // Business hours shifts
+    const dayData = businessHours[dayName];
+    if (dayData?.isOpen && dayData.shifts.length > 0) {
+      shiftSets.push(dayData.shifts.map(s => ({ start: s.openTime, end: s.closeTime })));
+    }
+
+    // Barber shifts (if selected)
+    if (selectedBarber) {
+      const barber = barbers.find(b => b.name === selectedBarber);
+      if (barber) {
+        const barberDay = barber.schedule?.[dayName as keyof BarberSchedule];
+        if (barberDay?.enabled && barberDay.shifts.length > 0) {
+          shiftSets.push(barberDay.shifts);
+        }
+      }
+    }
+
+    if (shiftSets.length === 0) return [];
+
+    // Convert shifts to minute ranges clipped to this hour (0–60)
+    const clipToHour = (shifts: { start: string; end: string }[]): [number, number][] => {
+      return shifts
+        .map(s => {
+          const [sH, sM] = s.start.split(':').map(Number);
+          const [eH, eM] = s.end.split(':').map(Number);
+          const start = Math.max(sH * 60 + sM, slotStart) - slotStart;
+          const end = Math.min(eH * 60 + eM, slotEnd) - slotStart;
+          return [start, end] as [number, number];
+        })
+        .filter(([s, e]) => e > s);
+    };
+
+    // Start with business hours clipped, then intersect with each additional shift set
+    let openRanges: [number, number][] = clipToHour(shiftSets[0]);
+    for (let i = 1; i < shiftSets.length; i++) {
+      const otherRanges = clipToHour(shiftSets[i]);
+      const intersected: [number, number][] = [];
+      for (const [aS, aE] of openRanges) {
+        for (const [bS, bE] of otherRanges) {
+          const s = Math.max(aS, bS);
+          const e = Math.min(aE, bE);
+          if (s < e) intersected.push([s, e]);
+        }
+      }
+      openRanges = intersected;
+    }
+
+    // Merge overlapping open ranges
+    openRanges.sort((a, b) => a[0] - b[0]);
+    const merged: [number, number][] = [];
+    for (const [s, e] of openRanges) {
+      if (merged.length > 0 && s <= merged[merged.length - 1][1]) {
+        merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], e);
+      } else {
+        merged.push([s, e]);
+      }
+    }
+
+    // Complement: closed ranges are the gaps
+    const closed: { startMinute: number; endMinute: number }[] = [];
+    let cursor = 0;
+    for (const [s, e] of merged) {
+      if (cursor < s) {
+        closed.push({ startMinute: cursor, endMinute: s });
+      }
+      cursor = e;
+    }
+    if (cursor < 60) {
+      closed.push({ startMinute: cursor, endMinute: 60 });
+    }
+
+    return closed;
+  }, [isHourClosed, businessHours, selectedBarber, barbers]);
+
   const navigateDate = (direction: 'prev' | 'next') => {
     switch (viewMode) {
       case 'day':
@@ -906,7 +993,8 @@ export default function Calendar() {
                 draggedBookingClientName={activeBookingClientName}
                 draggedBookingServiceName={activeBookingServiceName}
                 draggedBookingColorClasses={activeBookingColorClasses}
-                className="hover:bg-muted/30 cursor-pointer"
+                closedMinuteRanges={getClosedMinuteRanges(hour, currentDate)}
+                className={cn(!isHourClosed(hour, currentDate) && 'hover:bg-muted/30', 'cursor-pointer')}
               >
                 <div
                   className="absolute inset-0"
@@ -1059,7 +1147,8 @@ export default function Calendar() {
                     draggedBookingClientName={activeBookingClientName}
                     draggedBookingServiceName={activeBookingServiceName}
                     draggedBookingColorClasses={activeBookingColorClasses}
-                    className="hover:bg-muted/30 cursor-pointer"
+                    closedMinuteRanges={getClosedMinuteRanges(hour, day)}
+                    className={cn(!isHourClosed(hour, day) && 'hover:bg-muted/30', 'cursor-pointer')}
                   >
                     <div
                       className="absolute inset-0"
@@ -1246,6 +1335,7 @@ export default function Calendar() {
                 businessOpenHour={BUSINESS_OPEN_HOUR}
                 businessCloseHour={BUSINESS_CLOSE_HOUR}
                 isHourClosed={isHourClosed}
+                getClosedMinuteRanges={getClosedMinuteRanges}
                 draggedBookingDuration={activeBookingDuration}
                 draggedBookingClientName={activeBookingClientName}
                 draggedBookingServiceName={activeBookingServiceName}
