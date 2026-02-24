@@ -35,6 +35,8 @@ interface ThreeDayViewProps {
   businessCloseHour?: number;
   /** Callback to check if a given hour on a given date is closed/unavailable */
   isHourClosed?: (hour: number, date: Date) => boolean;
+  /** Callback to get closed minute ranges within a partially-open hour */
+  getClosedMinuteRanges?: (hour: number, date: Date) => { startMinute: number; endMinute: number }[];
   draggedBookingDuration?: number;
   draggedBookingClientName?: string;
   draggedBookingServiceName?: string;
@@ -63,6 +65,7 @@ export function ThreeDayView({
   businessOpenHour = 9,
   businessCloseHour = 21,
   isHourClosed,
+  getClosedMinuteRanges,
   draggedBookingDuration,
   draggedBookingClientName,
   draggedBookingServiceName,
@@ -446,9 +449,10 @@ export function ThreeDayView({
                     draggedBookingClientName={draggedBookingClientName}
                     draggedBookingServiceName={draggedBookingServiceName}
                     draggedBookingColorClasses={draggedBookingColorClasses}
+                    closedMinuteRanges={getClosedMinuteRanges ? getClosedMinuteRanges(hour, day) : undefined}
                     className={cn(
                       'border-b-0',
-                      !isDragging && 'hover:bg-muted/10'
+                      !isDragging && !(isHourClosed ? isHourClosed(hour, day) : false) && 'hover:bg-muted/10'
                     )}
                   >
                     {/* Full hour line at top */}
