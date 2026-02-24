@@ -17,6 +17,8 @@ interface DroppableTimeSlotEnhancedProps {
   hasConflict?: boolean;
   scheduleError?: string;
   isOutsideBusinessHours?: boolean;
+  /** Always-visible: this slot falls outside open hours (business or barber) */
+  isClosed?: boolean;
   isDragging?: boolean;
   /** Duration of the dragged booking in minutes, for preview card sizing */
   draggedBookingDuration?: number;
@@ -40,6 +42,7 @@ export function DroppableTimeSlotEnhanced({
   hasConflict = false,
   scheduleError,
   isOutsideBusinessHours = false,
+  isClosed = false,
   isDragging = false,
   draggedBookingDuration,
   draggedBookingClientName,
@@ -78,6 +81,8 @@ export function DroppableTimeSlotEnhanced({
       ref={setNodeRef}
       className={cn(
         'border-b border-border transition-colors duration-200 relative',
+        // Always-visible closed/unavailable hours
+        isClosed && !isDragging && 'bg-neutral-200/70',
         // When user is dragging - show zone validity
         isDragging && isOutsideBusinessHours && 'bg-muted/40',
         // Active hover states during drag

@@ -48,14 +48,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Client, Service, BookingStatus, BookingSource } from '@/types';
-import { Barber } from '@/types/barber';
+import { Client, Service, BookingStatus, BookingSource, BusinessHours } from '@/types';
+import { Barber, BarberSchedule } from '@/types/barber';
 import { ApiBooking, ApiBookingStatus, ApiCalendarEvent } from '@/types/api';
 import { supabaseClientsApi } from '@/services/supabaseClients';
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBookingsApi, supabaseEventBookingsApi } from '@/services/supabaseBookings';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { createNotification } from '@/services/supabaseNotifications';
+import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
 import { supabase } from '@/lib/supabase';
@@ -156,6 +157,9 @@ export default function Calendar() {
   const [selectedEvent, setSelectedEvent] = useState<ApiCalendarEvent | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Business hours state for closed-hours shading
+  const [businessHours, setBusinessHours] = useState<BusinessHours>({});
+
   // Set view mode based on screen size
   useEffect(() => {
     if (isMobile && viewMode === 'week') {
@@ -167,11 +171,12 @@ export default function Calendar() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [allBookingsData, clientsData, servicesData, barbersData] = await Promise.all([
+      const [allBookingsData, clientsData, servicesData, barbersData, businessHoursData] = await Promise.all([
         supabaseBookingsApi.getAll(),
         supabaseClientsApi.getAll(),
         supabaseServicesApi.getAll(),
         supabaseBarbersApi.getAll(false),
+        supabaseBusinessHoursApi.getAll().catch(() => ({} as BusinessHours)),
       ]);
 
       // Separate regular bookings from event-type bookings
@@ -205,6 +210,7 @@ export default function Calendar() {
       setServices(servicesData);
       setBarbers(barbersData);
       setCalendarEvents(eventBookings);
+      setBusinessHours(businessHoursData);
     } catch (error) {
       toast({ title: 'Error al cargar datos', variant: 'destructive' });
     } finally {
@@ -420,6 +426,62 @@ export default function Calendar() {
       .filter((b) => b.status !== 'cancelled')
       .filter((b) => !selectedBarber || b.barber === selectedBarber);
   }, [bookings, selectedBarber]);
+
+  // Determine if a given hour slot is closed/unavailable for the selected view
+  // "All barbers" → only business hours; specific barber → business + barber schedule/time-off
+  const DAY_INDEX_TO_NAME: Record<number, string> = {
+    0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
+    4: 'thursday', 5: 'friday', 6: 'saturday',
+  };
+
+  const isHourClosed = useCallback((hour: number, date: Date): boolean => {
+    const dayName = DAY_INDEX_TO_NAME[date.getDay()];
+
+    // Helper: check if an hour overlaps with any shift in a list
+    const overlapsShift = (shifts: { start: string; end: string }[]): boolean => {
+      const slotStart = hour * 60;
+      const slotEnd = (hour + 1) * 60;
+      return shifts.some(s => {
+        const [sH, sM] = s.start.split(':').map(Number);
+        const [eH, eM] = s.end.split(':').map(Number);
+        return sH * 60 + sM < slotEnd && eH * 60 + eM > slotStart;
+      });
+    };
+
+    // Check business hours
+    const dayData = businessHours[dayName];
+    if (!dayData || !dayData.isOpen || dayData.shifts.length === 0) {
+      return true; // business closed this day
+    }
+    const businessShifts = dayData.shifts.map(s => ({ start: s.openTime, end: s.closeTime }));
+    if (!overlapsShift(businessShifts)) {
+      return true; // outside business open shifts
+    }
+
+    // If a specific barber is selected, also check their schedule + time off
+    if (selectedBarber) {
+      const barber = barbers.find(b => b.name === selectedBarber);
+      if (barber) {
+        // Check time off (vacation)
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const isOnTimeOff = barber.time_off?.some(
+          to => dateStr >= to.start_date && dateStr <= to.end_date
+        );
+        if (isOnTimeOff) return true;
+
+        // Check barber's day schedule
+        const barberDay = barber.schedule?.[dayName as keyof BarberSchedule];
+        if (!barberDay || !barberDay.enabled || barberDay.shifts.length === 0) {
+          return true; // barber doesn't work this day
+        }
+        if (!overlapsShift(barberDay.shifts)) {
+          return true; // outside barber's working shifts
+        }
+      }
+    }
+
+    return false;
+  }, [businessHours, selectedBarber, barbers]);
 
   const navigateDate = (direction: 'prev' | 'next') => {
     switch (viewMode) {
@@ -838,6 +900,7 @@ export default function Calendar() {
                 hasConflict={dropPreview?.hasConflict}
                 scheduleError={dropPreview?.scheduleError}
                 isOutsideBusinessHours={!isWithinBusinessHours(hour, BUSINESS_OPEN_HOUR, BUSINESS_CLOSE_HOUR)}
+                isClosed={isHourClosed(hour, currentDate)}
                 isDragging={!!activeId}
                 draggedBookingDuration={activeBookingDuration}
                 draggedBookingClientName={activeBookingClientName}
@@ -990,6 +1053,7 @@ export default function Calendar() {
                     hasConflict={dropPreview?.hasConflict}
                     scheduleError={dropPreview?.scheduleError}
                     isOutsideBusinessHours={!isWithinBusinessHours(hour, BUSINESS_OPEN_HOUR, BUSINESS_CLOSE_HOUR)}
+                    isClosed={isHourClosed(hour, day)}
                     isDragging={!!activeId}
                     draggedBookingDuration={activeBookingDuration}
                     draggedBookingClientName={activeBookingClientName}
@@ -1180,6 +1244,7 @@ export default function Calendar() {
                 dropPreview={dropPreview}
                 businessOpenHour={BUSINESS_OPEN_HOUR}
                 businessCloseHour={BUSINESS_CLOSE_HOUR}
+                isHourClosed={isHourClosed}
                 draggedBookingDuration={activeBookingDuration}
                 draggedBookingClientName={activeBookingClientName}
                 draggedBookingServiceName={activeBookingServiceName}
