@@ -871,8 +871,8 @@ export default function Calendar() {
     const dateStr = format(currentDate, 'yyyy-MM-dd');
 
     return (
-      <div className="flex flex-1 overflow-hidden" {...(isMobile ? swipeHandlers : {})}>
-        <div className="flex-1 flex overflow-auto">
+      <div className="flex flex-1" {...(isMobile ? swipeHandlers : {})}>
+        <div className="flex-1 flex">
           {/* Time column */}
           <div className="w-16 md:w-20 shrink-0 border-r border-border">
             {HOURS.map((hour) => (
@@ -993,7 +993,7 @@ export default function Calendar() {
 
   // Render Week View
   const renderWeekView = () => (
-    <div className="flex flex-1 overflow-hidden">
+    <div className="flex flex-1">
       {/* Time column */}
       <div className="w-14 md:w-16 shrink-0 border-r border-border">
         <div className="h-12 border-b border-border" />
@@ -1075,6 +1075,7 @@ export default function Calendar() {
                     startHour={START_HOUR}
                     endHour={23}
                     hourHeight={HOUR_HEIGHT_WEEK}
+                    showTimeLabel={false}
                   />
                 )}
 

@@ -73,7 +73,14 @@ export function ThreeDayView({
   onEventClick,
 }: ThreeDayViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Use Madrid timezone for current time (consistent with CurrentTimeIndicator)
+  const getMadridTime = () => {
+    const now = new Date();
+    return new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Madrid' }));
+  };
+
+  const [currentTime, setCurrentTime] = useState(getMadridTime);
   const [selectionStart, setSelectionStart] = useState<{ date: Date; y: number } | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
@@ -87,9 +94,10 @@ export function ThreeDayView({
 
   // Update current time every minute
   useEffect(() => {
-    const interval = setInterval(() => setCurrentTime(new Date()), 60000);
+    setCurrentTime(getMadridTime());
+    const interval = setInterval(() => setCurrentTime(getMadridTime()), 60000);
     return () => clearInterval(interval);
-  });
+  }, []);
 
   // Prevent page scrolling while drag-selecting on mobile
   useEffect(() => {
@@ -529,20 +537,21 @@ export function ThreeDayView({
             <>
               {/* Time label - positioned in the time column */}
               <div
-                className="absolute z-30 flex items-center justify-end"
+                className="absolute flex items-center justify-end pointer-events-none"
                 style={{
                   top: currentTimePosition,
                   transform: 'translateY(-50%)',
                   left: 0,
                   width: '48px',
-                  paddingRight: '4px'
+                  paddingRight: '4px',
+                  zIndex: 35,
                 }}
               >
                 <span
                   className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
                   style={{
-                    backgroundColor: '#1a1a1a',
-                    fontFamily: 'system-ui, -apple-system, sans-serif'
+                    backgroundColor: '#000000',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
                   }}
                 >
                   {format(currentTime, 'H:mm')}
@@ -551,20 +560,22 @@ export function ThreeDayView({
 
               {/* Dot and line - starts after time column */}
               <div
-                className="absolute z-20 flex items-center pointer-events-none"
+                data-current-time-indicator
+                className="absolute flex items-center pointer-events-none"
                 style={{
                   top: currentTimePosition,
                   left: '48px',
-                  right: 0
+                  right: 0,
+                  zIndex: 35,
                 }}
               >
                 <div
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: '#1a1a1a', marginLeft: '-4px' }}
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: '#000000', marginLeft: '-5px' }}
                 />
                 <div
                   className="flex-1"
-                  style={{ height: '1.5px', backgroundColor: '#1a1a1a' }}
+                  style={{ height: '2px', backgroundColor: '#000000' }}
                 />
               </div>
             </>
