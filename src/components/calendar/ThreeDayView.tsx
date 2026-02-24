@@ -33,6 +33,8 @@ interface ThreeDayViewProps {
   dropPreview?: DropPreview | null;
   businessOpenHour?: number;
   businessCloseHour?: number;
+  /** Callback to check if a given hour on a given date is closed/unavailable */
+  isHourClosed?: (hour: number, date: Date) => boolean;
   draggedBookingDuration?: number;
   draggedBookingClientName?: string;
   draggedBookingServiceName?: string;
@@ -60,6 +62,7 @@ export function ThreeDayView({
   dropPreview = null,
   businessOpenHour = 9,
   businessCloseHour = 21,
+  isHourClosed,
   draggedBookingDuration,
   draggedBookingClientName,
   draggedBookingServiceName,
@@ -429,6 +432,7 @@ export function ThreeDayView({
                     hasConflict={dropPreview?.hasConflict}
                     scheduleError={dropPreview?.scheduleError}
                     isOutsideBusinessHours={!isWithinBusinessHours(hour, businessOpenHour, businessCloseHour)}
+                    isClosed={isHourClosed ? isHourClosed(hour, day) : undefined}
                     isDragging={isDragging}
                     draggedBookingDuration={draggedBookingDuration}
                     draggedBookingClientName={draggedBookingClientName}
