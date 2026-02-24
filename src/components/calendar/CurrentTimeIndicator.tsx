@@ -7,6 +7,8 @@ interface CurrentTimeIndicatorProps {
   startHour?: number;
   endHour?: number;
   hourHeight: number;
+  /** When true, the time label pill is shown on the line (used when there's no separate time column label) */
+  showTimeLabel?: boolean;
 }
 
 // Get current time in Madrid timezone
@@ -21,10 +23,12 @@ export function CurrentTimeIndicator({
   startHour = 0,
   endHour = 23,
   hourHeight,
+  showTimeLabel = true,
 }: CurrentTimeIndicatorProps) {
   const [time, setTime] = useState(getMadridTime);
 
   useEffect(() => {
+    setTime(getMadridTime());
     const interval = setInterval(() => {
       setTime(getMadridTime());
     }, 60000);
@@ -44,42 +48,38 @@ export function CurrentTimeIndicator({
   const top = ((totalMinutes - startMinutes) / 60) * hourHeight;
 
   return (
-    <>
-      {/* Time label pill */}
+    <div
+      data-current-time-indicator
+      className="absolute left-0 right-0 flex items-center pointer-events-none"
+      style={{ top, zIndex: 35 }}
+    >
+      {/* Dot */}
       <div
-        className="absolute z-30 pointer-events-none"
-        style={{
-          top,
-          transform: 'translate(-100%, -50%)',
-          left: 0,
-          paddingRight: '2px',
-        }}
-      >
-        <span
-          className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
-          style={{
-            backgroundColor: '#1a1a1a',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          {format(time, 'H:mm')}
-        </span>
-      </div>
-
-      {/* Dot and line */}
+        className="w-2.5 h-2.5 rounded-full shrink-0"
+        style={{ backgroundColor: '#000000', marginLeft: '-5px' }}
+      />
+      {/* Line */}
       <div
-        className="absolute left-0 right-0 z-20 flex items-center pointer-events-none"
-        style={{ top }}
+        className="flex-1 relative"
+        style={{ height: '2px', backgroundColor: '#000000' }}
       >
-        <div
-          className="w-2 h-2 rounded-full shrink-0"
-          style={{ backgroundColor: '#1a1a1a', marginLeft: '-4px' }}
-        />
-        <div
-          className="flex-1"
-          style={{ height: '1.5px', backgroundColor: '#1a1a1a' }}
-        />
+        {/* Time label pill — anchored inside the line so it's never clipped */}
+        {showTimeLabel && (
+          <span
+            className="absolute text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm whitespace-nowrap"
+            style={{
+              backgroundColor: '#000000',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+              top: '50%',
+              left: '4px',
+              transform: 'translateY(-50%)',
+              lineHeight: 1,
+            }}
+          >
+            {format(time, 'H:mm')}
+          </span>
+        )}
       </div>
-    </>
+    </div>
   );
 }

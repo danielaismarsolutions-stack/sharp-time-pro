@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 /**
- * Auto-scrolls a container to the current time position when the view loads.
+ * Auto-scrolls a container to the current time position when the view loads,
+ * when switching views, and when the page regains focus / visibility.
  * Scrolls to ~1 hour before the current time for context.
  */
 export function useAutoScrollToNow(
@@ -10,14 +11,9 @@ export function useAutoScrollToNow(
   deps: unknown[] = []
 ) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const hasScrolled = useRef(false);
 
-  useEffect(() => {
-    hasScrolled.current = false;
-  }, deps);
-
-  useEffect(() => {
-    if (hasScrolled.current || !scrollRef.current) return;
+  const scrollToNow = useCallback(() => {
+    if (!scrollRef.current) return;
 
     const now = new Date();
     const currentHour = now.getHours();
@@ -29,16 +25,40 @@ export function useAutoScrollToNow(
 
     const scrollTop = (hoursFromStart + currentMinutes / 60) * hourHeight;
 
-    // Use a short timeout to ensure the view's DOM has fully rendered
-    const timer = setTimeout(() => {
-      requestAnimationFrame(() => {
-        scrollRef.current?.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' });
-        hasScrolled.current = true;
-      });
-    }, 100);
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' });
+    });
+  }, [startHour, hourHeight]);
 
+  // Scroll on mount and when deps change (view switch, etc.)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollToNow();
+    }, 150);
     return () => clearTimeout(timer);
-  }, [startHour, hourHeight, ...deps]);
+  }, [scrollToNow, ...deps]);
+
+  // Re-scroll when page becomes visible again (user switches back to tab / app)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Small delay to let the browser settle
+        setTimeout(scrollToNow, 300);
+      }
+    };
+
+    const handleFocus = () => {
+      setTimeout(scrollToNow, 300);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [scrollToNow]);
 
   return scrollRef;
 }
