@@ -5,6 +5,7 @@ import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 import { cn } from '@/lib/utils';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
+import { useAutoScrollOnDrag } from '@/hooks/useAutoScrollOnDrag';
 import { getServicePastelColor, getOverlapInfo, getBookingPosition, getEventPosition } from '@/components/calendar/shared';
 import { pastelColors } from '@/components/calendar/shared/colorUtils';
 import { BookingCard } from '@/components/calendar/shared/BookingCard';
@@ -46,6 +47,8 @@ interface ThreeDayViewProps {
   events?: ApiCalendarEvent[];
   getEventsForDay?: (date: Date) => ApiCalendarEvent[];
   onEventClick?: (event: ApiCalendarEvent) => void;
+  /** Ref to the parent scroll container, used for auto-scroll during drag-to-create */
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0:00 - 23:00
@@ -76,6 +79,7 @@ export function ThreeDayView({
   events = [],
   getEventsForDay: getEventsForDayProp,
   onEventClick,
+  scrollContainerRef,
 }: ThreeDayViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -96,6 +100,12 @@ export function ThreeDayView({
   const touchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Ref to block the click event that fires after a drag-selection mouseup
   const dragJustCompletedRef = useRef(false);
+  // Refs for auto-scroll during drag-to-create: track pointer Y and active day column
+  const lastPointerYRef = useRef<number>(0);
+  const activeDayColumnRef = useRef<HTMLDivElement | null>(null);
+  // Fallback ref when no scrollContainerRef is provided
+  const fallbackScrollRef = useRef<HTMLElement | null>(null);
+  const effectiveScrollRef = scrollContainerRef ?? fallbackScrollRef;
 
   // Update current time every minute
   useEffect(() => {
@@ -118,6 +128,26 @@ export function ThreeDayView({
       if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
     };
   }, []);
+
+  // Auto-scroll the parent container when dragging near edges during slot creation
+  useAutoScrollOnDrag(effectiveScrollRef, isSelecting);
+
+  // When the container scrolls during auto-scroll, update selectionEnd
+  // (the pointer is stationary but the grid moves underneath it)
+  useEffect(() => {
+    const container = effectiveScrollRef.current;
+    if (!isSelecting || !container) return;
+
+    const handleScroll = () => {
+      if (!activeDayColumnRef.current) return;
+      const rect = activeDayColumnRef.current.getBoundingClientRect();
+      const y = lastPointerYRef.current - rect.top;
+      setSelectionEnd(y);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [isSelecting, effectiveScrollRef]);
 
   // Get 3 consecutive days starting from currentDate
   const days = useMemo(() => {
@@ -167,6 +197,8 @@ export function ThreeDayView({
     if (isDragging) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
+    activeDayColumnRef.current = e.currentTarget;
+    lastPointerYRef.current = e.clientY;
     setSelectionStart({ date, y });
     setSelectionEnd(y);
     setIsSelecting(true);
@@ -175,7 +207,10 @@ export function ThreeDayView({
   // Handle drag selection move
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isSelecting || !selectionStart || isDragging) return;
-    const rect = e.currentTarget.getBoundingClientRect();
+    lastPointerYRef.current = e.clientY;
+    // Use the active day column ref for accurate position during auto-scroll
+    const target = activeDayColumnRef.current || e.currentTarget;
+    const rect = target.getBoundingClientRect();
     const y = e.clientY - rect.top;
     setSelectionEnd(y);
   };
@@ -190,6 +225,7 @@ export function ThreeDayView({
         onSlotClick(selectionStart.date, startTime, endTime);
       }
     }
+    activeDayColumnRef.current = null;
     setSelectionStart(null);
     setSelectionEnd(null);
     setIsSelecting(false);
@@ -201,6 +237,8 @@ export function ThreeDayView({
     if (isDragging || e.touches.length > 1) return;
     const touch = e.touches[0];
     const rect = e.currentTarget.getBoundingClientRect();
+    activeDayColumnRef.current = e.currentTarget;
+    lastPointerYRef.current = touch.clientY;
     touchStartRef.current = {
       clientX: touch.clientX,
       clientY: touch.clientY,
@@ -245,7 +283,12 @@ export function ThreeDayView({
       return;
     }
     if (touchModeRef.current === 'selecting') {
-      const y = touch.clientY - touchStartRef.current.rectTop;
+      lastPointerYRef.current = touch.clientY;
+      // Use active day column's current rect for accurate position during auto-scroll
+      const target = activeDayColumnRef.current;
+      const y = target
+        ? touch.clientY - target.getBoundingClientRect().top
+        : touch.clientY - touchStartRef.current.rectTop;
       setSelectionEnd(y);
     }
   }, [isDragging]);
@@ -263,6 +306,7 @@ export function ThreeDayView({
     }
     touchStartRef.current = null;
     touchModeRef.current = 'undetermined';
+    activeDayColumnRef.current = null;
     setSelectionStart(null);
     setSelectionEnd(null);
     setIsSelecting(false);
