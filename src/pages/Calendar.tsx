@@ -65,6 +65,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useCalendarDragDropEnhanced, snapToQuarterHour, isWithinBusinessHours } from '@/hooks/useCalendarDragDropEnhanced';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useAutoScrollToNow } from '@/hooks/useAutoScrollToNow';
+import { useAutoScrollOnDrag } from '@/hooks/useAutoScrollOnDrag';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
@@ -353,6 +354,9 @@ export default function Calendar() {
     },
     onEventsChange: setCalendarEvents,
   });
+
+  // Auto-scroll the calendar container when dragging near edges
+  useAutoScrollOnDrag(scrollContainerRef, !!activeId);
 
   // Compute active booking/event duration and name for ghost preview cards
   const activeBookingDuration = useMemo(() => {
@@ -1377,6 +1381,7 @@ export default function Calendar() {
                 events={calendarEvents}
                 getEventsForDay={getEventsForDay}
                 onEventClick={openEventDetail}
+                scrollContainerRef={scrollContainerRef}
               />
             )}
             {viewMode === 'week' && renderWeekView()}
