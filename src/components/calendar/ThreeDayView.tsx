@@ -132,6 +132,69 @@ export function ThreeDayView({
   // Auto-scroll the parent container when dragging near edges during slot creation
   useAutoScrollOnDrag(effectiveScrollRef, isSelecting);
 
+  // Auto-navigate to next/previous 3 days when dragging a booking card to the screen edges
+  const edgeNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const edgeNavCooldownRef = useRef(false);
+
+  useEffect(() => {
+    if (!isDragging) {
+      // Cleanup when drag ends
+      if (edgeNavTimerRef.current) { clearTimeout(edgeNavTimerRef.current); edgeNavTimerRef.current = null; }
+      edgeNavCooldownRef.current = false;
+      return;
+    }
+
+    const EDGE_THRESHOLD = 40; // px from screen edge
+    const NAV_DELAY = 600; // ms to hold at edge before navigating
+    const NAV_COOLDOWN = 800; // ms cooldown between navigations
+    let pointerX = 0;
+    let edgeDirection: 'left' | 'right' | null = null;
+
+    const handlePointerMove = (e: PointerEvent | MouseEvent) => { pointerX = e.clientX; };
+    const handleTouchMoveNav = (e: TouchEvent) => {
+      if (e.touches.length > 0) pointerX = e.touches[0].clientX;
+    };
+
+    const checkEdge = () => {
+      if (edgeNavCooldownRef.current) return;
+      const screenWidth = window.innerWidth;
+      let newDirection: 'left' | 'right' | null = null;
+
+      if (pointerX > 0 && pointerX < EDGE_THRESHOLD) {
+        newDirection = 'left';
+      } else if (pointerX > screenWidth - EDGE_THRESHOLD) {
+        newDirection = 'right';
+      }
+
+      if (newDirection !== edgeDirection) {
+        // Direction changed or left edge zone — reset timer
+        if (edgeNavTimerRef.current) { clearTimeout(edgeNavTimerRef.current); edgeNavTimerRef.current = null; }
+        edgeDirection = newDirection;
+        if (newDirection) {
+          edgeNavTimerRef.current = setTimeout(() => {
+            if (edgeNavCooldownRef.current) return;
+            edgeNavCooldownRef.current = true;
+            onDateChange(addDays(currentDate, newDirection === 'right' ? 3 : -3));
+            // Cooldown before next auto-nav
+            setTimeout(() => { edgeNavCooldownRef.current = false; }, NAV_COOLDOWN);
+          }, NAV_DELAY);
+        }
+      }
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('touchmove', handleTouchMoveNav);
+
+    const intervalId = setInterval(checkEdge, 100);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('touchmove', handleTouchMoveNav);
+      clearInterval(intervalId);
+      if (edgeNavTimerRef.current) { clearTimeout(edgeNavTimerRef.current); edgeNavTimerRef.current = null; }
+    };
+  }, [isDragging, currentDate, onDateChange]);
+
   // When the container scrolls during auto-scroll, update selectionEnd
   // (the pointer is stationary but the grid moves underneath it)
   useEffect(() => {
@@ -195,6 +258,9 @@ export function ThreeDayView({
   // Handle drag selection start
   const handleMouseDown = (date: Date, e: React.MouseEvent<HTMLDivElement>) => {
     if (isDragging) return;
+    // If the click target is inside a draggable card, don't start slot-creation
+    const target = e.target as HTMLElement;
+    if (target.closest?.('[aria-roledescription="draggable"]')) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
     activeDayColumnRef.current = e.currentTarget;
@@ -233,8 +299,17 @@ export function ThreeDayView({
 
   // Handle touch drag selection start (mobile)
   // Uses a 200ms hold delay to distinguish drag-to-create from scrolling
+  // Skips selection if the touch originated on a draggable card (booking/event)
   const handleTouchStart = useCallback((date: Date, e: React.TouchEvent<HTMLDivElement>) => {
     if (isDragging || e.touches.length > 1) return;
+
+    // If the touch target is inside a draggable card, don't start slot-creation.
+    // dnd-kit sets aria-roledescription="draggable" on draggable elements.
+    const target = e.target as HTMLElement;
+    if (target.closest?.('[aria-roledescription="draggable"]')) {
+      return;
+    }
+
     const touch = e.touches[0];
     const rect = e.currentTarget.getBoundingClientRect();
     activeDayColumnRef.current = e.currentTarget;
