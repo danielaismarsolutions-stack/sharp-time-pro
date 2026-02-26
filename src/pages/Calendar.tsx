@@ -91,6 +91,7 @@ import {
   getServicePastelColor,
   getBarberPastelColor,
   getOverlapInfo,
+  getUnifiedOverlapInfo,
   getBookingPosition,
   getEventPosition,
 } from '@/components/calendar/shared';
@@ -1035,58 +1036,68 @@ export default function Calendar() {
               </DroppableTimeSlotEnhanced>
             ))}
 
-            {/* Bookings overlay */}
-            {dayBookings.map((booking) => {
-              const style = getBookingPosition(booking, HOUR_HEIGHT_DAY, START_HOUR);
-              const overlapInfo = getOverlapInfo(dayBookings, booking);
-              const colorClasses = getServicePastelColor(booking, services);
-              
-              // Side-by-side layout for overlapping bookings (same on mobile and desktop)
-              const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 4px)`;
-              const widthCalc = `calc(${100 / overlapInfo.total}% - 8px)`;
-              
+            {/* Bookings + Events overlay with unified overlap detection */}
+            {(() => {
+              const dayEvents = getEventsForDay(currentDate);
+              const allItems = [...dayBookings, ...dayEvents];
               return (
-                <BookingCard
-                  key={booking.id}
-                  booking={booking}
-                  style={{ 
-                    top: style.top, 
-                    height: style.height,
-                    left: leftCalc,
-                    width: widthCalc,
-                  }}
-                  colorClasses={colorClasses}
-                  overlapInfo={overlapInfo}
-                  onClick={() => openBookingDetail(booking)}
-                  isDraggable={true}
-                  viewMode="day"
-                  isMobile={isMobile}
-                  isPendingMove={pendingMove?.booking.id === booking.id}
-                />
-              );
-            })}
+                <>
+                  {dayBookings.map((booking) => {
+                    const style = getBookingPosition(booking, HOUR_HEIGHT_DAY, START_HOUR);
+                    const overlapInfo = getUnifiedOverlapInfo(allItems, booking);
+                    const colorClasses = getServicePastelColor(booking, services);
 
-            {/* Events overlay */}
-            {getEventsForDay(currentDate).map((event) => {
-              const evtStyle = getEventPosition(event, HOUR_HEIGHT_DAY, START_HOUR);
-              return (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  style={{
-                    top: evtStyle.top,
-                    height: evtStyle.height,
-                    left: '4px',
-                    width: 'calc(100% - 8px)',
-                  }}
-                  onClick={() => openEventDetail(event)}
-                  isDraggable={true}
-                  viewMode="day"
-                  isMobile={isMobile}
-                  isPendingMove={pendingEventMove?.event.id === event.id}
-                />
+                    const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 4px)`;
+                    const widthCalc = `calc(${100 / overlapInfo.total}% - 8px)`;
+
+                    return (
+                      <BookingCard
+                        key={booking.id}
+                        booking={booking}
+                        style={{
+                          top: style.top,
+                          height: style.height,
+                          left: leftCalc,
+                          width: widthCalc,
+                        }}
+                        colorClasses={colorClasses}
+                        overlapInfo={overlapInfo}
+                        onClick={() => openBookingDetail(booking)}
+                        isDraggable={true}
+                        viewMode="day"
+                        isMobile={isMobile}
+                        isPendingMove={pendingMove?.booking.id === booking.id}
+                      />
+                    );
+                  })}
+                  {dayEvents.map((event) => {
+                    const evtStyle = getEventPosition(event, HOUR_HEIGHT_DAY, START_HOUR);
+                    const overlapInfo = getUnifiedOverlapInfo(allItems, event);
+
+                    const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 4px)`;
+                    const widthCalc = `calc(${100 / overlapInfo.total}% - 8px)`;
+
+                    return (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        style={{
+                          top: evtStyle.top,
+                          height: evtStyle.height,
+                          left: leftCalc,
+                          width: widthCalc,
+                        }}
+                        onClick={() => openEventDetail(event)}
+                        isDraggable={true}
+                        viewMode="day"
+                        isMobile={isMobile}
+                        isPendingMove={pendingEventMove?.event.id === event.id}
+                      />
+                    );
+                  })}
+                </>
               );
-            })}
+            })()}
 
             {/* Current time indicator */}
             {isToday(currentDate) && (
@@ -1202,55 +1213,66 @@ export default function Calendar() {
                   />
                 )}
 
-                {/* Bookings overlay */}
-                {dayBookings.map((booking) => {
-                  const style = getBookingPosition(booking, HOUR_HEIGHT_WEEK);
-                  const overlapInfo = getOverlapInfo(dayBookings, booking);
-                  const colorClasses = getServicePastelColor(booking, services);
-                  
-                  const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 2px)`;
-                  const widthCalc = `calc(${100 / overlapInfo.total}% - 4px)`;
-                  
+                {/* Bookings + Events overlay with unified overlap detection */}
+                {(() => {
+                  const dayEvents = getEventsForDay(day);
+                  const allItems = [...dayBookings, ...dayEvents];
                   return (
-                    <BookingCard
-                      key={booking.id}
-                      booking={booking}
-                      style={{ 
-                        top: style.top, 
-                        height: style.height,
-                        left: leftCalc,
-                        width: widthCalc,
-                      }}
-                      colorClasses={colorClasses}
-                      overlapInfo={overlapInfo}
-                      onClick={() => openBookingDetail(booking)}
-                      isDraggable={true}
-                      viewMode="week"
-                      isPendingMove={pendingMove?.booking.id === booking.id}
-                    />
-                  );
-                })}
+                    <>
+                      {dayBookings.map((booking) => {
+                        const style = getBookingPosition(booking, HOUR_HEIGHT_WEEK);
+                        const overlapInfo = getUnifiedOverlapInfo(allItems, booking);
+                        const colorClasses = getServicePastelColor(booking, services);
 
-                {/* Events overlay */}
-                {getEventsForDay(day).map((event) => {
-                  const evtStyle = getEventPosition(event, HOUR_HEIGHT_WEEK);
-                  return (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      style={{
-                        top: evtStyle.top,
-                        height: evtStyle.height,
-                        left: '2px',
-                        width: 'calc(100% - 4px)',
-                      }}
-                      onClick={() => openEventDetail(event)}
-                      isDraggable={true}
-                      viewMode="week"
-                      isPendingMove={pendingEventMove?.event.id === event.id}
-                    />
+                        const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 2px)`;
+                        const widthCalc = `calc(${100 / overlapInfo.total}% - 4px)`;
+
+                        return (
+                          <BookingCard
+                            key={booking.id}
+                            booking={booking}
+                            style={{
+                              top: style.top,
+                              height: style.height,
+                              left: leftCalc,
+                              width: widthCalc,
+                            }}
+                            colorClasses={colorClasses}
+                            overlapInfo={overlapInfo}
+                            onClick={() => openBookingDetail(booking)}
+                            isDraggable={true}
+                            viewMode="week"
+                            isPendingMove={pendingMove?.booking.id === booking.id}
+                          />
+                        );
+                      })}
+                      {dayEvents.map((event) => {
+                        const evtStyle = getEventPosition(event, HOUR_HEIGHT_WEEK);
+                        const overlapInfo = getUnifiedOverlapInfo(allItems, event);
+
+                        const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 2px)`;
+                        const widthCalc = `calc(${100 / overlapInfo.total}% - 4px)`;
+
+                        return (
+                          <EventCard
+                            key={event.id}
+                            event={event}
+                            style={{
+                              top: evtStyle.top,
+                              height: evtStyle.height,
+                              left: leftCalc,
+                              width: widthCalc,
+                            }}
+                            onClick={() => openEventDetail(event)}
+                            isDraggable={true}
+                            viewMode="week"
+                            isPendingMove={pendingEventMove?.event.id === event.id}
+                          />
+                        );
+                      })}
+                    </>
                   );
-                })}
+                })()}
               </div>
             </div>
           );

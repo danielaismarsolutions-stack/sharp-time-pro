@@ -6,7 +6,7 @@ import { Service } from '@/types';
 import { cn } from '@/lib/utils';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useAutoScrollOnDrag } from '@/hooks/useAutoScrollOnDrag';
-import { getServicePastelColor, getOverlapInfo, getBookingPosition, getEventPosition } from '@/components/calendar/shared';
+import { getServicePastelColor, getOverlapInfo, getUnifiedOverlapInfo, getBookingPosition, getEventPosition } from '@/components/calendar/shared';
 import { pastelColors } from '@/components/calendar/shared/colorUtils';
 import { BookingCard } from '@/components/calendar/shared/BookingCard';
 import { EventCard } from '@/components/calendar/shared/EventCard';
@@ -624,57 +624,68 @@ export function ThreeDayView({
                   </DroppableTimeSlotEnhanced>
                 ))}
 
-                {/* Bookings - drag enabled for mobile */}
-                {dayBookings.map((booking) => {
-                  const style = getBookingPosition(booking, hourHeight, START_HOUR);
-                  const overlapInfo = getOverlapInfo(dayBookings, booking);
-                  const colorClasses = getServicePastelColor(booking, services);
-
-                  const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 2px)`;
-                  const widthCalc = `calc(${100 / overlapInfo.total}% - 4px)`;
-
+                {/* Bookings + Events with unified overlap detection */}
+                {(() => {
+                  const dayEvents = getEventsForDayProp ? getEventsForDayProp(day) : [];
+                  const allItems = [...dayBookings, ...dayEvents];
                   return (
-                    <BookingCard
-                      key={booking.id}
-                      booking={booking}
-                      style={{
-                        top: style.top,
-                        height: style.height,
-                        left: leftCalc,
-                        width: widthCalc,
-                      }}
-                      colorClasses={colorClasses}
-                      overlapInfo={overlapInfo}
-                      onClick={() => onBookingClick(booking)}
-                      isDraggable={true}
-                      viewMode="day"
-                      isMobile={true}
-                      isPendingMove={pendingMoveBookingId === booking.id}
-                    />
-                  );
-                })}
+                    <>
+                      {dayBookings.map((booking) => {
+                        const style = getBookingPosition(booking, hourHeight, START_HOUR);
+                        const overlapInfo = getUnifiedOverlapInfo(allItems, booking);
+                        const colorClasses = getServicePastelColor(booking, services);
 
-                {/* Events */}
-                {getEventsForDayProp && onEventClick && getEventsForDayProp(day).map((event) => {
-                  const evtStyle = getEventPosition(event, hourHeight, START_HOUR);
-                  return (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      style={{
-                        top: evtStyle.top,
-                        height: evtStyle.height,
-                        left: '2px',
-                        width: 'calc(100% - 4px)',
-                      }}
-                      onClick={() => onEventClick(event)}
-                      isDraggable={true}
-                      viewMode="day"
-                      isMobile={true}
-                      isPendingMove={pendingMoveEventId === event.id}
-                    />
+                        const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 2px)`;
+                        const widthCalc = `calc(${100 / overlapInfo.total}% - 4px)`;
+
+                        return (
+                          <BookingCard
+                            key={booking.id}
+                            booking={booking}
+                            style={{
+                              top: style.top,
+                              height: style.height,
+                              left: leftCalc,
+                              width: widthCalc,
+                            }}
+                            colorClasses={colorClasses}
+                            overlapInfo={overlapInfo}
+                            onClick={() => onBookingClick(booking)}
+                            isDraggable={true}
+                            viewMode="day"
+                            isMobile={true}
+                            isPendingMove={pendingMoveBookingId === booking.id}
+                          />
+                        );
+                      })}
+                      {onEventClick && dayEvents.map((event) => {
+                        const evtStyle = getEventPosition(event, hourHeight, START_HOUR);
+                        const overlapInfo = getUnifiedOverlapInfo(allItems, event);
+
+                        const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 2px)`;
+                        const widthCalc = `calc(${100 / overlapInfo.total}% - 4px)`;
+
+                        return (
+                          <EventCard
+                            key={event.id}
+                            event={event}
+                            style={{
+                              top: evtStyle.top,
+                              height: evtStyle.height,
+                              left: leftCalc,
+                              width: widthCalc,
+                            }}
+                            onClick={() => onEventClick(event)}
+                            isDraggable={true}
+                            viewMode="day"
+                            isMobile={true}
+                            isPendingMove={pendingMoveEventId === event.id}
+                          />
+                        );
+                      })}
+                    </>
                   );
-                })}
+                })()}
 
                 {/* Selection overlay */}
                 {isSelecting && selectionStart && isSameDay(selectionStart.date, day) && getSelectionStyle() && (
