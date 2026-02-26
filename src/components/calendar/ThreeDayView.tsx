@@ -135,11 +135,28 @@ export function ThreeDayView({
   // Auto-navigate to next/previous 3 days when dragging a booking card to the screen edges
   const edgeNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const edgeNavCooldownRef = useRef(false);
+  const edgeNavCooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref mirrors isDragging so timer callbacks always see the latest value
+  const isDraggingRef = useRef(isDragging);
+  isDraggingRef.current = isDragging;
+  // Ref mirrors currentDate so timer callbacks always see the latest value
+  const currentDateRef = useRef(currentDate);
+  currentDateRef.current = currentDate;
+
+  // Synchronously cancel any pending edge-nav timer when drag ends (before effect cleanup)
+  const prevIsDraggingRef = useRef(isDragging);
+  if (prevIsDraggingRef.current && !isDragging) {
+    if (edgeNavTimerRef.current) { clearTimeout(edgeNavTimerRef.current); edgeNavTimerRef.current = null; }
+    if (edgeNavCooldownTimerRef.current) { clearTimeout(edgeNavCooldownTimerRef.current); edgeNavCooldownTimerRef.current = null; }
+    edgeNavCooldownRef.current = false;
+  }
+  prevIsDraggingRef.current = isDragging;
 
   useEffect(() => {
     if (!isDragging) {
       // Cleanup when drag ends
       if (edgeNavTimerRef.current) { clearTimeout(edgeNavTimerRef.current); edgeNavTimerRef.current = null; }
+      if (edgeNavCooldownTimerRef.current) { clearTimeout(edgeNavCooldownTimerRef.current); edgeNavCooldownTimerRef.current = null; }
       edgeNavCooldownRef.current = false;
       return;
     }
@@ -156,7 +173,7 @@ export function ThreeDayView({
     };
 
     const checkEdge = () => {
-      if (edgeNavCooldownRef.current) return;
+      if (edgeNavCooldownRef.current || !isDraggingRef.current) return;
       const screenWidth = window.innerWidth;
       let newDirection: 'left' | 'right' | null = null;
 
@@ -171,12 +188,14 @@ export function ThreeDayView({
         if (edgeNavTimerRef.current) { clearTimeout(edgeNavTimerRef.current); edgeNavTimerRef.current = null; }
         edgeDirection = newDirection;
         if (newDirection) {
+          const dir = newDirection;
           edgeNavTimerRef.current = setTimeout(() => {
-            if (edgeNavCooldownRef.current) return;
+            if (edgeNavCooldownRef.current || !isDraggingRef.current) return;
             edgeNavCooldownRef.current = true;
-            onDateChange(addDays(currentDate, newDirection === 'right' ? 3 : -3));
+            // Use refs to get the latest values (avoid stale closures)
+            onDateChange(addDays(currentDateRef.current, dir === 'right' ? 3 : -3));
             // Cooldown before next auto-nav
-            setTimeout(() => { edgeNavCooldownRef.current = false; }, NAV_COOLDOWN);
+            edgeNavCooldownTimerRef.current = setTimeout(() => { edgeNavCooldownRef.current = false; }, NAV_COOLDOWN);
           }, NAV_DELAY);
         }
       }
@@ -192,8 +211,9 @@ export function ThreeDayView({
       window.removeEventListener('touchmove', handleTouchMoveNav);
       clearInterval(intervalId);
       if (edgeNavTimerRef.current) { clearTimeout(edgeNavTimerRef.current); edgeNavTimerRef.current = null; }
+      if (edgeNavCooldownTimerRef.current) { clearTimeout(edgeNavCooldownTimerRef.current); edgeNavCooldownTimerRef.current = null; }
     };
-  }, [isDragging, currentDate, onDateChange]);
+  }, [isDragging, onDateChange]);
 
   // When the container scrolls during auto-scroll, update selectionEnd
   // (the pointer is stationary but the grid moves underneath it)
@@ -217,10 +237,22 @@ export function ThreeDayView({
     return [currentDate, addDays(currentDate, 1), addDays(currentDate, 2)];
   }, [currentDate]);
 
-  // Swipe handlers for navigation - disabled when dragging a booking card
+  // Track recent drag to block swipe navigation right after a drag ends
+  const recentDragRef = useRef(false);
+  useEffect(() => {
+    if (isDragging) {
+      recentDragRef.current = true;
+    } else if (recentDragRef.current) {
+      // Keep the flag true briefly after drag ends to block swipe from the same gesture
+      const timer = setTimeout(() => { recentDragRef.current = false; }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isDragging]);
+
+  // Swipe handlers for navigation - disabled when dragging or just finished dragging
   const swipeHandlers = useSwipeGesture({
-    onSwipeLeft: () => !isDragging && onDateChange(addDays(currentDate, 3)),
-    onSwipeRight: () => !isDragging && onDateChange(addDays(currentDate, -3)),
+    onSwipeLeft: () => !isDraggingRef.current && !recentDragRef.current && onDateChange(addDays(currentDate, 3)),
+    onSwipeRight: () => !isDraggingRef.current && !recentDragRef.current && onDateChange(addDays(currentDate, -3)),
   });
 
   // Get bookings for a specific day
