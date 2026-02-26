@@ -1,6 +1,8 @@
 // EventCard component for displaying calendar events on the time grid
+// Supports drag-and-drop for moving events
 import React from 'react';
-import { CalendarDays, MapPin, Repeat } from 'lucide-react';
+import { useDraggable } from '@dnd-kit/core';
+import { CalendarDays, MapPin, Repeat, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ApiCalendarEvent } from '@/types/api';
 import {
@@ -14,8 +16,10 @@ interface EventCardProps {
   event: ApiCalendarEvent;
   style: { top: number; height: number; left?: string; width?: string };
   onClick: () => void;
+  isDraggable?: boolean;
   viewMode?: 'day' | 'week' | 'month';
   isMobile?: boolean;
+  isPendingMove?: boolean;
 }
 
 // Map hex color to slightly transparent version for background
@@ -31,8 +35,10 @@ export function EventCard({
   event,
   style,
   onClick,
+  isDraggable = true,
   viewMode = 'day',
   isMobile = false,
+  isPendingMove = false,
 }: EventCardProps) {
   const startTime = event.start_time.substring(0, 5);
   const endTime = event.end_time.substring(0, 5);
@@ -41,17 +47,29 @@ export function EventCard({
   const isCompact = style.height < 40;
   const isNarrow = viewMode === 'week';
 
+  // Drag and drop setup
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `event-${event.id}`,
+    data: { event, type: 'event' },
+    disabled: !isDraggable,
+  });
+
   const card = (
     <button
-      onClick={(e) => {
+      ref={setNodeRef}
+      onClick={isDragging ? undefined : (e) => {
         e.stopPropagation();
         onClick();
       }}
       className={cn(
         'absolute rounded-lg border border-border/40 border-l-4 cursor-pointer',
         'overflow-hidden flex flex-col justify-start text-left',
-        'shadow-sm hover:shadow-md hover:brightness-95 hover:scale-[1.01]',
+        'shadow-sm hover:shadow-md',
+        !isDragging && 'hover:brightness-95 hover:scale-[1.01]',
         'transition-[box-shadow,filter,transform] duration-200',
+        isDragging && 'opacity-40 shadow-none z-0',
+        isPendingMove && !isDragging && 'opacity-30',
+        isDraggable && 'touch-none',
         isCompact ? 'px-1 py-0.5' : 'px-1.5 py-1'
       )}
       style={{
@@ -64,7 +82,15 @@ export function EventCard({
         borderLeftColor: colorStyle.borderLeftColor,
         color: colorStyle.color,
       }}
+      {...(isDraggable ? { ...attributes, ...listeners } : {})}
     >
+      {/* Drag grip indicator */}
+      {isDraggable && !isDragging && style.height >= 40 && (
+        <div className="absolute top-0.5 right-0.5 opacity-30">
+          <GripVertical className="w-3 h-3" />
+        </div>
+      )}
+
       {/* Row 1: Time + event icon */}
       <div className="flex items-center gap-1 w-full">
         <CalendarDays className="w-2.5 h-2.5 shrink-0 opacity-70" />
@@ -96,7 +122,7 @@ export function EventCard({
   );
 
   // Show tooltip for compact or narrow views
-  if (isCompact || isNarrow) {
+  if ((isCompact || isNarrow) && !isDragging) {
     return (
       <TooltipProvider delayDuration={200}>
         <Tooltip>
