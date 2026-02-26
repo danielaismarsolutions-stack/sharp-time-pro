@@ -45,7 +45,7 @@ export default function DashboardLayout() {
       {/* Main content */}
       <div
         className={cn(
-          'flex-1 flex flex-col min-h-screen transition-all duration-300 w-full min-w-0',
+          'flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300 w-full min-w-0',
           !isMobile && !isCalendarPage && (sidebarCollapsed ? 'ml-16' : 'ml-60'),
           (isMobile || isCalendarPage) && 'ml-0'
         )}
