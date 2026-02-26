@@ -107,7 +107,7 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
   }) => (
     <div className="space-y-2">
       <Label className="text-sm font-medium">{label}</Label>
-      <Popover>
+      <Popover modal>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
@@ -120,7 +120,7 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
             {date ? format(date, "d 'de' MMMM, yyyy", { locale: es }) : "Seleccionar fecha"}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 z-50" align="start">
+        <PopoverContent className="w-auto p-0 z-[60] pointer-events-auto" align="start">
           <Calendar
             mode="single"
             selected={date}
