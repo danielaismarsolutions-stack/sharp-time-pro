@@ -39,10 +39,10 @@ export function ConfirmActionDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <AlertDialogFooter className="px-5 pb-5 pt-4 flex flex-row gap-2 sm:gap-2">
+        <AlertDialogFooter className="px-5 pb-5 pt-4 flex flex-row gap-3 sm:space-x-0">
           <AlertDialogCancel
             onClick={onCancel}
-            className="flex-1 h-11 text-sm font-medium"
+            className="flex-1 h-11 text-sm font-medium mt-0"
           >
             {cancelLabel}
           </AlertDialogCancel>

@@ -116,13 +116,6 @@ export default function ClientDetail() {
   const handleAddTag = async () => {
     if (!newTag.trim() || !clientData) return;
 
-    const confirmed = await confirm({
-      title: 'Añadir etiqueta',
-      description: `¿Añadir la etiqueta "${newTag.trim()}" al cliente?`,
-      confirmLabel: 'Añadir',
-    });
-    if (!confirmed) return;
-
     const updatedTags = [...(clientData.tags || []), newTag.trim()];
 
     try {

@@ -163,14 +163,14 @@ export default function Clients() {
   );
 
   const handleSaveClient = async (clientData: Partial<Client>) => {
-    const confirmed = await confirm({
-      title: editingClient ? 'Actualizar cliente' : 'Crear cliente',
-      description: editingClient
-        ? `¿Confirmar los cambios en el cliente "${clientData.name || editingClient.name}"?`
-        : `¿Confirmar la creación del cliente "${clientData.name}"?`,
-      confirmLabel: editingClient ? 'Actualizar' : 'Crear',
-    });
-    if (!confirmed) return;
+    if (editingClient) {
+      const confirmed = await confirm({
+        title: 'Actualizar cliente',
+        description: `¿Confirmar los cambios en el cliente "${clientData.name || editingClient.name}"?`,
+        confirmLabel: 'Actualizar',
+      });
+      if (!confirmed) return;
+    }
 
     try {
       if (editingClient) {

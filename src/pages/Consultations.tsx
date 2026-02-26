@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquare, Inbox } from 'lucide-react';
+import { MessageSquare, Inbox, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
@@ -472,20 +472,28 @@ export default function Consultations() {
       <ConfirmActionDialog {...confirmDialogProps} />
 
       {/* Delete Confirmation */}
-      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar consulta?</AlertDialogTitle>
-            <AlertDialogDescription>
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={(isOpen) => { if (!isOpen) { setDeleteConfirmOpen(false); setDeleteConsultation(null); } }}>
+        <AlertDialogContent className="max-w-[360px] sm:max-w-md p-0 overflow-hidden">
+          <AlertDialogHeader className="px-5 pt-5 pb-0">
+            <AlertDialogTitle className="text-base font-semibold flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-destructive" />
+              ¿Eliminar consulta?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-muted-foreground">
               Se eliminará permanentemente la consulta de <strong>{deleteConsultation?.client_name}</strong> para <strong>{deleteConsultation?.service_name}</strong>. Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="px-5 pb-5 pt-4 flex flex-row gap-3 sm:space-x-0">
+            <AlertDialogCancel
+              disabled={deleting}
+              className="flex-1 h-11 text-sm font-medium mt-0"
+            >
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="flex-1 h-11 text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting ? 'Eliminando...' : 'Eliminar'}
             </AlertDialogAction>

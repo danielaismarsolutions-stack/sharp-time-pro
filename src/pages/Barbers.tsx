@@ -118,14 +118,14 @@ export default function Barbers() {
   );
 
   const handleSaveBarber = async (data: CreateBarberData, avatarFile?: File | null) => {
-    const confirmed = await confirm({
-      title: selectedBarber ? 'Actualizar barbero' : 'Crear barbero',
-      description: selectedBarber
-        ? `¿Confirmar los cambios en el barbero "${data.name}"?`
-        : `¿Confirmar la creación del barbero "${data.name}"?`,
-      confirmLabel: selectedBarber ? 'Actualizar' : 'Crear',
-    });
-    if (!confirmed) return;
+    if (selectedBarber) {
+      const confirmed = await confirm({
+        title: 'Actualizar barbero',
+        description: `¿Confirmar los cambios en el barbero "${data.name}"?`,
+        confirmLabel: 'Actualizar',
+      });
+      if (!confirmed) return;
+    }
 
     try {
       if (selectedBarber) {
