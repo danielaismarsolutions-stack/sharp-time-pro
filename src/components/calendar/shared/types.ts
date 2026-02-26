@@ -34,6 +34,13 @@ export interface DragEndResult {
   newEndTime: string;
 }
 
+export interface EventDragEndResult {
+  eventId: string;
+  newDate: string;
+  newStartTime: string;
+  newEndTime: string;
+}
+
 export interface CalendarCardProps {
   booking: ApiBooking;
   style: { top: number; height: number };

@@ -42,6 +42,7 @@ interface ThreeDayViewProps {
   draggedBookingServiceName?: string;
   draggedBookingColorClasses?: { bg: string; border: string; text: string };
   pendingMoveBookingId?: string;
+  pendingMoveEventId?: string;
   events?: ApiCalendarEvent[];
   getEventsForDay?: (date: Date) => ApiCalendarEvent[];
   onEventClick?: (event: ApiCalendarEvent) => void;
@@ -71,6 +72,7 @@ export function ThreeDayView({
   draggedBookingServiceName,
   draggedBookingColorClasses,
   pendingMoveBookingId,
+  pendingMoveEventId,
   events = [],
   getEventsForDay: getEventsForDayProp,
   onEventClick,
@@ -515,8 +517,10 @@ export function ThreeDayView({
                         width: 'calc(100% - 4px)',
                       }}
                       onClick={() => onEventClick(event)}
+                      isDraggable={true}
                       viewMode="day"
                       isMobile={true}
+                      isPendingMove={pendingMoveEventId === event.id}
                     />
                   );
                 })}

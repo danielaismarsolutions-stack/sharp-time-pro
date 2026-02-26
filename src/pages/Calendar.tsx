@@ -73,6 +73,7 @@ import BookingModal from '@/components/bookings/BookingModal';
 import { BookingDetailModal, MonthView } from '@/components/calendar';
 import { BarberLegend } from '@/components/calendar/BarberLegend';
 import { MoveBookingConfirmDialog } from '@/components/calendar/MoveBookingConfirmDialog';
+import { MoveEventConfirmDialog } from '@/components/calendar/MoveEventConfirmDialog';
 import { CreateChoiceDialog } from '@/components/calendar/CreateChoiceDialog';
 import { EventModal, type EventFormData } from '@/components/calendar/EventModal';
 import { EventDetailModal } from '@/components/calendar/EventDetailModal';
@@ -319,6 +320,8 @@ export default function Calendar() {
   const {
     activeId,
     activeBooking,
+    activeEvent,
+    isDraggingEvent,
     dropPreview,
     handleDragStart,
     handleDragMove,
@@ -331,6 +334,10 @@ export default function Calendar() {
     pendingMove,
     confirmMove,
     cancelMove,
+    showEventConfirmDialog,
+    pendingEventMove,
+    confirmEventMove,
+    cancelEventMove,
   } = useCalendarDragDropEnhanced({
     bookings,
     barbers,
@@ -340,21 +347,42 @@ export default function Calendar() {
     onBookingsChange: setBookings,
     hourHeight: currentHourHeight,
     startHour: START_HOUR,
+    events: calendarEvents,
+    onEventUpdate: (id, updated) => {
+      setCalendarEvents(prev => prev.map(e => e.id === id ? updated : e));
+    },
+    onEventsChange: setCalendarEvents,
   });
 
-  // Compute active booking duration and client name for ghost preview cards
+  // Compute active booking/event duration and name for ghost preview cards
   const activeBookingDuration = useMemo(() => {
-    if (!activeBooking) return undefined;
-    const start = parse(activeBooking.start_time, 'HH:mm:ss', new Date());
-    const end = parse(activeBooking.end_time, 'HH:mm:ss', new Date());
-    return differenceInMinutes(end, start);
-  }, [activeBooking]);
-  const activeBookingClientName = activeBooking?.client_name;
-  const activeBookingServiceName = activeBooking?.service_name;
+    if (activeBooking) {
+      const start = parse(activeBooking.start_time, 'HH:mm:ss', new Date());
+      const end = parse(activeBooking.end_time, 'HH:mm:ss', new Date());
+      return differenceInMinutes(end, start);
+    }
+    if (activeEvent) {
+      const start = parse(activeEvent.start_time, 'HH:mm:ss', new Date());
+      const end = parse(activeEvent.end_time, 'HH:mm:ss', new Date());
+      return differenceInMinutes(end, start);
+    }
+    return undefined;
+  }, [activeBooking, activeEvent]);
+  const activeBookingClientName = activeBooking?.client_name ?? activeEvent?.name;
+  const activeBookingServiceName = activeBooking?.service_name ?? (activeEvent?.location || undefined);
   const activeBookingColorClasses = useMemo(() => {
-    if (!activeBooking) return undefined;
-    return getBarberPastelColor(activeBooking);
-  }, [activeBooking]);
+    if (activeBooking) return getBarberPastelColor(activeBooking);
+    if (activeEvent) {
+      // Use event's own color for ghost preview
+      return {
+        bg: 'bg-muted',
+        hover: 'hover:bg-muted',
+        text: 'text-foreground',
+        border: 'border-l-muted-foreground',
+      };
+    }
+    return undefined;
+  }, [activeBooking, activeEvent]);
 
   // Configure sensors for drag-drop with long-press on mobile
   // Touch delay of 300ms prevents conflicts with scrolling on mobile
@@ -1048,8 +1076,10 @@ export default function Calendar() {
                     width: 'calc(100% - 8px)',
                   }}
                   onClick={() => openEventDetail(event)}
+                  isDraggable={true}
                   viewMode="day"
                   isMobile={isMobile}
+                  isPendingMove={pendingEventMove?.event.id === event.id}
                 />
               );
             })}
@@ -1211,7 +1241,9 @@ export default function Calendar() {
                         width: 'calc(100% - 4px)',
                       }}
                       onClick={() => openEventDetail(event)}
+                      isDraggable={true}
                       viewMode="week"
+                      isPendingMove={pendingEventMove?.event.id === event.id}
                     />
                   );
                 })}
@@ -1341,6 +1373,7 @@ export default function Calendar() {
                 draggedBookingServiceName={activeBookingServiceName}
                 draggedBookingColorClasses={activeBookingColorClasses}
                 pendingMoveBookingId={pendingMove?.booking.id}
+                pendingMoveEventId={pendingEventMove?.event.id}
                 events={calendarEvents}
                 getEventsForDay={getEventsForDay}
                 onEventClick={openEventDetail}
@@ -1584,6 +1617,15 @@ export default function Calendar() {
           details={pendingMove}
           onConfirm={confirmMove}
           onCancel={cancelMove}
+          isLoading={isUpdating}
+        />
+
+        {/* Move Event Confirmation Dialog */}
+        <MoveEventConfirmDialog
+          open={showEventConfirmDialog}
+          details={pendingEventMove}
+          onConfirm={confirmEventMove}
+          onCancel={cancelEventMove}
           isLoading={isUpdating}
         />
 
