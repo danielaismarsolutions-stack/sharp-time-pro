@@ -119,14 +119,14 @@ export default function Services() {
   };
 
   const handleSaveService = async (serviceData: Partial<Service>) => {
-    const confirmed = await confirm({
-      title: editingService ? 'Actualizar servicio' : 'Crear servicio',
-      description: editingService
-        ? `¿Confirmar los cambios en el servicio "${serviceData.name || editingService.name}"?`
-        : `¿Confirmar la creación del servicio "${serviceData.name}"?`,
-      confirmLabel: editingService ? 'Actualizar' : 'Crear',
-    });
-    if (!confirmed) return;
+    if (editingService) {
+      const confirmed = await confirm({
+        title: 'Actualizar servicio',
+        description: `¿Confirmar los cambios en el servicio "${serviceData.name || editingService.name}"?`,
+        confirmLabel: 'Actualizar',
+      });
+      if (!confirmed) return;
+    }
 
     try {
       if (editingService) {

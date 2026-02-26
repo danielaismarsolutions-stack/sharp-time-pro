@@ -856,14 +856,14 @@ export default function Calendar() {
   };
 
   const handleSaveEvent = async (data: EventFormData) => {
-    const confirmed = await confirm({
-      title: selectedEvent ? 'Actualizar evento' : 'Crear evento',
-      description: selectedEvent
-        ? '¿Confirmar los cambios en este evento?'
-        : '¿Confirmar la creación de este nuevo evento?',
-      confirmLabel: selectedEvent ? 'Actualizar' : 'Crear',
-    });
-    if (!confirmed) return;
+    if (selectedEvent) {
+      const confirmed = await confirm({
+        title: 'Actualizar evento',
+        description: '¿Confirmar los cambios en este evento?',
+        confirmLabel: 'Actualizar',
+      });
+      if (!confirmed) return;
+    }
 
     try {
       if (selectedEvent) {
@@ -1500,14 +1500,14 @@ export default function Calendar() {
             return newClient;
           }}
           onSave={async (data) => {
-            const confirmed = await confirm({
-              title: selectedBooking ? 'Actualizar cita' : 'Crear cita',
-              description: selectedBooking
-                ? `¿Confirmar los cambios en la cita de ${data.clientName}?`
-                : `¿Confirmar la creación de la cita para ${data.clientName}?`,
-              confirmLabel: selectedBooking ? 'Actualizar' : 'Crear',
-            });
-            if (!confirmed) return;
+            if (selectedBooking) {
+              const confirmed = await confirm({
+                title: 'Actualizar cita',
+                description: `¿Confirmar los cambios en la cita de ${data.clientName}?`,
+                confirmLabel: 'Actualizar',
+              });
+              if (!confirmed) return;
+            }
 
             try {
               const selectedService = services.find(s => s.id === data.serviceId);
