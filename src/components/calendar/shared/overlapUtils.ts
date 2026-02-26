@@ -3,8 +3,15 @@ import { parse } from 'date-fns';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { OverlapInfo } from './types';
 
-// Check if two bookings overlap
-export const doBookingsOverlap = (a: ApiBooking, b: ApiBooking): boolean => {
+// Generic interface for any item with a time range
+interface TimeSlotItem {
+  id: string;
+  start_time: string; // HH:mm:ss
+  end_time: string;   // HH:mm:ss
+}
+
+// Check if two time-slot items overlap
+export const doTimeSlotsOverlap = (a: TimeSlotItem, b: TimeSlotItem): boolean => {
   const aStart = parse(a.start_time, 'HH:mm:ss', new Date());
   const aEnd = parse(a.end_time, 'HH:mm:ss', new Date());
   const bStart = parse(b.start_time, 'HH:mm:ss', new Date());
@@ -12,17 +19,25 @@ export const doBookingsOverlap = (a: ApiBooking, b: ApiBooking): boolean => {
   return aStart < bEnd && aEnd > bStart;
 };
 
-// Calculate horizontal position for overlapping bookings
-export const getOverlapInfo = (bookings: ApiBooking[], booking: ApiBooking): OverlapInfo => {
-  // Find all bookings that overlap with the current one
-  const overlapping = bookings.filter(b => doBookingsOverlap(booking, b));
-  // Sort overlapping bookings by start time, then by id for consistency
+// Check if two bookings overlap
+export const doBookingsOverlap = (a: ApiBooking, b: ApiBooking): boolean => {
+  return doTimeSlotsOverlap(a, b);
+};
+
+// Calculate horizontal position for an item among all overlapping items (bookings + events)
+export const getUnifiedOverlapInfo = (allItems: TimeSlotItem[], item: TimeSlotItem): OverlapInfo => {
+  const overlapping = allItems.filter(b => doTimeSlotsOverlap(item, b));
   overlapping.sort((a, b) => {
     const timeComp = a.start_time.localeCompare(b.start_time);
     return timeComp !== 0 ? timeComp : a.id.localeCompare(b.id);
   });
-  const index = overlapping.findIndex(b => b.id === booking.id);
+  const index = overlapping.findIndex(b => b.id === item.id);
   return { total: overlapping.length, index };
+};
+
+// Calculate horizontal position for overlapping bookings (legacy - delegates to unified)
+export const getOverlapInfo = (bookings: ApiBooking[], booking: ApiBooking): OverlapInfo => {
+  return getUnifiedOverlapInfo(bookings, booking);
 };
 
 // Calculate booking position and height
