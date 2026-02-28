@@ -10,7 +10,7 @@ import { supabaseStorageApi } from '@/services/supabaseStorage';
 import { supabase } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
 import { useAuth } from '@/contexts/AuthContext';
-import { createNotification } from '@/services/supabaseNotifications';
+import { notifyAllAdmins } from '@/services/supabaseNotifications';
 import BarberCard from '@/components/barbers/BarberCard';
 import BarberModal from '@/components/barbers/BarberModal';
 import ScheduleEditor from '@/components/barbers/ScheduleEditor';
@@ -132,23 +132,20 @@ export default function Barbers() {
         // Updating existing barber - avatar already handled in modal
         await supabaseBarbersApi.update(selectedBarber.id, data);
 
-        // Create notification for barber update
-        if (user?.id) {
-          try {
-            await createNotification({
-              user_id: user.id,
-              business_id: getBusinessId(),
-              type: 'barber_modified',
-              title: 'Barbero modificado',
-              message: `${user.name} actualizó el perfil de ${data.name}`,
-              metadata: {
-                barber_id: selectedBarber.id,
-                barber_name: data.name,
-                modified_by: user.name,
-              },
-            });
-          } catch { /* ignored */ }
-        }
+        // Notify all admins about barber update
+        try {
+          await notifyAllAdmins({
+            business_id: getBusinessId(),
+            type: 'barber_modified',
+            title: 'Barbero modificado',
+            message: `${user?.name || 'Usuario'} actualizó el perfil de ${data.name}`,
+            metadata: {
+              barber_id: selectedBarber.id,
+              barber_name: data.name,
+              modified_by: user?.name,
+            },
+          });
+        } catch { /* ignored */ }
 
         toast({ title: 'Barbero actualizado' });
       } else {
@@ -168,23 +165,20 @@ export default function Barbers() {
           }
         }
 
-        // Create notification for barber creation
-        if (user?.id) {
-          try {
-            await createNotification({
-              user_id: user.id,
-              business_id: getBusinessId(),
-              type: 'barber_created',
-              title: 'Nuevo barbero',
-              message: `${user.name} creó el barbero "${data.name}"`,
-              metadata: {
-                barber_id: newBarber.id,
-                barber_name: data.name,
-                created_by: user.name,
-              },
-            });
-          } catch { /* ignored */ }
-        }
+        // Notify all admins about barber creation
+        try {
+          await notifyAllAdmins({
+            business_id: getBusinessId(),
+            type: 'barber_created',
+            title: 'Nuevo barbero',
+            message: `${user?.name || 'Usuario'} creó el barbero "${data.name}"`,
+            metadata: {
+              barber_id: newBarber.id,
+              barber_name: data.name,
+              created_by: user?.name,
+            },
+          });
+        } catch { /* ignored */ }
 
         toast({ title: 'Barbero creado' });
       }
@@ -212,23 +206,20 @@ export default function Barbers() {
     try {
       await supabaseBarbersApi.updateSchedule(editingBarber.id, schedule);
 
-      // Create notification for schedule update
-      if (user?.id) {
-        try {
-          await createNotification({
-            user_id: user.id,
-            business_id: getBusinessId(),
-            type: 'schedule_modified',
-            title: 'Horario modificado',
-            message: `${user.name} actualizó el horario de ${editingBarber.name}`,
-            metadata: {
-              barber_id: editingBarber.id,
-              barber_name: editingBarber.name,
-              modified_by: user.name,
-            },
-          });
-        } catch { /* ignored */ }
-      }
+      // Notify all admins about schedule update
+      try {
+        await notifyAllAdmins({
+          business_id: getBusinessId(),
+          type: 'schedule_modified',
+          title: 'Horario modificado',
+          message: `${user?.name || 'Usuario'} actualizó el horario de ${editingBarber.name}`,
+          metadata: {
+            barber_id: editingBarber.id,
+            barber_name: editingBarber.name,
+            modified_by: user?.name,
+          },
+        });
+      } catch { /* ignored */ }
 
       toast({ title: 'Horario actualizado' });
       await loadBarbers();
@@ -256,23 +247,20 @@ export default function Barbers() {
     try {
       await supabaseBarbersApi.updateTimeOff(editingBarber.id, timeOff);
 
-      // Create notification for time off update
-      if (user?.id) {
-        try {
-          await createNotification({
-            user_id: user.id,
-            business_id: getBusinessId(),
-            type: 'time_off_modified',
-            title: 'Días libres modificados',
-            message: `${user.name} actualizó los días libres de ${editingBarber.name}`,
-            metadata: {
-              barber_id: editingBarber.id,
-              barber_name: editingBarber.name,
-              modified_by: user.name,
-            },
-          });
-        } catch { /* ignored */ }
-      }
+      // Notify all admins about time off update
+      try {
+        await notifyAllAdmins({
+          business_id: getBusinessId(),
+          type: 'time_off_modified',
+          title: 'Días libres modificados',
+          message: `${user?.name || 'Usuario'} actualizó los días libres de ${editingBarber.name}`,
+          metadata: {
+            barber_id: editingBarber.id,
+            barber_name: editingBarber.name,
+            modified_by: user?.name,
+          },
+        });
+      } catch { /* ignored */ }
 
       toast({ title: 'Días libres actualizados' });
       await loadBarbers();

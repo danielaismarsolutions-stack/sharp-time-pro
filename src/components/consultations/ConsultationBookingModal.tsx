@@ -34,7 +34,7 @@ import { supabaseBookingsApi, CreateBookingData } from '@/services/supabaseBooki
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { supabaseClientsApi } from '@/services/supabaseClients';
-import { createNotification } from '@/services/supabaseNotifications';
+import { notifyAllAdmins } from '@/services/supabaseNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
 
@@ -245,26 +245,23 @@ export function ConsultationBookingModal({
 
       const newBooking = await supabaseBookingsApi.create(bookingData);
       
-      // Create notification for booking from consultation
-      if (user?.id) {
-        try {
-          await createNotification({
-            user_id: user.id,
-            business_id: getBusinessId(),
-            type: 'booking_created',
-            title: 'Nueva reserva desde consulta',
-            message: `${consultation.client_name} ha reservado ${selectedService.name} para el ${format(date, "dd/MM/yyyy", { locale: es })} a las ${formData.time}`,
-            metadata: {
-              booking_id: newBooking.id,
-              consultation_id: consultation.id,
-              client_name: consultation.client_name,
-              service_name: selectedService.name,
-              booking_date: format(date, 'yyyy-MM-dd'),
-              start_time: formData.time,
-            },
-          });
-        } catch { /* ignored */ }
-      }
+      // Notify all admins about booking from consultation
+      try {
+        await notifyAllAdmins({
+          business_id: getBusinessId(),
+          type: 'booking_created',
+          title: 'Nueva reserva desde consulta',
+          message: `${consultation.client_name} ha reservado ${selectedService.name} para el ${format(date, "dd/MM/yyyy", { locale: es })} a las ${formData.time}`,
+          metadata: {
+            booking_id: newBooking.id,
+            consultation_id: consultation.id,
+            client_name: consultation.client_name,
+            service_name: selectedService.name,
+            booking_date: format(date, 'yyyy-MM-dd'),
+            start_time: formData.time,
+          },
+        });
+      } catch { /* ignored */ }
       
       toast({
         title: 'Cita creada',

@@ -55,7 +55,7 @@ import { supabaseClientsApi } from '@/services/supabaseClients';
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBookingsApi, supabaseEventBookingsApi } from '@/services/supabaseBookings';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
-import { createNotification } from '@/services/supabaseNotifications';
+import { notifyAllAdmins } from '@/services/supabaseNotifications';
 import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
@@ -256,11 +256,10 @@ export default function Calendar() {
         async (payload) => {
           const newBooking = payload.new as ApiBooking;
 
-          // Only create notification if booking was created from web (not from this session)
+          // Notify all admins when a booking comes in from online
           if (newBooking.source === 'online') {
             try {
-              await createNotification({
-                user_id: user.id,
+              await notifyAllAdmins({
                 business_id: getBusinessId(),
                 type: 'booking_created',
                 title: 'Nueva reserva online',
@@ -676,21 +675,20 @@ export default function Calendar() {
     try {
       await supabaseBookingsApi.updateStatus(bookingId, status as ApiBookingStatus);
 
-      // Create notification for status change
-      if (user?.id) {
+      // Notify all admins about status change
+      {
         const booking = previousBookings.find((b) => b.id === bookingId);
         try {
-          await createNotification({
-            user_id: user.id,
+          await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'booking_status_changed',
             title: 'Estado de cita cambiado',
-            message: `${user.name} cambió la cita de ${booking?.client_name || 'cliente'} a "${statusLabels[status]}"`,
+            message: `${user?.name || 'Usuario'} cambió la cita de ${booking?.client_name || 'cliente'} a "${statusLabels[status]}"`,
             metadata: {
               booking_id: bookingId,
               client_name: booking?.client_name,
               new_status: status,
-              changed_by: user.name,
+              changed_by: user?.name,
             },
           });
         } catch { /* ignored */ }
@@ -722,20 +720,19 @@ export default function Calendar() {
     try {
       await supabaseBookingsApi.delete(bookingId);
 
-      // Create notification for booking deletion
-      if (user?.id && deletedBooking) {
+      // Notify all admins about booking deletion
+      if (deletedBooking) {
         try {
-          await createNotification({
-            user_id: user.id,
+          await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'booking_deleted',
             title: 'Cita eliminada',
-            message: `${user.name} eliminó la cita de ${deletedBooking.client_name} (${deletedBooking.service_name})`,
+            message: `${user?.name || 'Usuario'} eliminó la cita de ${deletedBooking.client_name} (${deletedBooking.service_name})`,
             metadata: {
               booking_id: bookingId,
               client_name: deletedBooking.client_name,
               service_name: deletedBooking.service_name,
-              deleted_by: user.name,
+              deleted_by: user?.name,
             },
           });
         } catch { /* ignored */ }
@@ -813,19 +810,18 @@ export default function Calendar() {
     try {
       await supabaseEventBookingsApi.delete(eventId);
 
-      // Create notification for event deletion
-      if (user?.id && deletedEvent) {
+      // Notify all admins about event deletion
+      if (deletedEvent) {
         try {
-          await createNotification({
-            user_id: user.id,
+          await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'event_deleted',
             title: 'Evento eliminado',
-            message: `${user.name} eliminó el evento "${deletedEvent.name}"`,
+            message: `${user?.name || 'Usuario'} eliminó el evento "${deletedEvent.name}"`,
             metadata: {
               event_id: eventId,
               event_name: deletedEvent.name,
-              deleted_by: user.name,
+              deleted_by: user?.name,
             },
           });
         } catch { /* ignored */ }
@@ -891,24 +887,21 @@ export default function Calendar() {
           prev.map((e) => (e.id === selectedEvent.id ? updatedEvent : e))
         );
 
-        // Create notification for event update
-        if (user?.id) {
-          try {
-            await createNotification({
-              user_id: user.id,
-              business_id: getBusinessId(),
-              type: 'event_modified',
-              title: 'Evento modificado',
-              message: `${user.name} modificó el evento "${data.name}"`,
-              metadata: {
-                event_id: selectedEvent.id,
-                event_name: data.name,
-                event_date: data.date,
-                modified_by: user.name,
-              },
-            });
-          } catch { /* ignored */ }
-        }
+        // Notify all admins about event update
+        try {
+          await notifyAllAdmins({
+            business_id: getBusinessId(),
+            type: 'event_modified',
+            title: 'Evento modificado',
+            message: `${user?.name || 'Usuario'} modificó el evento "${data.name}"`,
+            metadata: {
+              event_id: selectedEvent.id,
+              event_name: data.name,
+              event_date: data.date,
+              modified_by: user?.name,
+            },
+          });
+        } catch { /* ignored */ }
 
         toast({ title: 'Evento actualizado correctamente' });
       } else {
@@ -929,24 +922,21 @@ export default function Calendar() {
         const createdEvent = bookingToCalendarEvent(createdBooking);
         setCalendarEvents((prev) => [...prev, createdEvent]);
 
-        // Create notification for new event
-        if (user?.id) {
-          try {
-            await createNotification({
-              user_id: user.id,
-              business_id: getBusinessId(),
-              type: 'event_created',
-              title: 'Nuevo evento creado',
-              message: `${user.name} creó el evento "${data.name}" para el ${format(new Date(data.date), 'dd/MM/yyyy', { locale: es })}`,
-              metadata: {
-                event_id: createdBooking.id,
-                event_name: data.name,
-                event_date: data.date,
-                created_by: user.name,
+        // Notify all admins about new event
+        try {
+          await notifyAllAdmins({
+            business_id: getBusinessId(),
+            type: 'event_created',
+            title: 'Nuevo evento creado',
+            message: `${user?.name || 'Usuario'} creó el evento "${data.name}" para el ${format(new Date(data.date), 'dd/MM/yyyy', { locale: es })}`,
+            metadata: {
+              event_id: createdBooking.id,
+              event_name: data.name,
+              event_date: data.date,
+              created_by: user?.name,
               },
             });
           } catch { /* ignored */ }
-        }
 
         toast({ title: 'Evento creado correctamente' });
       }
@@ -1558,26 +1548,23 @@ export default function Calendar() {
                 
                 setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updatedBooking : b));
                 
-                // Create notification for booking modification
-                if (user?.id) {
-                  try {
-                    await createNotification({
-                      user_id: user.id,
-                      business_id: getBusinessId(),
-                      type: 'booking_modified',
-                      title: 'Reserva modificada',
-                      message: `${user.name} modificó la cita de ${data.clientName} (${data.serviceName}) al ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
-                      metadata: {
-                        booking_id: selectedBooking.id,
-                        client_name: data.clientName,
-                        service_name: data.serviceName,
-                        booking_date: data.date,
-                        start_time: data.time,
-                        modified_by: user.name,
-                      },
-                    });
-                  } catch { /* ignored */ }
-                }
+                // Notify all admins about booking modification
+                try {
+                  await notifyAllAdmins({
+                    business_id: getBusinessId(),
+                    type: 'booking_modified',
+                    title: 'Reserva modificada',
+                    message: `${user?.name || 'Usuario'} modificó la cita de ${data.clientName} (${data.serviceName}) al ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
+                    metadata: {
+                      booking_id: selectedBooking.id,
+                      client_name: data.clientName,
+                      service_name: data.serviceName,
+                      booking_date: data.date,
+                      start_time: data.time,
+                      modified_by: user?.name,
+                    },
+                  });
+                } catch { /* ignored */ }
                 
                 toast({ title: 'Cita actualizada correctamente' });
               } else {
@@ -1602,26 +1589,23 @@ export default function Calendar() {
                 
                 setBookings(prev => [...prev, newBooking]);
                 
-                // Create notification for new booking
-                if (user?.id) {
-                  try {
-                    await createNotification({
-                      user_id: user.id,
-                      business_id: getBusinessId(),
-                      type: 'booking_created',
-                      title: 'Nueva reserva',
-                      message: `${user.name} creó una cita para ${data.clientName} (${data.serviceName}) el ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
-                      metadata: {
-                        booking_id: newBooking.id,
-                        client_name: data.clientName,
-                        service_name: data.serviceName,
-                        booking_date: data.date,
-                        start_time: data.time,
-                        created_by: user.name,
-                      },
-                    });
-                  } catch { /* ignored */ }
-                }
+                // Notify all admins about new booking
+                try {
+                  await notifyAllAdmins({
+                    business_id: getBusinessId(),
+                    type: 'booking_created',
+                    title: 'Nueva reserva',
+                    message: `${user?.name || 'Usuario'} creó una cita para ${data.clientName} (${data.serviceName}) el ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
+                    metadata: {
+                      booking_id: newBooking.id,
+                      client_name: data.clientName,
+                      service_name: data.serviceName,
+                      booking_date: data.date,
+                      start_time: data.time,
+                      created_by: user?.name,
+                    },
+                  });
+                } catch { /* ignored */ }
                 
                 toast({ title: 'Cita creada correctamente' });
               }

@@ -9,7 +9,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
 import { supabaseConsultationsApi } from '@/services/supabaseConsultations';
-import { createNotification } from '@/services/supabaseNotifications';
+import { notifyAllAdmins } from '@/services/supabaseNotifications';
 import { Consultation, ConsultationStatus, STATUS_CONFIG } from '@/types/consultation';
 import { ConsultationTable } from '@/components/consultations/ConsultationTable';
 import { ConsultationCard } from '@/components/consultations/ConsultationCard';
@@ -86,11 +86,10 @@ export default function Consultations() {
       // Refresh the list
       fetchConsultations();
       
-      // Create notification for new consultations
-      if (payload.eventType === 'INSERT' && payload.new && user?.id) {
+      // Notify all admins about new consultations
+      if (payload.eventType === 'INSERT' && payload.new) {
         try {
-          await createNotification({
-            user_id: user.id,
+          await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'consultation_created',
             title: 'Nueva consulta recibida',
@@ -149,21 +148,20 @@ export default function Consultations() {
     try {
       await supabaseConsultationsApi.updateStatus(id, status);
 
-      // Create notification for consultation status change
-      if (user?.id) {
+      // Notify all admins about consultation status change
+      {
         const consultation = consultations.find((c) => c.id === id);
         try {
-          await createNotification({
-            user_id: user.id,
+          await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'consultation_updated',
             title: 'Estado de consulta actualizado',
-            message: `${user.name} marcó la consulta de ${consultation?.client_name || 'cliente'} como "${STATUS_CONFIG[status].label}"`,
+            message: `${user?.name || 'Usuario'} marcó la consulta de ${consultation?.client_name || 'cliente'} como "${STATUS_CONFIG[status].label}"`,
             metadata: {
               consultation_id: id,
               client_name: consultation?.client_name,
               new_status: status,
-              modified_by: user.name,
+              modified_by: user?.name,
             },
           });
         } catch { /* ignored */ }
@@ -240,24 +238,21 @@ export default function Consultations() {
       // Mark consultation as scheduled
       await supabaseConsultationsApi.markAsScheduled(bookingConsultation.id);
       
-      // Create notification for consultation scheduled
-      if (user?.id) {
-        try {
-          await createNotification({
-            user_id: user.id,
-            business_id: getBusinessId(),
-            type: 'consultation_updated',
-            title: 'Consulta programada',
-            message: `${user.name} convirtió la consulta de ${bookingConsultation.client_name} (${bookingConsultation.service_name}) a reserva`,
-            metadata: {
-              consultation_id: bookingConsultation.id,
-              client_name: bookingConsultation.client_name,
-              service_name: bookingConsultation.service_name,
-              modified_by: user.name,
-            },
-          });
-        } catch { /* ignored */ }
-      }
+      // Notify all admins about consultation scheduled
+      try {
+        await notifyAllAdmins({
+          business_id: getBusinessId(),
+          type: 'consultation_updated',
+          title: 'Consulta programada',
+          message: `${user?.name || 'Usuario'} convirtió la consulta de ${bookingConsultation.client_name} (${bookingConsultation.service_name}) a reserva`,
+          metadata: {
+            consultation_id: bookingConsultation.id,
+            client_name: bookingConsultation.client_name,
+            service_name: bookingConsultation.service_name,
+            modified_by: user?.name,
+          },
+        });
+      } catch { /* ignored */ }
       
       // Refresh consultations
       fetchConsultations();
@@ -283,23 +278,20 @@ export default function Consultations() {
         setSelectedConsultation(null);
       }
 
-      // Create notification for consultation deletion
-      if (user?.id) {
-        try {
-          await createNotification({
-            user_id: user.id,
-            business_id: getBusinessId(),
-            type: 'consultation_deleted',
-            title: 'Consulta eliminada',
-            message: `${user.name} eliminó la consulta de ${deleteConsultation.client_name}`,
-            metadata: {
-              consultation_id: deleteConsultation.id,
-              client_name: deleteConsultation.client_name,
-              deleted_by: user.name,
-            },
-          });
-        } catch { /* ignored */ }
-      }
+      // Notify all admins about consultation deletion
+      try {
+        await notifyAllAdmins({
+          business_id: getBusinessId(),
+          type: 'consultation_deleted',
+          title: 'Consulta eliminada',
+          message: `${user?.name || 'Usuario'} eliminó la consulta de ${deleteConsultation.client_name}`,
+          metadata: {
+            consultation_id: deleteConsultation.id,
+            client_name: deleteConsultation.client_name,
+            deleted_by: user?.name,
+          },
+        });
+      } catch { /* ignored */ }
 
       toast({
         title: 'Consulta eliminada',

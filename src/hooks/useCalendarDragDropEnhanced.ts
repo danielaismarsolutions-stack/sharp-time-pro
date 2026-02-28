@@ -8,7 +8,7 @@ import { es } from 'date-fns/locale';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Barber, BarberSchedule } from '@/types/barber';
 import { supabaseBookingsApi, supabaseEventBookingsApi, UpdateBookingData } from '@/services/supabaseBookings';
-import { createNotification } from '@/services/supabaseNotifications';
+import { notifyAllAdmins } from '@/services/supabaseNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
 import { useToast } from '@/hooks/use-toast';
@@ -621,25 +621,22 @@ export function useCalendarDragDropEnhanced({
       onBookingUpdate(bookingId, updated);
       setUndoStack(prev => [...prev.slice(-9), { bookingId, previousState }]);
 
-      // Create notification for the booking modification
-      if (user?.id) {
-        try {
-          await createNotification({
-            user_id: user.id,
-            business_id: getBusinessId(),
-            type: 'booking_modified',
-            title: 'Reserva modificada',
-            message: `${booking.client_name} ha modificado su reserva de ${booking.service_name} al ${format(new Date(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,
-            metadata: {
-              booking_id: bookingId,
-              client_name: booking.client_name,
-              service_name: booking.service_name,
-              booking_date: newDate,
-              start_time: newStartTime,
-            },
-          });
-        } catch { /* ignored */ }
-      }
+      // Notify all admins about booking modification
+      try {
+        await notifyAllAdmins({
+          business_id: getBusinessId(),
+          type: 'booking_modified',
+          title: 'Reserva modificada',
+          message: `${booking.client_name} ha modificado su reserva de ${booking.service_name} al ${format(new Date(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,
+          metadata: {
+            booking_id: bookingId,
+            client_name: booking.client_name,
+            service_name: booking.service_name,
+            booking_date: newDate,
+            start_time: newStartTime,
+          },
+        });
+      } catch { /* ignored */ }
 
       // Haptic feedback on success
       if ('vibrate' in navigator) {
@@ -710,24 +707,21 @@ export function useCalendarDragDropEnhanced({
       };
       onEventUpdate(evt.id, updatedEvent);
 
-      // Create notification
-      if (user?.id) {
-        try {
-          await createNotification({
-            user_id: user.id,
-            business_id: getBusinessId(),
-            type: 'event_modified',
-            title: 'Evento movido',
-            message: `${user.name} movió el evento "${evt.name}" al ${format(new Date(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,
-            metadata: {
-              event_id: evt.id,
-              event_name: evt.name,
-              event_date: newDate,
-              start_time: newStartTime,
-            },
-          });
-        } catch { /* ignored */ }
-      }
+      // Notify all admins about event move
+      try {
+        await notifyAllAdmins({
+          business_id: getBusinessId(),
+          type: 'event_modified',
+          title: 'Evento movido',
+          message: `${user?.name || 'Usuario'} movió el evento "${evt.name}" al ${format(new Date(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,
+          metadata: {
+            event_id: evt.id,
+            event_name: evt.name,
+            event_date: newDate,
+            start_time: newStartTime,
+          },
+        });
+      } catch { /* ignored */ }
 
       if ('vibrate' in navigator) {
         navigator.vibrate([10, 50, 10]);

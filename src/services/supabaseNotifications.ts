@@ -176,3 +176,64 @@ export async function createNotification(data: CreateNotificationData): Promise<
   const notifications = await response.json();
   return notifications[0];
 }
+
+// Fetch all admin/owner user IDs for a business
+async function fetchAdminUserIds(businessId: string): Promise<string[]> {
+  const headers = await getAuthHeaders();
+  const url = `${SUPABASE_CONFIG.url}/rest/v1/users?business_id=eq.${businessId}&or=(role.eq.admin,role.eq.owner)&select=id`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    return [];
+  }
+
+  const users: { id: string }[] = await response.json();
+  return users.map((u) => u.id);
+}
+
+export interface NotifyAdminsData {
+  business_id: string;
+  type: DbNotificationType;
+  title: string;
+  message: string;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Creates a notification for ALL admin/owner users in the business.
+ * This ensures admins see all bookings, consultations, changes, and deletions.
+ */
+export async function notifyAllAdmins(data: NotifyAdminsData): Promise<void> {
+  const adminIds = await fetchAdminUserIds(data.business_id);
+  if (adminIds.length === 0) return;
+
+  const headers = await getAuthHeaders();
+  const url = `${SUPABASE_CONFIG.url}/rest/v1/notifications`;
+
+  // Create one notification row per admin user
+  const rows = adminIds.map((adminId) => ({
+    user_id: adminId,
+    business_id: data.business_id,
+    type: data.type,
+    title: data.title,
+    message: data.message,
+    metadata: data.metadata || null,
+    is_read: false,
+  }));
+
+  // Batch insert all notifications in a single request
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { ...headers, 'Prefer': 'return=minimal' },
+    body: JSON.stringify(rows),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to notify admins: ${response.status}`);
+  }
+}
