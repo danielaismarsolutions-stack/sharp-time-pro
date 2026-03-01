@@ -1210,7 +1210,7 @@ export default function Calendar() {
                   return (
                     <>
                       {dayBookings.map((booking) => {
-                        const style = getBookingPosition(booking, HOUR_HEIGHT_WEEK);
+                        const style = getBookingPosition(booking, HOUR_HEIGHT_WEEK, START_HOUR);
                         const overlapInfo = getUnifiedOverlapInfo(allItems, booking);
                         const colorClasses = getServicePastelColor(booking, services);
 
@@ -1237,7 +1237,7 @@ export default function Calendar() {
                         );
                       })}
                       {dayEvents.map((event) => {
-                        const evtStyle = getEventPosition(event, HOUR_HEIGHT_WEEK);
+                        const evtStyle = getEventPosition(event, HOUR_HEIGHT_WEEK, START_HOUR);
                         const overlapInfo = getUnifiedOverlapInfo(allItems, event);
 
                         const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 2px)`;
