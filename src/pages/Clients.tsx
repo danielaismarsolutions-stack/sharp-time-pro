@@ -41,7 +41,7 @@ import { cn } from '@/lib/utils';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
-import { createNotification } from '@/services/supabaseNotifications';
+import { notifyAllAdmins } from '@/services/supabaseNotifications';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import ClientModal from '@/components/clients/ClientModal';
 import { AnimatedCard, AnimatedList, AnimatedListItem } from '@/components/ui/animated-card';
@@ -177,46 +177,40 @@ export default function Clients() {
         const updated = await supabaseClientsApi.update(editingClient.id, clientData);
         setClients((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
 
-        // Create notification for client update
-        if (user?.id) {
-          try {
-            await createNotification({
-              user_id: user.id,
-              business_id: getBusinessId(),
-              type: 'client_modified',
-              title: 'Cliente modificado',
-              message: `${user.name} actualizó el cliente "${clientData.name || editingClient.name}"`,
-              metadata: {
-                client_id: editingClient.id,
-                client_name: clientData.name || editingClient.name,
-                modified_by: user.name,
-              },
-            });
-          } catch { /* ignored */ }
-        }
+        // Notify all admins about client update
+        try {
+          await notifyAllAdmins({
+            business_id: getBusinessId(),
+            type: 'client_modified',
+            title: 'Cliente modificado',
+            message: `${user?.name || 'Usuario'} actualizó el cliente "${clientData.name || editingClient.name}"`,
+            metadata: {
+              client_id: editingClient.id,
+              client_name: clientData.name || editingClient.name,
+              modified_by: user?.name,
+            },
+          });
+        } catch { /* ignored */ }
 
         toast({ title: 'Cliente actualizado correctamente' });
       } else {
         const created = await supabaseClientsApi.create(clientData as Omit<Client, 'id' | 'createdAt' | 'totalVisits' | 'totalSpent' | 'lastVisit'>);
         setClients((prev) => [created, ...prev]);
 
-        // Create notification for client creation
-        if (user?.id) {
-          try {
-            await createNotification({
-              user_id: user.id,
-              business_id: getBusinessId(),
-              type: 'client_created',
-              title: 'Nuevo cliente',
-              message: `${user.name} creó el cliente "${clientData.name}"`,
-              metadata: {
-                client_id: created.id,
-                client_name: clientData.name,
-                created_by: user.name,
-              },
-            });
-          } catch { /* ignored */ }
-        }
+        // Notify all admins about client creation
+        try {
+          await notifyAllAdmins({
+            business_id: getBusinessId(),
+            type: 'client_created',
+            title: 'Nuevo cliente',
+            message: `${user?.name || 'Usuario'} creó el cliente "${clientData.name}"`,
+            metadata: {
+              client_id: created.id,
+              client_name: clientData.name,
+              created_by: user?.name,
+            },
+          });
+        } catch { /* ignored */ }
 
         toast({ title: 'Cliente creado correctamente' });
       }
@@ -245,23 +239,20 @@ export default function Clients() {
       await supabaseClientsApi.delete(id);
       setClients((prev) => prev.filter((c) => c.id !== id));
 
-      // Create notification for client deletion
-      if (user?.id) {
-        try {
-          await createNotification({
-            user_id: user.id,
-            business_id: getBusinessId(),
-            type: 'client_deleted',
-            title: 'Cliente eliminado',
-            message: `${user.name} eliminó el cliente "${client?.name || ''}"`,
-            metadata: {
-              client_id: id,
-              client_name: client?.name,
-              deleted_by: user.name,
-            },
-          });
-        } catch { /* ignored */ }
-      }
+      // Notify all admins about client deletion
+      try {
+        await notifyAllAdmins({
+          business_id: getBusinessId(),
+          type: 'client_deleted',
+          title: 'Cliente eliminado',
+          message: `${user?.name || 'Usuario'} eliminó el cliente "${client?.name || ''}"`,
+          metadata: {
+            client_id: id,
+            client_name: client?.name,
+            deleted_by: user?.name,
+          },
+        });
+      } catch { /* ignored */ }
 
       toast({ title: 'Cliente eliminado' });
     } catch (error) {
