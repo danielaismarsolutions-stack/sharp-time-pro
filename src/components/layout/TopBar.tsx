@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Bell, Search, Command, Check, Trash2, Settings, HelpCircle, User, Loader2, Menu, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,8 +90,8 @@ export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarPr
       <div className="flex items-center gap-2 md:gap-4">
         {/* Current date/time - hidden on mobile */}
         <div className="hidden md:block text-right">
-          <p className="text-sm font-medium">{format(new Date(), 'EEEE')}</p>
-          <p className="text-xs text-muted-foreground">{format(new Date(), 'MMM d, yyyy')}</p>
+          <p className="text-sm font-medium capitalize">{format(new Date(), 'EEEE', { locale: es })}</p>
+          <p className="text-xs text-muted-foreground">{format(new Date(), "d 'de' MMM yyyy", { locale: es })}</p>
         </div>
 
         {/* Notifications */}
