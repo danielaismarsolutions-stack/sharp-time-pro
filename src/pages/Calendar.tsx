@@ -1403,6 +1403,7 @@ export default function Calendar() {
                 currentDate={currentDate}
                 bookings={filteredBookings}
                 services={services}
+                barberNames={barberNames}
                 onBookingClick={openBookingDetail}
                 getEventsForDay={getEventsForDay}
                 onEventClick={openEventDetail}
