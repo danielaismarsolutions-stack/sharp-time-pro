@@ -1150,20 +1150,48 @@ export default function Calendar() {
 
   // Render Week View
   const renderWeekView = () => (
-    <div className="flex flex-1">
-      {/* Time column */}
-      <div className="w-14 md:w-16 shrink-0 border-r border-border">
-        <div className="h-12 border-b border-border" />
-        {HOURS.map((hour) => (
-          <div
-            key={hour}
-            className="border-b border-border px-1 md:px-2 text-[10px] md:text-xs text-muted-foreground flex items-start pt-1"
-            style={{ height: HOUR_HEIGHT_WEEK }}
-          >
-            {hour.toString().padStart(2, '0')}:00
-          </div>
-        ))}
+    <div className="relative">
+      {/* Sticky Day Headers */}
+      <div className="flex sticky top-0 z-20 bg-card">
+        <div className="w-14 md:w-16 shrink-0 border-r border-b border-border" />
+        <div className="flex-1 flex">
+          {weekDays.map((day) => {
+            const isCurrentDay = isToday(day);
+            return (
+              <div
+                key={day.toString() + '-header'}
+                className={cn(
+                  'flex-1 min-w-[100px] md:min-w-[120px] border-r border-b border-border last:border-r-0 h-12 px-1 md:px-2 py-1 text-center cursor-pointer hover:bg-muted/50 transition-colors',
+                  isCurrentDay && 'bg-primary/10'
+                )}
+                onClick={() => openCreateChoice(day)}
+              >
+                <p className="text-[10px] md:text-xs text-muted-foreground uppercase">
+                  {format(day, 'EEE', { locale: es })}
+                </p>
+                <p className={cn('text-base md:text-lg font-semibold', isCurrentDay && 'text-primary')}>
+                  {format(day, 'd')}
+                </p>
+              </div>
+            );
+          })}
+        </div>
       </div>
+
+      {/* Time Grid */}
+      <div className="flex flex-1">
+        {/* Time column */}
+        <div className="w-14 md:w-16 shrink-0 border-r border-border">
+          {HOURS.map((hour) => (
+            <div
+              key={hour}
+              className="border-b border-border px-1 md:px-2 text-[10px] md:text-xs text-muted-foreground flex items-start pt-1"
+              style={{ height: HOUR_HEIGHT_WEEK }}
+            >
+              {hour.toString().padStart(2, '0')}:00
+            </div>
+          ))}
+        </div>
 
       {/* Days columns */}
       <div className="flex-1 flex overflow-x-auto">
@@ -1180,21 +1208,6 @@ export default function Calendar() {
                 isCurrentDay && 'bg-primary/5'
               )}
             >
-              {/* Day header */}
-              <div
-                className={cn(
-                  'h-12 border-b border-border px-1 md:px-2 py-1 text-center cursor-pointer hover:bg-muted/50 transition-colors',
-                  isCurrentDay && 'bg-primary/10'
-                )}
-                onClick={() => openCreateChoice(day)}
-              >
-                <p className="text-[10px] md:text-xs text-muted-foreground uppercase">
-                  {format(day, 'EEE', { locale: es })}
-                </p>
-                <p className={cn('text-base md:text-lg font-semibold', isCurrentDay && 'text-primary')}>
-                  {format(day, 'd')}
-                </p>
-              </div>
 
               {/* Hours grid */}
               <div
@@ -1317,6 +1330,7 @@ export default function Calendar() {
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );
