@@ -162,37 +162,37 @@ export function WeekView({ currentDate, bookings, services, onBookingClick }: We
             ))}
           </div>
 
-          {/* Day Columns wrapper — relative so the full-width time indicator works */}
-          <div className="flex flex-1 relative">
-            {/* Current time indicator spanning all day columns */}
-            <CurrentTimeIndicator
-              currentDate={new Date()}
-              startHour={0}
-              endHour={23}
-              hourHeight={HOUR_HEIGHT}
-              showTimeLabel={true}
-            />
+          {/* Day Columns */}
+          {weekDays.map((day) => {
+            const dateKey = format(day, 'yyyy-MM-dd');
+            const dayBookings = bookingsByDate[dateKey] || [];
 
-            {weekDays.map((day) => {
-              const dateKey = format(day, 'yyyy-MM-dd');
-              const dayBookings = bookingsByDate[dateKey] || [];
+            return (
+              <div
+                key={day.toISOString()}
+                className={cn(
+                  'flex-1 relative border-l border-border min-w-[100px]',
+                  isToday(day) && 'bg-primary/5'
+                )}
+              >
+                {/* Hour lines */}
+                {HOURS.map((hour) => (
+                  <div key={hour} className="h-[60px] border-b border-border/50 relative">
+                    <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-border/30" />
+                  </div>
+                ))}
 
-              return (
-                <div
-                  key={day.toISOString()}
-                  className={cn(
-                    'flex-1 relative border-l border-border min-w-[100px]',
-                    isToday(day) && 'bg-primary/5'
-                  )}
-                >
-                  {/* Hour lines */}
-                  {HOURS.map((hour) => (
-                    <div key={hour} className="h-[60px] border-b border-border/50 relative">
-                      <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-border/30" />
-                    </div>
-                  ))}
+                {/* Current time indicator - only on today's column */}
+                {isToday(day) && (
+                  <CurrentTimeIndicator
+                    currentDate={day}
+                    startHour={0}
+                    endHour={23}
+                    hourHeight={HOUR_HEIGHT}
+                  />
+                )}
 
-                  {/* Bookings */}
+                {/* Bookings */}
                 {dayBookings.map((booking) => {
                   const style = getBookingStyle(booking);
                   const colorClasses = getServicePastelColor(booking, services);
@@ -211,7 +211,6 @@ export function WeekView({ currentDate, bookings, services, onBookingClick }: We
               </div>
             );
           })}
-          </div>
         </div>
       </ScrollArea>
     </div>
