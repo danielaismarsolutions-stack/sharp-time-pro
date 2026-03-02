@@ -11,7 +11,7 @@ export function NexioMark({ className, size = 'md' }: { className?: string; size
 
   return (
     <img
-      src="/nexiologo.png"
+      src="/unnamed-removebg-preview.png"
       alt="Nexio"
       className={cn(sizeMap[size], 'rounded-lg object-contain', className)}
     />
