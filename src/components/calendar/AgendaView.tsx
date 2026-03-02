@@ -5,11 +5,13 @@ import { Eye } from 'lucide-react';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 import { cn } from '@/lib/utils';
+import { pastelColors } from './shared/colorUtils';
 
 interface AgendaViewProps {
   currentDate: Date;
   bookings: ApiBooking[];
   services: Service[];
+  barberNames: string[];
   onBookingClick: (booking: ApiBooking) => void;
   getEventsForDay?: (date: Date) => ApiCalendarEvent[];
   onEventClick?: (event: ApiCalendarEvent) => void;
@@ -39,10 +41,12 @@ export function AgendaView({
   currentDate,
   bookings,
   services,
+  barberNames,
   onBookingClick,
   getEventsForDay,
   onEventClick,
 }: AgendaViewProps) {
+  const sortedBarbers = useMemo(() => [...barberNames].sort(), [barberNames]);
   // Group bookings by day starting from the selected day (7 days total)
   const dayGroups = useMemo<DayGroup[]>(() => {
     const days: DayGroup[] = [];
@@ -100,6 +104,7 @@ export function AgendaView({
                   <AgendaAppointmentCard
                     key={booking.id}
                     booking={booking}
+                    sortedBarbers={sortedBarbers}
                     onClick={() => onBookingClick(booking)}
                   />
                 ))}
@@ -118,7 +123,7 @@ export function AgendaView({
 
       {/* Weekly Income Section - static at bottom of agenda, not fixed */}
       <div
-        className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-3 flex items-center justify-between md:hidden"
+        className="flex-shrink-0 bg-card border-t border-border px-4 py-3 flex items-center justify-between md:hidden"
       >
         <div className="flex items-center gap-2 text-muted-foreground">
           <Eye className="h-4 w-4" />
@@ -137,35 +142,41 @@ export function AgendaView({
 
 interface AgendaAppointmentCardProps {
   booking: ApiBooking;
+  sortedBarbers: string[];
   onClick: () => void;
 }
 
-function AgendaAppointmentCard({ booking, onClick }: AgendaAppointmentCardProps) {
+function AgendaAppointmentCard({ booking, sortedBarbers, onClick }: AgendaAppointmentCardProps) {
   const timeRange = `${formatTime12h(booking.start_time)} - ${formatTime12h(booking.end_time)}`;
+
+  const barberName = booking.barber || '';
+  const index = sortedBarbers.indexOf(barberName);
+  const colors = index >= 0
+    ? pastelColors[index % pastelColors.length]
+    : pastelColors[barberName.split('').reduce((a, b) => a + b.charCodeAt(0), 0) % pastelColors.length];
 
   return (
     <button
       onClick={onClick}
       className={cn(
         'w-full text-left rounded-lg p-3 px-4 transition-all',
-        'border-l-4 border-l-[#10B981]', // mint/teal accent
-        'bg-[#D1FAE5]', // soft mint background
-        'hover:bg-[#A7F3D0] active:scale-[0.98]',
+        'border-l-4',
+        colors.bg,
+        colors.border,
+        colors.hover,
+        'active:scale-[0.98]',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring'
       )}
       style={{ borderRadius: '8px' }}
     >
-      {/* Line 1: Client name (bold) + service name */}
-      <p className="text-sm text-gray-800">
+      <p className={cn('text-sm', colors.text)}>
         <span className="font-semibold">{booking.client_name}</span>
         {booking.service_name && (
           <span className="font-normal"> {booking.service_name}</span>
         )}
       </p>
-
-      {/* Line 2: Time range */}
-      <p className="text-xs text-gray-600 mt-0.5">
-        {timeRange}
+      <p className={cn('text-xs mt-0.5 opacity-70', colors.text)}>
+        {timeRange}{barberName && ` · ${barberName}`}
       </p>
     </button>
   );
