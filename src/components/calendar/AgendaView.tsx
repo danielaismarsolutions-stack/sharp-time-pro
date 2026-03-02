@@ -89,7 +89,7 @@ export function AgendaView({
         {dayGroups.map((group) => (
           <div key={group.dateStr} className="px-4 py-3">
             {/* Date Header */}
-            <h3 className="text-base font-normal text-foreground capitalize mb-3">
+            <h3 className="text-base font-normal text-foreground capitalize mb-3 sticky top-0 z-10 bg-background py-2 -mt-2">
               {formatDateHeader(group.date)}
             </h3>
 
