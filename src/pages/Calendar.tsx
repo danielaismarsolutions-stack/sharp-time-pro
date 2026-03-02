@@ -66,6 +66,7 @@ import { useCalendarDragDropEnhanced, snapToQuarterHour, isWithinBusinessHours }
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useAutoScrollToNow } from '@/hooks/useAutoScrollToNow';
 import { useAutoScrollOnDrag } from '@/hooks/useAutoScrollOnDrag';
+import { useSlotSelection } from '@/hooks/useSlotSelection';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
@@ -975,7 +976,24 @@ export default function Calendar() {
     });
   }, [calendarEvents, selectedBarber]);
 
-  // Render Day View
+  // Slot selection (drag-to-create) for Day view
+  const daySlotSelection = useSlotSelection({
+    hourHeight: HOUR_HEIGHT_DAY,
+    startHour: START_HOUR,
+    scrollContainerRef,
+    isDragging: !!activeId,
+    onSlotSelect: (date, startTime, endTime) => openCreateChoice(date, startTime, endTime),
+  });
+
+  // Slot selection (drag-to-create) for Week view
+  const weekSlotSelection = useSlotSelection({
+    hourHeight: HOUR_HEIGHT_WEEK,
+    startHour: START_HOUR,
+    scrollContainerRef,
+    isDragging: !!activeId,
+    onSlotSelect: (date, startTime, endTime) => openCreateChoice(date, startTime, endTime),
+  });
+
   const renderDayView = () => {
     const dayBookings = getBookingsForDay(currentDate);
     const dateStr = format(currentDate, 'yyyy-MM-dd');
@@ -997,7 +1015,16 @@ export default function Calendar() {
           </div>
 
           {/* Day content */}
-          <div className="flex-1 relative min-w-[200px]">
+          <div
+            className="flex-1 relative min-w-[200px]"
+            onClick={(e) => daySlotSelection.handleSlotClick(currentDate, e)}
+            onMouseDown={(e) => daySlotSelection.handleMouseDown(currentDate, e)}
+            onMouseMove={daySlotSelection.handleMouseMove}
+            onMouseUp={daySlotSelection.handleMouseUp}
+            onTouchStart={(e) => daySlotSelection.handleTouchStart(currentDate, e)}
+            onTouchMove={daySlotSelection.handleTouchMove}
+            onTouchEnd={daySlotSelection.handleTouchEnd}
+          >
             {HOURS.map((hour) => (
               <DroppableTimeSlotEnhanced
                 key={hour}
@@ -1018,12 +1045,7 @@ export default function Calendar() {
                 draggedBookingColorClasses={activeBookingColorClasses}
                 closedMinuteRanges={getClosedMinuteRanges(hour, currentDate)}
                 className={cn(!isHourClosed(hour, currentDate) && 'hover:bg-muted/30', 'cursor-pointer')}
-              >
-                <div
-                  className="absolute inset-0"
-                  onClick={() => openCreateChoice(currentDate, `${hour.toString().padStart(2, '0')}:00`)}
-                />
-              </DroppableTimeSlotEnhanced>
+              />
             ))}
 
             {/* Bookings + Events overlay with unified overlap detection */}
@@ -1088,6 +1110,18 @@ export default function Calendar() {
                 </>
               );
             })()}
+
+            {/* Selection overlay */}
+            {daySlotSelection.isSelecting && daySlotSelection.getSelectionStyle() && (
+              <div
+                className="absolute left-1 right-1 bg-primary/20 border-2 border-primary border-dashed rounded-md z-20 pointer-events-none"
+                style={daySlotSelection.getSelectionStyle()!}
+              >
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded whitespace-nowrap">
+                  {daySlotSelection.getSelectionTimeRange()}
+                </div>
+              </div>
+            )}
 
             {/* Current time indicator */}
             {isToday(currentDate) && (
@@ -1163,7 +1197,16 @@ export default function Calendar() {
               </div>
 
               {/* Hours grid */}
-              <div className="relative">
+              <div
+                className="relative"
+                onClick={(e) => weekSlotSelection.handleSlotClick(day, e)}
+                onMouseDown={(e) => weekSlotSelection.handleMouseDown(day, e)}
+                onMouseMove={weekSlotSelection.handleMouseMove}
+                onMouseUp={weekSlotSelection.handleMouseUp}
+                onTouchStart={(e) => weekSlotSelection.handleTouchStart(day, e)}
+                onTouchMove={weekSlotSelection.handleTouchMove}
+                onTouchEnd={weekSlotSelection.handleTouchEnd}
+              >
                 {HOURS.map((hour) => (
                   <DroppableTimeSlotEnhanced
                     key={hour}
@@ -1184,12 +1227,7 @@ export default function Calendar() {
                     draggedBookingColorClasses={activeBookingColorClasses}
                     closedMinuteRanges={getClosedMinuteRanges(hour, day)}
                     className={cn(!isHourClosed(hour, day) && 'hover:bg-muted/30', 'cursor-pointer')}
-                  >
-                    <div
-                      className="absolute inset-0"
-                      onClick={() => openCreateChoice(day, `${hour.toString().padStart(2, '0')}:00`)}
-                    />
-                  </DroppableTimeSlotEnhanced>
+                  />
                 ))}
 
                 {/* Current time indicator - only on today's column */}
@@ -1263,6 +1301,18 @@ export default function Calendar() {
                     </>
                   );
                 })()}
+
+                {/* Selection overlay */}
+                {weekSlotSelection.isSelecting && weekSlotSelection.selectionStart && isSameDay(weekSlotSelection.selectionStart.date, day) && weekSlotSelection.getSelectionStyle() && (
+                  <div
+                    className="absolute left-1 right-1 bg-primary/20 border-2 border-primary border-dashed rounded-md z-20 pointer-events-none"
+                    style={weekSlotSelection.getSelectionStyle()!}
+                  >
+                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap">
+                      {weekSlotSelection.getSelectionTimeRange()}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           );
