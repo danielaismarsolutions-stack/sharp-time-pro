@@ -1279,6 +1279,7 @@ export default function Calendar() {
           currentDate={currentDate}
           bookings={filteredBookings}
           services={services}
+          barberNames={barberNames}
           onDateClick={(date) => {
             setCurrentDate(date);
             setViewMode('day');
