@@ -24,6 +24,7 @@ import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { supabaseClientsApi } from '@/services/supabaseClients';
 import { supabase } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
+import { useAuth } from '@/contexts/AuthContext';
 import { ApiBooking } from '@/types/api';
 import { Barber } from '@/types/barber';
 
@@ -247,53 +248,59 @@ function computeTopClients(bookings: ApiBooking[], limit = 5) {
 
 export function useReportsData(period: Period) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const businessId = user?.businessId;
   const { current, previous, currentStartDate, currentEndDate } = useMemo(() => getDateRanges(period), [period]);
 
   const { data: rawCurrentBookings = [], isLoading: isLoadingCurrent } = useQuery({
-    queryKey: ['reports', 'bookings', 'current', current.start, current.end],
+    queryKey: ['reports', 'bookings', businessId, 'current', current.start, current.end],
     queryFn: () => supabaseBookingsApi.getAll({ start_date: current.start, end_date: current.end }),
     staleTime: 1000 * 60 * 2,
+    enabled: !!businessId,
   });
 
   const { data: rawPreviousBookings = [], isLoading: isLoadingPrevious } = useQuery({
-    queryKey: ['reports', 'bookings', 'previous', previous.start, previous.end],
+    queryKey: ['reports', 'bookings', businessId, 'previous', previous.start, previous.end],
     queryFn: () => supabaseBookingsApi.getAll({ start_date: previous.start, end_date: previous.end }),
     staleTime: 1000 * 60 * 2,
+    enabled: !!businessId,
   });
 
   const { data: barbers = [] } = useQuery({
-    queryKey: ['reports', 'barbers'],
+    queryKey: ['reports', 'barbers', businessId],
     queryFn: () => supabaseBarbersApi.getAll(),
     staleTime: 1000 * 60 * 5,
+    enabled: !!businessId,
   });
 
   // Real-time subscription + polling fallback
   useEffect(() => {
-    const businessId = getBusinessId();
+    if (!businessId) return;
+
     const bookingsChannel = supabase
-      .channel(`reports-bookings-${Date.now()}`)
+      .channel(`reports-bookings-${businessId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bookings', filter: `business_id=eq.${businessId}` },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['reports', 'bookings'] });
+          queryClient.invalidateQueries({ queryKey: ['reports', 'bookings', businessId] });
         },
       )
       .subscribe();
 
     const usersChannel = supabase
-      .channel(`reports-users-${Date.now()}`)
+      .channel(`reports-users-${businessId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'users', filter: `business_id=eq.${businessId}` },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['reports', 'barbers'] });
+          queryClient.invalidateQueries({ queryKey: ['reports', 'barbers', businessId] });
         },
       )
       .subscribe();
 
     const pollInterval = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: ['reports', 'bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['reports', 'bookings', businessId] });
     }, 30000);
 
     return () => {
@@ -301,7 +308,7 @@ export function useReportsData(period: Period) {
       supabase.removeChannel(bookingsChannel);
       supabase.removeChannel(usersChannel);
     };
-  }, [queryClient]);
+  }, [queryClient, businessId]);
 
   const analytics = useMemo((): ReportsAnalytics => {
     const bookings = filterBookings(rawCurrentBookings);

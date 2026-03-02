@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { supabaseBookingsApi } from '@/services/supabaseBookings';
+import { useAuth } from '@/contexts/AuthContext';
 import { ApiBooking } from '@/types/api';
 
 interface UseWeeklyBookingsOptions {
@@ -22,6 +23,8 @@ export function useWeeklyBookings({
   currentDate,
   enabled = true,
 }: UseWeeklyBookingsOptions): WeeklyBookingsResult {
+  const { user } = useAuth();
+  const businessId = user?.businessId;
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
 
@@ -35,9 +38,9 @@ export function useWeeklyBookings({
     error,
     refetch,
   } = useQuery({
-    queryKey: ['bookings', 'weekly', startDate, endDate],
+    queryKey: ['bookings', 'weekly', businessId, startDate, endDate],
     queryFn: () => supabaseBookingsApi.getByDateRange(startDate, endDate),
-    enabled,
+    enabled: enabled && !!businessId,
     staleTime: 1000 * 60 * 2, // 2 minutes
     refetchOnWindowFocus: true,
   });

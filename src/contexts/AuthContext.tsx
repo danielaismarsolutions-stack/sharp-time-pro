@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { SUPABASE_CONFIG } from '@/config/api';
 import { setBusinessId, clearBusinessId } from '@/config/session';
@@ -113,6 +114,7 @@ async function resolveUser(session: Session | null): Promise<User | null> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -176,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await supabase.auth.signOut();
       clearBusinessId();
+      queryClient.clear();
       setUser(null);
     } finally {
       setIsLoading(false);
