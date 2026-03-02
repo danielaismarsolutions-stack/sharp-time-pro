@@ -26,6 +26,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Cookies = lazy(() => import("./pages/Cookies"));
+const SeedData = lazy(() => import("./pages/SeedData"));
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,7 @@ const App = () => (
                 <Route path="/terminos" element={<Terms />} />
                 <Route path="/privacidad" element={<Privacy />} />
                 <Route path="/cookies" element={<Cookies />} />
+                <Route path="/seed" element={<SeedData />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
