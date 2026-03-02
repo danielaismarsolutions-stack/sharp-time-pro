@@ -1414,7 +1414,25 @@ export default function Calendar() {
         </button>
 
         {/* Calendar Content - This area scrolls */}
-        <Card className="flex-1 m-2 md:m-4 mt-0 overflow-hidden border-border flex flex-col min-h-0">
+        <Card className="flex-1 m-2 md:m-4 mt-0 overflow-hidden border-border flex flex-col min-h-0 relative">
+          {/* Floating Barber Legend - fixed overlay at top of card for day/week/month views */}
+          {viewMode !== 'agenda' && viewMode !== '3day' && barberNames.length > 0 && (
+            <div className="absolute top-0 left-0 right-0 z-30 pointer-events-none flex justify-center pt-1.5 px-2"
+              style={{ top: viewMode === 'week' ? '48px' : '0' }}
+            >
+              <div
+                className="rounded-xl px-4 py-1.5 pointer-events-auto"
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                  boxShadow: '0 1px 8px rgba(0, 0, 0, 0.08)',
+                  backdropFilter: 'blur(8px)',
+                }}
+              >
+                <BarberLegend barberNames={barberNames} floating />
+              </div>
+            </div>
+          )}
+
           <div ref={scrollContainerRef} className={cn("flex-1", viewMode === 'agenda' ? 'overflow-hidden' : 'overflow-auto')}>
             {viewMode === 'day' && renderDayView()}
             {viewMode === '3day' && (
@@ -1461,9 +1479,6 @@ export default function Calendar() {
               />
             )}
           </div>
-
-          {/* Barber Legend - always visible below calendar (not for agenda) */}
-          {viewMode !== 'agenda' && viewMode !== '3day' && <BarberLegend barberNames={barberNames} />}
         </Card>
 
         {/* Undo Button */}
