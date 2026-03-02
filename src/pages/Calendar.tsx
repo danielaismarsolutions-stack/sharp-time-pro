@@ -1362,7 +1362,7 @@ export default function Calendar() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div ref={calendarContainerRef} className="h-screen flex flex-col overflow-hidden">
+      <div ref={calendarContainerRef} className="h-full flex flex-col overflow-hidden">
         {/* Setmore-style Header - Fixed, never scrolls */}
         <div className="flex-shrink-0">
           <SetmoreHeader
