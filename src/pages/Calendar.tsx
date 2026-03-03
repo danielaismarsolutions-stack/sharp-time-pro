@@ -1389,7 +1389,7 @@ export default function Calendar() {
     >
       <div ref={calendarContainerRef} className="h-full flex flex-col overflow-hidden">
         {/* Setmore-style Header - Fixed, never scrolls */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 relative z-40">
           <SetmoreHeader
             currentDate={currentDate}
             onDateChange={(date) => {
