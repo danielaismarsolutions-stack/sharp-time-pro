@@ -477,7 +477,7 @@ export function ThreeDayView({
       {...swipeHandlers}
     >
       {/* Sticky header: Column Headers + Legend overlay */}
-      <div className="sticky top-0 z-40 bg-white relative">
+      <div className="sticky top-0 z-30 bg-white relative">
         {/* Column Headers */}
         <div className="flex border-b" style={{ borderColor: '#e0e0e0' }}>
           {/* Time column spacer */}
