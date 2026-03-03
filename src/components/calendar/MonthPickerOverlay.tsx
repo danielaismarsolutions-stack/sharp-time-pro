@@ -131,8 +131,10 @@ export function MonthPickerOverlay({
     <div
       ref={overlayRef}
       className={cn(
-        'absolute top-full left-0 right-0 z-50 bg-background border-b border-border shadow-lg',
-        'animate-in slide-in-from-top-2 duration-200'
+        'absolute top-full z-50 bg-background border border-border shadow-lg',
+        'animate-in slide-in-from-top-2 duration-200',
+        // Mobile: full width. Desktop/tablet: compact centered dropdown
+        'left-0 right-0 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-[320px] md:rounded-b-xl'
       )}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -195,17 +197,11 @@ export function MonthPickerOverlay({
                 className={cn(
                   'aspect-square flex items-center justify-center text-sm rounded-full transition-colors',
                   'hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  // Previous/next month dates
                   !isCurrentMonth && 'text-muted-foreground opacity-50',
-                  // Current month dates
                   isCurrentMonth && !isTodayDate && !isSelected && 'text-foreground',
-                  // Past dates (slightly lighter)
                   isPast && isCurrentMonth && 'opacity-70',
-                  // Today: filled circle with white text
                   isTodayDate && !isSelected && 'bg-foreground text-background font-medium',
-                  // Selected date (if different from today): ring/outline
                   isSelected && !isTodayDate && 'ring-2 ring-foreground ring-inset font-medium',
-                  // If both today and selected
                   isSelected && isTodayDate && 'bg-foreground text-background font-medium'
                 )}
               >
