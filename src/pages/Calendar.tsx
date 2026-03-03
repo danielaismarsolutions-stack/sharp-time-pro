@@ -1410,6 +1410,7 @@ export default function Calendar() {
             onRefresh={handleManualRefresh}
             isRefreshing={isRefreshing}
             onMonthPickerOpenChange={setIsMonthPickerOpen}
+            onNavigate={navigateDate}
           />
         </div>
 

@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Menu, ChevronDown, Bell, List, LayoutGrid, Calendar as CalendarIcon, Filter, Settings, HelpCircle, User, Check, Trash2, Loader2, RefreshCw } from 'lucide-react';
+import { Menu, ChevronDown, ChevronLeft, ChevronRight, Bell, List, LayoutGrid, Calendar as CalendarIcon, Filter, Settings, HelpCircle, User, Check, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -49,6 +49,7 @@ interface SetmoreHeaderProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   onMonthPickerOpenChange?: (isOpen: boolean) => void;
+  onNavigate?: (direction: 'prev' | 'next') => void;
 }
 
 export function SetmoreHeader({
@@ -64,6 +65,7 @@ export function SetmoreHeader({
   onRefresh,
   isRefreshing = false,
   onMonthPickerOpenChange,
+  onNavigate,
 }: SetmoreHeaderProps) {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -355,6 +357,37 @@ export function SetmoreHeader({
 
       {/* View Switcher + Barber Filter Row */}
       <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-card">
+        {/* Navigation buttons - tablet/desktop only */}
+        {!isMobile && (
+          <div className="flex items-center gap-1 shrink-0 mr-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => onNavigate?.('prev')}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={isSameDay(currentDate, new Date()) ? "ghost" : "outline"}
+              size="sm"
+              className="h-8 px-2 text-xs"
+              onClick={() => onDateChange(new Date())}
+              disabled={isSameDay(currentDate, new Date())}
+            >
+              Hoy
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => onNavigate?.('next')}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
         <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)} className="min-w-0 overflow-hidden">
           <TabsList className="h-9">
             <TabsTrigger value="agenda" className="text-xs px-1.5 md:px-3 min-h-[40px]">
