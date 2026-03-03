@@ -1158,7 +1158,7 @@ export default function Calendar() {
   const renderWeekView = () => (
     <div className="relative">
       {/* Sticky Day Headers */}
-      <div className="flex sticky top-0 z-20 bg-card">
+      <div className="flex sticky top-0 z-30 bg-card">
         <div className="w-14 md:w-16 shrink-0 border-r border-b border-border" />
         <div className="flex-1 flex">
           {weekDays.map((day) => {
