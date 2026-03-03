@@ -1126,12 +1126,17 @@ export default function Calendar() {
 
             {/* Current time indicator */}
             {isToday(currentDate) && (
-              <CurrentTimeIndicator
-                currentDate={currentDate}
-                startHour={START_HOUR}
-                endHour={23}
-                hourHeight={HOUR_HEIGHT_DAY}
-              />
+              <div className={cn(
+                "transition-opacity duration-200 ease-in-out",
+                isMonthPickerOpen ? "opacity-0" : "opacity-100"
+              )}>
+                <CurrentTimeIndicator
+                  currentDate={currentDate}
+                  startHour={START_HOUR}
+                  endHour={23}
+                  hourHeight={HOUR_HEIGHT_DAY}
+                />
+              </div>
             )}
 
             {/* Empty state */}
@@ -1246,13 +1251,18 @@ export default function Calendar() {
 
                 {/* Current time indicator - only on today's column */}
                 {isCurrentDay && (
-                  <CurrentTimeIndicator
-                    currentDate={day}
-                    startHour={START_HOUR}
-                    endHour={23}
-                    hourHeight={HOUR_HEIGHT_WEEK}
-                    showTimeLabel={false}
-                  />
+                  <div className={cn(
+                    "transition-opacity duration-200 ease-in-out",
+                    isMonthPickerOpen ? "opacity-0" : "opacity-100"
+                  )}>
+                    <CurrentTimeIndicator
+                      currentDate={day}
+                      startHour={START_HOUR}
+                      endHour={23}
+                      hourHeight={HOUR_HEIGHT_WEEK}
+                      showTimeLabel={false}
+                    />
+                  </div>
                 )}
 
                 {/* Bookings + Events overlay with unified overlap detection */}
@@ -1487,6 +1497,7 @@ export default function Calendar() {
                 getEventsForDay={getEventsForDay}
                 onEventClick={openEventDetail}
                 scrollContainerRef={scrollContainerRef}
+                isMonthPickerOpen={isMonthPickerOpen}
               />
             )}
             {viewMode === 'week' && renderWeekView()}

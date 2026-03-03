@@ -49,6 +49,8 @@ interface ThreeDayViewProps {
   onEventClick?: (event: ApiCalendarEvent) => void;
   /** Ref to the parent scroll container, used for auto-scroll during drag-to-create */
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+  /** Whether the month picker overlay is open (hides legend + time indicator) */
+  isMonthPickerOpen?: boolean;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0:00 - 23:00
@@ -80,6 +82,7 @@ export function ThreeDayView({
   getEventsForDay: getEventsForDayProp,
   onEventClick,
   scrollContainerRef,
+  isMonthPickerOpen = false,
 }: ThreeDayViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -508,9 +511,18 @@ export function ThreeDayView({
 
         {/* Legend - hangs below sticky header, overlays grid */}
         {legendRows.length > 0 && (
-          <div className="absolute left-12 right-0 top-full z-30 flex justify-center pointer-events-none pt-1.5 px-2">
+          <div
+            className={cn(
+              "absolute left-12 right-0 top-full z-30 flex justify-center pointer-events-none pt-1.5 px-2",
+              "transition-all duration-200 ease-in-out",
+              isMonthPickerOpen ? "opacity-0 -translate-y-2" : "opacity-100 translate-y-0"
+            )}
+          >
             <div
-              className="rounded-xl px-4 py-1.5 max-w-full pointer-events-auto"
+              className={cn(
+                "rounded-xl px-4 py-1.5 max-w-full",
+                !isMonthPickerOpen && "pointer-events-auto"
+              )}
               style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.92)',
                 boxShadow: '0 1px 8px rgba(0, 0, 0, 0.08)',
@@ -704,7 +716,12 @@ export function ThreeDayView({
 
           {/* Current time indicator */}
           {showCurrentTime && currentTimePosition !== null && (
-            <>
+            <div
+              className={cn(
+                "transition-opacity duration-200 ease-in-out",
+                isMonthPickerOpen ? "opacity-0" : "opacity-100"
+              )}
+            >
               {/* Time label - positioned in the time column */}
               <div
                 className="absolute flex items-center justify-end pointer-events-none"
@@ -748,7 +765,7 @@ export function ThreeDayView({
                   style={{ height: '2px', backgroundColor: '#000000' }}
                 />
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
