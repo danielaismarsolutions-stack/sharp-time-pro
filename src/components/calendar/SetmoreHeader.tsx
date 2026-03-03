@@ -50,6 +50,7 @@ interface SetmoreHeaderProps {
   isRefreshing?: boolean;
   onMonthPickerOpenChange?: (isOpen: boolean) => void;
   onNavigate?: (direction: 'prev' | 'next') => void;
+  onGoToToday?: () => void;
 }
 
 export function SetmoreHeader({
@@ -66,6 +67,7 @@ export function SetmoreHeader({
   isRefreshing = false,
   onMonthPickerOpenChange,
   onNavigate,
+  onGoToToday,
 }: SetmoreHeaderProps) {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -372,7 +374,7 @@ export function SetmoreHeader({
               variant={isSameDay(currentDate, new Date()) ? "ghost" : "outline"}
               size="sm"
               className="h-8 px-2 text-xs"
-              onClick={() => onDateChange(new Date())}
+              onClick={() => onGoToToday?.()}
               disabled={isSameDay(currentDate, new Date())}
             >
               Hoy

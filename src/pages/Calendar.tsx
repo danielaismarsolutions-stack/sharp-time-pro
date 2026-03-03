@@ -1411,6 +1411,7 @@ export default function Calendar() {
             isRefreshing={isRefreshing}
             onMonthPickerOpenChange={setIsMonthPickerOpen}
             onNavigate={navigateDate}
+            onGoToToday={() => setCurrentDate(new Date())}
           />
         </div>
 
