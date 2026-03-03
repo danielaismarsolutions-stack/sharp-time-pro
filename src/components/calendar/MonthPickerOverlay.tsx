@@ -13,6 +13,11 @@ import {
   isToday,
   isBefore,
   startOfDay,
+  setMonth,
+  getMonth,
+  getYear,
+  addYears,
+  subYears,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronDown } from 'lucide-react';
@@ -27,6 +32,11 @@ interface MonthPickerOverlayProps {
   toggleButtonRef?: React.RefObject<HTMLButtonElement>;
 }
 
+const MONTH_LABELS = [
+  'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+  'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+];
+
 export function MonthPickerOverlay({
   currentDate,
   isOpen,
@@ -36,6 +46,7 @@ export function MonthPickerOverlay({
   toggleButtonRef,
 }: MonthPickerOverlayProps) {
   const [displayMonth, setDisplayMonth] = useState(currentDate);
+  const [showYearView, setShowYearView] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -47,6 +58,7 @@ export function MonthPickerOverlay({
   useEffect(() => {
     if (!isOpen) {
       setDisplayMonth(currentDate);
+      setShowYearView(false);
     }
   }, [currentDate, isOpen]);
 
@@ -86,6 +98,19 @@ export function MonthPickerOverlay({
     setDisplayMonth((prev) => addMonths(prev, 1));
   };
 
+  const handleMonthSelect = (monthIndex: number) => {
+    setDisplayMonth((prev) => setMonth(prev, monthIndex));
+    setShowYearView(false);
+  };
+
+  const handlePreviousYear = () => {
+    setDisplayMonth((prev) => subYears(prev, 1));
+  };
+
+  const handleNextYear = () => {
+    setDisplayMonth((prev) => addYears(prev, 1));
+  };
+
   // Touch handlers for swipe navigation
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
@@ -104,9 +129,9 @@ export function MonthPickerOverlay({
     const isRightSwipe = distance < -minSwipeDistance;
 
     if (isLeftSwipe) {
-      handleNextMonth();
+      showYearView ? handleNextYear() : handleNextMonth();
     } else if (isRightSwipe) {
-      handlePreviousMonth();
+      showYearView ? handlePreviousYear() : handlePreviousMonth();
     }
   };
 
@@ -134,93 +159,157 @@ export function MonthPickerOverlay({
 
   if (!isOpen) return null;
 
+  const displayYear = getYear(displayMonth);
+  const displayMonthIndex = getMonth(displayMonth);
+  const currentMonthIndex = getMonth(new Date());
+  const currentYear = getYear(new Date());
+
   return (
     <div
       ref={overlayRef}
       className={cn(
         'absolute top-full left-0 right-0 z-50 bg-background border-b border-border shadow-lg',
-        'animate-in slide-in-from-top-2 duration-200'
+        'animate-in slide-in-from-top-2 duration-200',
+        'md:left-1/2 md:-translate-x-1/2 md:w-[360px] md:rounded-b-xl md:shadow-xl md:border md:border-t-0'
       )}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
       <div className="px-4 py-3">
-        {/* Month/Year Header */}
-        <div className="flex items-center justify-between mb-3">
-          <button
-            onClick={handlePreviousMonth}
-            className="p-2 hover:bg-muted rounded-md transition-colors"
-            aria-label="Previous month"
-          >
-            <ChevronDown className="h-5 w-5 rotate-90" />
-          </button>
-
-          <button
-            onClick={onToggle}
-            className="font-medium text-base flex items-center gap-1 px-3 py-1 rounded-md hover:bg-muted transition-colors"
-          >
-            <span className="capitalize">
-              {format(displayMonth, 'MMMM yyyy', { locale: es })}
-            </span>
-            <ChevronDown className="h-4 w-4 opacity-60" />
-          </button>
-
-          <button
-            onClick={handleNextMonth}
-            className="p-2 hover:bg-muted rounded-md transition-colors"
-            aria-label="Next month"
-          >
-            <ChevronDown className="h-5 w-5 -rotate-90" />
-          </button>
-        </div>
-
-        {/* Week Days Row */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
-          {dayLabels.map((label) => (
-            <div
-              key={label}
-              className="text-center text-xs font-medium text-muted-foreground py-1"
-            >
-              {label}
-            </div>
-          ))}
-        </div>
-
-        {/* Date Grid (6 rows x 7 columns) */}
-        <div className="grid grid-cols-7 gap-1">
-          {calendarDates.map((date, index) => {
-            const isCurrentMonth = isSameMonth(date, displayMonth);
-            const isTodayDate = isToday(date);
-            const isSelected = isSameDay(date, currentDate);
-            const isPast = isBefore(date, startOfDay(new Date())) && !isToday(date);
-
-            return (
+        {showYearView ? (
+          <>
+            {/* Year Header */}
+            <div className="flex items-center justify-between mb-4">
               <button
-                key={index}
-                onClick={() => handleDateClick(date)}
-                className={cn(
-                  'aspect-square flex items-center justify-center text-sm rounded-full transition-colors',
-                  'hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  // Previous/next month dates
-                  !isCurrentMonth && 'text-muted-foreground opacity-50',
-                  // Current month dates
-                  isCurrentMonth && !isTodayDate && !isSelected && 'text-foreground',
-                  // Past dates (slightly lighter)
-                  isPast && isCurrentMonth && 'opacity-70',
-                  // Today: filled circle with white text
-                  isTodayDate && !isSelected && 'bg-foreground text-background font-medium',
-                  // Selected date (if different from today): ring/outline
-                  isSelected && !isTodayDate && 'ring-2 ring-foreground ring-inset font-medium',
-                  // If both today and selected
-                  isSelected && isTodayDate && 'bg-foreground text-background font-medium'
-                )}
+                onClick={handlePreviousYear}
+                className="p-2 hover:bg-muted rounded-md transition-colors"
+                aria-label="Año anterior"
               >
-                {format(date, 'd')}
+                <ChevronDown className="h-5 w-5 rotate-90" />
               </button>
-            );
-          })}
-        </div>
+
+              <button
+                onClick={() => setShowYearView(false)}
+                className="font-medium text-base flex items-center gap-1 px-3 py-1 rounded-md hover:bg-muted transition-colors"
+              >
+                <span>{displayYear}</span>
+                <ChevronDown className="h-4 w-4 opacity-60 rotate-180" />
+              </button>
+
+              <button
+                onClick={handleNextYear}
+                className="p-2 hover:bg-muted rounded-md transition-colors"
+                aria-label="Año siguiente"
+              >
+                <ChevronDown className="h-5 w-5 -rotate-90" />
+              </button>
+            </div>
+
+            {/* Month Grid (4x3) */}
+            <div className="grid grid-cols-3 gap-2">
+              {MONTH_LABELS.map((label, index) => {
+                const isCurrentMonth = index === currentMonthIndex && displayYear === currentYear;
+                const isDisplayedMonth = index === displayMonthIndex;
+
+                return (
+                  <button
+                    key={label}
+                    onClick={() => handleMonthSelect(index)}
+                    className={cn(
+                      'py-3 rounded-lg text-sm font-medium transition-colors',
+                      'hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      isCurrentMonth && !isDisplayedMonth && 'bg-foreground text-background',
+                      isDisplayedMonth && !isCurrentMonth && 'ring-2 ring-foreground ring-inset',
+                      isDisplayedMonth && isCurrentMonth && 'bg-foreground text-background',
+                      !isCurrentMonth && !isDisplayedMonth && 'text-foreground'
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Month/Year Header */}
+            <div className="flex items-center justify-between mb-3">
+              <button
+                onClick={handlePreviousMonth}
+                className="p-2 hover:bg-muted rounded-md transition-colors"
+                aria-label="Previous month"
+              >
+                <ChevronDown className="h-5 w-5 rotate-90" />
+              </button>
+
+              <button
+                onClick={() => setShowYearView(true)}
+                className="font-medium text-base flex items-center gap-1 px-3 py-1 rounded-md hover:bg-muted transition-colors"
+              >
+                <span className="capitalize">
+                  {format(displayMonth, 'MMMM yyyy', { locale: es })}
+                </span>
+                <ChevronDown className="h-4 w-4 opacity-60" />
+              </button>
+
+              <button
+                onClick={handleNextMonth}
+                className="p-2 hover:bg-muted rounded-md transition-colors"
+                aria-label="Next month"
+              >
+                <ChevronDown className="h-5 w-5 -rotate-90" />
+              </button>
+            </div>
+
+            {/* Week Days Row */}
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {dayLabels.map((label) => (
+                <div
+                  key={label}
+                  className="text-center text-xs font-medium text-muted-foreground py-1"
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
+
+            {/* Date Grid (6 rows x 7 columns) */}
+            <div className="grid grid-cols-7 gap-1">
+              {calendarDates.map((date, index) => {
+                const isCurrentMonth = isSameMonth(date, displayMonth);
+                const isTodayDate = isToday(date);
+                const isSelected = isSameDay(date, currentDate);
+                const isPast = isBefore(date, startOfDay(new Date())) && !isToday(date);
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleDateClick(date)}
+                    className={cn(
+                      'w-9 h-9 mx-auto flex items-center justify-center text-sm rounded-full transition-colors',
+                      'hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      // Previous/next month dates
+                      !isCurrentMonth && 'text-muted-foreground opacity-50',
+                      // Current month dates
+                      isCurrentMonth && !isTodayDate && !isSelected && 'text-foreground',
+                      // Past dates (slightly lighter)
+                      isPast && isCurrentMonth && 'opacity-70',
+                      // Today: filled circle with white text
+                      isTodayDate && !isSelected && 'bg-foreground text-background font-medium',
+                      // Selected date (if different from today): ring/outline
+                      isSelected && !isTodayDate && 'ring-2 ring-foreground ring-inset font-medium',
+                      // If both today and selected
+                      isSelected && isTodayDate && 'bg-foreground text-background font-medium'
+                    )}
+                  >
+                    {format(date, 'd')}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
