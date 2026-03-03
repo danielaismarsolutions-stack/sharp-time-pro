@@ -23,7 +23,7 @@ export function NexioLogo({ className, size = 'md', showText = true }: NexioLogo
     <div className={cn('flex items-center gap-2', className)}>
       <NexioMark size={size} />
       {showText && (
-        <span className="font-semibold tracking-tight text-sidebar-foreground">
+        <span className="font-semibold tracking-tight text-sidebar-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
           Nexio
         </span>
       )}
