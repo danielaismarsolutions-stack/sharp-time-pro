@@ -24,6 +24,7 @@ interface MonthPickerOverlayProps {
   onDateSelect: (date: Date) => void;
   onClose: () => void;
   onToggle: () => void;
+  toggleButtonRef?: React.RefObject<HTMLButtonElement>;
 }
 
 export function MonthPickerOverlay({
@@ -32,6 +33,7 @@ export function MonthPickerOverlay({
   onDateSelect,
   onClose,
   onToggle,
+  toggleButtonRef,
 }: MonthPickerOverlayProps) {
   const [displayMonth, setDisplayMonth] = useState(currentDate);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -111,7 +113,12 @@ export function MonthPickerOverlay({
   // Close on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (overlayRef.current && !overlayRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      // Ignore clicks on the toggle button — let the toggle handler manage it
+      if (toggleButtonRef?.current && toggleButtonRef.current.contains(target)) {
+        return;
+      }
+      if (overlayRef.current && !overlayRef.current.contains(target)) {
         onClose();
       }
     };
@@ -123,7 +130,7 @@ export function MonthPickerOverlay({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, toggleButtonRef]);
 
   if (!isOpen) return null;
 

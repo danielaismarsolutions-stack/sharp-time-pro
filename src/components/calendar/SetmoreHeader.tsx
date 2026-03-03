@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Menu, ChevronDown, Bell, List, LayoutGrid, Calendar as CalendarIcon, Filter, Settings, HelpCircle, User, Check, Trash2, Loader2, RefreshCw } from 'lucide-react';
@@ -48,6 +48,7 @@ interface SetmoreHeaderProps {
   isMobile?: boolean;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  onMonthPickerOpenChange?: (isOpen: boolean) => void;
 }
 
 export function SetmoreHeader({
@@ -62,6 +63,7 @@ export function SetmoreHeader({
   isMobile = false,
   onRefresh,
   isRefreshing = false,
+  onMonthPickerOpenChange,
 }: SetmoreHeaderProps) {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -74,6 +76,11 @@ export function SetmoreHeader({
     clearAll,
   } = useNotifications();
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const toggleButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    onMonthPickerOpenChange?.(isMonthPickerOpen);
+  }, [isMonthPickerOpen, onMonthPickerOpenChange]);
 
   // Get user initials
   const initials = user?.name
@@ -121,6 +128,7 @@ export function SetmoreHeader({
 
         {/* Center: Month/Year with dropdown */}
         <Button
+          ref={toggleButtonRef}
           variant="ghost"
           onClick={toggleMonthPicker}
           className="font-medium text-base md:text-lg gap-1 px-2"
@@ -300,6 +308,7 @@ export function SetmoreHeader({
         onDateSelect={handleMonthSelect}
         onClose={() => setIsMonthPickerOpen(false)}
         onToggle={toggleMonthPicker}
+        toggleButtonRef={toggleButtonRef}
       />
 
       {/* Week day strip */}

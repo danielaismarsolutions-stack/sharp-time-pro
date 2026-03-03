@@ -160,6 +160,7 @@ export default function Calendar() {
   const [isEventDetailOpen, setIsEventDetailOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<ApiCalendarEvent | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
 
   // Business hours state for closed-hours shading
   const [businessHours, setBusinessHours] = useState<BusinessHours>({});
@@ -1398,6 +1399,7 @@ export default function Calendar() {
             isMobile={isMobile}
             onRefresh={handleManualRefresh}
             isRefreshing={isRefreshing}
+            onMonthPickerOpenChange={setIsMonthPickerOpen}
           />
         </div>
 
@@ -1431,11 +1433,19 @@ export default function Calendar() {
         <Card className="flex-1 m-2 md:m-4 mt-0 overflow-hidden border-border flex flex-col min-h-0 relative">
           {/* Floating Barber Legend - fixed overlay at top of card for day/week/month views */}
           {viewMode !== 'agenda' && viewMode !== '3day' && viewMode !== 'month' && barberNames.length > 0 && (
-            <div className="absolute top-0 left-0 right-0 z-30 pointer-events-none flex justify-center pt-1.5 px-2"
+            <div
+              className={cn(
+                "absolute top-0 left-0 right-0 z-30 pointer-events-none flex justify-center pt-1.5 px-2",
+                "transition-all duration-200 ease-in-out",
+                isMonthPickerOpen ? "opacity-0 -translate-y-2" : "opacity-100 translate-y-0"
+              )}
               style={{ top: viewMode === 'week' ? '48px' : '0' }}
             >
               <div
-                className="rounded-xl px-4 py-1.5 pointer-events-auto"
+                className={cn(
+                  "rounded-xl px-4 py-1.5",
+                  !isMonthPickerOpen && "pointer-events-auto"
+                )}
                 style={{
                   backgroundColor: 'rgba(255, 255, 255, 0.92)',
                   boxShadow: '0 1px 8px rgba(0, 0, 0, 0.08)',
