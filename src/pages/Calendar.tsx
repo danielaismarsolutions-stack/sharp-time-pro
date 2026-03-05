@@ -390,21 +390,21 @@ export default function Calendar() {
     return undefined;
   }, [activeBooking, activeEvent]);
 
-  // Configure sensors for drag-drop with long-press on mobile
-  // Touch delay of 300ms prevents conflicts with scrolling on mobile
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 300,
-        tolerance: 8,
-      },
-    })
-  );
+   // Configure sensors for drag-drop with long-press on mobile
+   // Touch delay of 1000ms (1s) prevents conflicts with scrolling and taps on mobile
+   const sensors = useSensors(
+     useSensor(PointerSensor, {
+       activationConstraint: {
+         distance: 8,
+       },
+     }),
+     useSensor(TouchSensor, {
+       activationConstraint: {
+         delay: 1000,
+         tolerance: 20,
+       },
+     })
+   );
 
   // Calculate column width for horizontal snapping
   const [calendarColumnWidth, setCalendarColumnWidth] = useState(0);
