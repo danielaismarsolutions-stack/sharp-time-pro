@@ -115,7 +115,7 @@ const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
           isDragging && 'opacity-40 shadow-none z-0',
           // Pending move confirmation - attenuated
           isPendingMove && !isDragging && 'opacity-30',
-          isDraggable && 'touch-none',
+          isDraggable && 'touch-manipulation',
           // Padding based on height
           spacingStyles.padding,
           spacingStyles.lineHeight,

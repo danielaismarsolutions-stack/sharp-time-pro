@@ -20,16 +20,19 @@ export function useAutoScrollOnDrag(
   const { edgeThreshold = 80, maxSpeed = 15 } = options;
   const rafRef = useRef<number>(0);
   const pointerYRef = useRef<number>(0);
+  const hasReceivedPositionRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (!isActive) return;
 
     const handlePointerMove = (e: PointerEvent | MouseEvent) => {
+      hasReceivedPositionRef.current = true;
       pointerYRef.current = e.clientY;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 0) {
+        hasReceivedPositionRef.current = true;
         pointerYRef.current = e.touches[0].clientY;
       }
     };
@@ -40,6 +43,11 @@ export function useAutoScrollOnDrag(
     const scrollLoop = () => {
       const container = scrollRef.current;
       if (!container) {
+        rafRef.current = requestAnimationFrame(scrollLoop);
+        return;
+      }
+
+      if (!hasReceivedPositionRef.current) {
         rafRef.current = requestAnimationFrame(scrollLoop);
         return;
       }
@@ -72,6 +80,7 @@ export function useAutoScrollOnDrag(
 
     return () => {
       cancelAnimationFrame(rafRef.current);
+      hasReceivedPositionRef.current = false;
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('touchmove', handleTouchMove);
     };
