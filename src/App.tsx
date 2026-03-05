@@ -10,6 +10,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Analytics } from "@vercel/analytics/react";
 
 // Lazy-loaded pages
 const Login = lazy(() => import("./pages/Login"));
@@ -75,6 +76,7 @@ const App = () => (
               </Routes>
             </Suspense>
           </BrowserRouter>
+          <Analytics />
         </NotificationProvider>
       </AuthProvider>
     </TooltipProvider>
