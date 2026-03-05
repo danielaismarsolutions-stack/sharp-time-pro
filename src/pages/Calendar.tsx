@@ -1469,7 +1469,7 @@ export default function Calendar() {
             </div>
           )}
 
-          <div ref={scrollContainerRef} className={cn("flex-1", viewMode === 'agenda' ? 'overflow-hidden' : 'overflow-auto')}>
+          <div ref={scrollContainerRef} className={cn("flex-1", viewMode === 'agenda' ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden')}>
             {viewMode === 'day' && renderDayView()}
             {viewMode === '3day' && (
               <ThreeDayView

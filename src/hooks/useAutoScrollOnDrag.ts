@@ -20,17 +20,25 @@ export function useAutoScrollOnDrag(
   const { edgeThreshold = 80, maxSpeed = 15 } = options;
   const rafRef = useRef<number>(0);
   const pointerYRef = useRef<number>(0);
+  // Guard: don't auto-scroll until we've received at least one pointer/touch
+  // move event after activation. Prevents scrolling based on stale y=0 value
+  // when the user's finger is stationary (e.g. during hold-to-create).
+  const hasReceivedEventRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (!isActive) return;
 
+    hasReceivedEventRef.current = false;
+
     const handlePointerMove = (e: PointerEvent | MouseEvent) => {
       pointerYRef.current = e.clientY;
+      hasReceivedEventRef.current = true;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 0) {
         pointerYRef.current = e.touches[0].clientY;
+        hasReceivedEventRef.current = true;
       }
     };
 
@@ -39,7 +47,7 @@ export function useAutoScrollOnDrag(
 
     const scrollLoop = () => {
       const container = scrollRef.current;
-      if (!container) {
+      if (!container || !hasReceivedEventRef.current) {
         rafRef.current = requestAnimationFrame(scrollLoop);
         return;
       }
