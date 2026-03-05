@@ -391,7 +391,7 @@ export default function Calendar() {
   }, [activeBooking, activeEvent]);
 
   // Configure sensors for drag-drop with long-press on mobile
-  // Touch delay of 500ms prevents conflicts with scrolling on mobile
+  // Touch delay of 300ms prevents conflicts with scrolling on mobile
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -400,8 +400,8 @@ export default function Calendar() {
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 1000,
-        tolerance: 15,
+        delay: 300,
+        tolerance: 8,
       },
     })
   );
