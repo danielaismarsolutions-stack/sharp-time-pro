@@ -14,8 +14,7 @@ const supabaseHeaders = async () => ({
 interface DbUser {
   id: string;
   business_id: string;
-  name?: string;
-  full_name?: string;
+  full_name: string;
   email: string | null;
   phone: string | null;
   avatar_url: string | null;
@@ -120,7 +119,7 @@ const mapUserToBarber = (
 ): Barber => ({
   id: user.id,
   business_id: user.business_id,
-  name: user.full_name || user.name || '',
+  name: user.full_name,
   email: user.email,
   phone: user.phone,
   avatar_url: user.avatar_url,
