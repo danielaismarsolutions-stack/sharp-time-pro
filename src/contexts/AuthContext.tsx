@@ -28,19 +28,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 /**
  * Fetches the user profile from the `users` table linked to the Supabase Auth user.
  * Tries matching by auth UID first, then falls back to email lookup.
+ * Uses the authenticated session's JWT so RLS policies are enforced.
  */
-async function fetchUserProfile(authId: string, email: string): Promise<User | null> {
+async function fetchUserProfile(authId: string, email: string, accessToken: string): Promise<User | null> {
+  const headers = {
+    'apikey': SUPABASE_CONFIG.anonKey,
+    'Authorization': `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+  };
+
   // Try by auth_uid first (linked accounts)
   let url = `${SUPABASE_CONFIG.url}/rest/v1/users?auth_uid=eq.${encodeURIComponent(authId)}&select=id,email,full_name,role,business_id&limit=1`;
 
-  let response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'apikey': SUPABASE_CONFIG.anonKey,
-      'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
-      'Content-Type': 'application/json',
-    },
-  });
+  let response = await fetch(url, { method: 'GET', headers });
 
   if (response.ok) {
     const users = await response.json();
@@ -59,14 +59,7 @@ async function fetchUserProfile(authId: string, email: string): Promise<User | n
   // Fallback: match by email (for users not yet linked by auth_uid)
   url = `${SUPABASE_CONFIG.url}/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=id,email,full_name,role,business_id&limit=1`;
 
-  response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'apikey': SUPABASE_CONFIG.anonKey,
-      'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
-      'Content-Type': 'application/json',
-    },
-  });
+  response = await fetch(url, { method: 'GET', headers });
 
   if (!response.ok) return null;
 
@@ -80,11 +73,7 @@ async function fetchUserProfile(authId: string, email: string): Promise<User | n
     `${SUPABASE_CONFIG.url}/rest/v1/users?id=eq.${encodeURIComponent(dbUser.id)}`,
     {
       method: 'PATCH',
-      headers: {
-        'apikey': SUPABASE_CONFIG.anonKey,
-        'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({ auth_uid: authId }),
     },
   );
@@ -105,7 +94,7 @@ async function fetchUserProfile(authId: string, email: string): Promise<User | n
 async function resolveUser(session: Session | null): Promise<User | null> {
   if (!session?.user) return null;
 
-  const profile = await fetchUserProfile(session.user.id, session.user.email ?? '');
+  const profile = await fetchUserProfile(session.user.id, session.user.email ?? '', session.access_token);
   if (profile) {
     setBusinessId(profile.businessId);
   }
