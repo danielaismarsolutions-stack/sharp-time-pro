@@ -68,6 +68,14 @@ export interface UpdateBookingData {
   cancellation_reason?: string | null;
   user_id?: string | null;
   barber?: string | null;
+  client_id?: string;
+  client_name?: string;
+  client_phone?: string;
+  client_email?: string | null;
+  service_id?: string;
+  service_name?: string;
+  service_duration?: number;
+  service_price?: number;
 }
 
 export interface BookingFilters {

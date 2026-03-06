@@ -1648,6 +1648,14 @@ export default function Calendar() {
                   notes: data.notes || null,
                   user_id: data.barberId || null,
                   barber: data.barber || null,
+                  client_id: data.clientId || selectedBooking.client_id,
+                  client_name: data.clientName || selectedBooking.client_name,
+                  client_phone: data.clientPhone || selectedBooking.client_phone,
+                  client_email: data.clientEmail || null,
+                  service_id: data.serviceId || selectedBooking.service_id,
+                  service_name: data.serviceName || selectedBooking.service_name,
+                  service_duration: duration,
+                  service_price: data.servicePrice || selectedBooking.service_price,
                 });
                 
                 setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updatedBooking : b));
