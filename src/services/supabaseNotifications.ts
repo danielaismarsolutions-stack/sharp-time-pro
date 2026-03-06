@@ -80,8 +80,8 @@ export async function fetchUnreadCount(userId: string): Promise<number> {
   return Array.isArray(data) ? data.length : 0;
 }
 
-export async function markNotificationAsRead(notificationId: string): Promise<void> {
-  const url = `${SUPABASE_CONFIG.url}/rest/v1/notifications?id=eq.${notificationId}`;
+export async function markNotificationAsRead(notificationId: string, businessId: string): Promise<void> {
+  const url = `${SUPABASE_CONFIG.url}/rest/v1/notifications?id=eq.${notificationId}&business_id=eq.${businessId}`;
   const headers = await getAuthHeaders();
 
   const response = await fetch(url, {
@@ -127,8 +127,8 @@ export async function clearAllNotifications(userId: string): Promise<void> {
   }
 }
 
-export async function deleteNotification(notificationId: string): Promise<void> {
-  const url = `${SUPABASE_CONFIG.url}/rest/v1/notifications?id=eq.${notificationId}`;
+export async function deleteNotification(notificationId: string, businessId: string): Promise<void> {
+  const url = `${SUPABASE_CONFIG.url}/rest/v1/notifications?id=eq.${notificationId}&business_id=eq.${businessId}`;
   const headers = await getAuthHeaders();
 
   const response = await fetch(url, {

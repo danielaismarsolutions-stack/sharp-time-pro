@@ -11,9 +11,9 @@ export interface Consultation {
   photo_url: string | null;
   status: ConsultationStatus;
   staff_notes: string | null;
+  booking_id: string | null;
   created_at: string;
   contacted_at: string | null;
-  scheduled_at: string | null;
   completed_at: string | null;
 }
 

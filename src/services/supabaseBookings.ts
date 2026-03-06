@@ -11,8 +11,8 @@ import { ApiBooking, ApiBookingStatus, ApiBookingSource, ApiBookingType } from '
 export interface DbBooking {
   id: string;
   business_id: string;
-  client_id: string;
-  service_id: string;
+  client_id: string | null;
+  service_id: string | null;
   user_id: string | null;
   booking_date: string;
   start_time: string;
