@@ -31,10 +31,11 @@ export type DbNotificationType =
 export interface DbNotification {
   id: string;
   user_id: string;
+  business_id: string;
   type: DbNotificationType;
   title: string;
   message: string;
-  data: Record<string, unknown> | null;
+  metadata: Record<string, unknown> | null;
   is_read: boolean;
   created_at: string;
 }

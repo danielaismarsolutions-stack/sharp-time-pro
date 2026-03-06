@@ -74,7 +74,7 @@ function mapDbToNotification(dbNotif: DbNotification): Notification {
     message: dbNotif.message,
     createdAt: new Date(dbNotif.created_at),
     read: dbNotif.is_read,
-    data: dbNotif.data || undefined,
+    data: dbNotif.metadata || undefined,
   };
 }
 
