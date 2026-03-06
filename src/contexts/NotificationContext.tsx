@@ -85,8 +85,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Use the actual logged-in user's ID from the users table
+  // Use the actual logged-in user's ID and business from the users table
   const userId = user?.id;
+  const businessId = user?.businessId;
 
   const loadNotifications = useCallback(async () => {
     if (!userId) {
@@ -192,14 +193,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [isAuthenticated, userId, loadNotifications]);
 
   const markAsRead = useCallback(async (id: string) => {
+    if (!businessId) return;
     try {
-      await markNotificationAsRead(id);
+      await markNotificationAsRead(id, businessId);
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, read: true } : n))
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch { /* ignored */ }
-  }, []);
+  }, [businessId]);
 
   const markAllAsRead = useCallback(async () => {
     if (!userId) return;
@@ -212,15 +214,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [userId]);
 
   const clearNotificationHandler = useCallback(async (id: string) => {
+    if (!businessId) return;
     try {
-      await deleteNotification(id);
+      await deleteNotification(id, businessId);
       setNotifications((prev) => {
         const updated = prev.filter((n) => n.id !== id);
         setUnreadCount(updated.filter((n) => !n.read).length);
         return updated;
       });
     } catch { /* ignored */ }
-  }, []);
+  }, [businessId]);
 
   const clearAllHandler = useCallback(async () => {
     if (!userId) return;

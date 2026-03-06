@@ -22,8 +22,8 @@ export type ApiBookingType = 'booking' | 'event';
 export interface ApiBooking {
   id: string;
   business_id: string;
-  client_id: string;
-  service_id: string;
+  client_id: string | null;
+  service_id: string | null;
   user_id: string | null;
   booking_date: string; // ISO date format (YYYY-MM-DD)
   start_time: string; // HH:mm:ss format

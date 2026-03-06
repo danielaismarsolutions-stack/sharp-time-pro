@@ -484,7 +484,7 @@ export const supabaseBarbersApi = {
   // Delete a single time_off entry
   async deleteTimeOff(timeOffId: string): Promise<void> {
     const response = await fetch(
-      `${SUPABASE_CONFIG.url}/rest/v1/barber_time_off?id=eq.${timeOffId}`,
+      `${SUPABASE_CONFIG.url}/rest/v1/barber_time_off?id=eq.${timeOffId}&business_id=eq.${getBusinessId()}`,
       {
         method: 'DELETE',
         headers: await supabaseHeaders(),

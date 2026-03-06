@@ -26,7 +26,6 @@ export const supabaseConsultationsApi = {
     } else if (status === 'completed') {
       updateData.completed_at = new Date().toISOString();
     }
-    // Note: scheduled_at column doesn't exist in the table
 
     const { error } = await supabase
       .from('consultations')
