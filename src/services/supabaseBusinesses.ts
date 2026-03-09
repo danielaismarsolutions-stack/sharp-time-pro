@@ -80,7 +80,6 @@ export const supabaseBusinessesApi = {
 
     if (!res.ok) throw new Error(`Error updating business: ${res.status}`);
   },
-};
 
   /** Fetch booking advance settings (antelación) */
   async getBookingSettings(): Promise<{ minAdvanceBooking: number; maxAdvanceBooking: number }> {
