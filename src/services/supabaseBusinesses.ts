@@ -20,8 +20,8 @@ export interface DbBusiness {
   language: string | null;
   location_url: string | null;
   contact_email: string | null;
-  antelacion_min: number | null;
-  antelacion_max: number | null;
+  'antelacion_min (horas)': number | null;
+  'antelacion_max (dias)': number | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -85,18 +85,18 @@ export const supabaseBusinessesApi = {
   async getBookingSettings(): Promise<{ minAdvanceBooking: number; maxAdvanceBooking: number }> {
     const businessId = getBusinessId();
     const headers = await supabaseHeaders();
-    const url = `${SUPABASE_CONFIG.url}/rest/v1/businesses?id=eq.${businessId}&select=antelacion_min,antelacion_max`;
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/businesses?id=eq.${businessId}&select="antelacion_min (horas)","antelacion_max (dias)"`;
 
     const res = await fetch(url, { headers });
     if (!res.ok) throw new Error(`Error fetching booking settings: ${res.status}`);
 
-    const rows: Pick<DbBusiness, 'antelacion_min' | 'antelacion_max'>[] = await res.json();
+    const rows: Pick<DbBusiness, 'antelacion_min (horas)' | 'antelacion_max (dias)'>[] = await res.json();
     const row = rows[0];
     if (!row) throw new Error('Business not found');
 
     return {
-      minAdvanceBooking: row.antelacion_min ?? 1,
-      maxAdvanceBooking: row.antelacion_max ?? 30,
+      minAdvanceBooking: row['antelacion_min (horas)'] ?? 1,
+      maxAdvanceBooking: row['antelacion_max (dias)'] ?? 30,
     };
   },
 
@@ -110,8 +110,8 @@ export const supabaseBusinessesApi = {
       method: 'PATCH',
       headers,
       body: JSON.stringify({
-        antelacion_min: data.minAdvanceBooking,
-        antelacion_max: data.maxAdvanceBooking,
+        'antelacion_min (horas)': data.minAdvanceBooking,
+        'antelacion_max (dias)': data.maxAdvanceBooking,
       }),
     });
 
