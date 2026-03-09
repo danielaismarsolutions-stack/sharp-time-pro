@@ -142,10 +142,10 @@ export default function Settings() {
   const loadSettings = async () => {
     setIsLoading(true);
     try {
-      const [businessData, hours, booking, notifications] = await Promise.all([
+      const [businessData, hours, bookingAdvance, notifications] = await Promise.all([
         supabaseBusinessesApi.get(),
         supabaseBusinessHoursApi.getAll(),
-        settingsApi.getBookingSettings(),
+        supabaseBusinessesApi.getBookingSettings(),
         settingsApi.getNotificationSettings(),
       ]);
       setBusinessSettings((prev) => ({
@@ -156,7 +156,11 @@ export default function Settings() {
         contactEmail: businessData.contactEmail,
       }));
       setBusinessHours(hours);
-      setBookingSettings(booking);
+      setBookingSettings((prev) => ({
+        ...prev,
+        minAdvanceBooking: bookingAdvance.minAdvanceBooking,
+        maxAdvanceBooking: bookingAdvance.maxAdvanceBooking,
+      }));
       setNotificationSettings(notifications);
     } catch (error) {
       toast({ title: 'Error al cargar configuración', variant: 'destructive' });
@@ -246,7 +250,10 @@ export default function Settings() {
 
     setIsSaving(true);
     try {
-      await settingsApi.updateBookingSettings(bookingSettings);
+      await supabaseBusinessesApi.updateBookingSettings({
+        minAdvanceBooking: bookingSettings.minAdvanceBooking,
+        maxAdvanceBooking: bookingSettings.maxAdvanceBooking,
+      });
       toast({ title: 'Configuración de reservas guardada' });
     } catch (error) {
       toast({ title: 'Error al guardar configuración', variant: 'destructive' });
