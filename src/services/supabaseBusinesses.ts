@@ -20,6 +20,8 @@ export interface DbBusiness {
   language: string | null;
   location_url: string | null;
   contact_email: string | null;
+  antelacion_min: number | null;
+  antelacion_max: number | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -77,6 +79,44 @@ export const supabaseBusinessesApi = {
     });
 
     if (!res.ok) throw new Error(`Error updating business: ${res.status}`);
+  },
+};
+
+  /** Fetch booking advance settings (antelación) */
+  async getBookingSettings(): Promise<{ minAdvanceBooking: number; maxAdvanceBooking: number }> {
+    const businessId = getBusinessId();
+    const headers = await supabaseHeaders();
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/businesses?id=eq.${businessId}&select=antelacion_min,antelacion_max`;
+
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error(`Error fetching booking settings: ${res.status}`);
+
+    const rows: Pick<DbBusiness, 'antelacion_min' | 'antelacion_max'>[] = await res.json();
+    const row = rows[0];
+    if (!row) throw new Error('Business not found');
+
+    return {
+      minAdvanceBooking: row.antelacion_min ?? 1,
+      maxAdvanceBooking: row.antelacion_max ?? 30,
+    };
+  },
+
+  /** Update booking advance settings (antelación) */
+  async updateBookingSettings(data: { minAdvanceBooking: number; maxAdvanceBooking: number }): Promise<void> {
+    const businessId = getBusinessId();
+    const headers = await supabaseHeaders();
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/businesses?id=eq.${businessId}`;
+
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        antelacion_min: data.minAdvanceBooking,
+        antelacion_max: data.maxAdvanceBooking,
+      }),
+    });
+
+    if (!res.ok) throw new Error(`Error updating booking settings: ${res.status}`);
   },
 };
 
