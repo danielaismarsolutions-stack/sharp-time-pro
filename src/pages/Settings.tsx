@@ -141,13 +141,15 @@ export default function Settings() {
 
   const loadSettings = async () => {
     setIsLoading(true);
-    try {
-      const [businessData, hours, bookingAdvance, notifications] = await Promise.all([
-        supabaseBusinessesApi.get(),
-        supabaseBusinessHoursApi.getAll(),
-        supabaseBusinessesApi.getBookingSettings(),
-        settingsApi.getNotificationSettings(),
-      ]);
+    const [businessResult, hoursResult, bookingResult, notificationsResult] = await Promise.allSettled([
+      supabaseBusinessesApi.get(),
+      supabaseBusinessHoursApi.getAll(),
+      supabaseBusinessesApi.getBookingSettings(),
+      settingsApi.getNotificationSettings(),
+    ]);
+
+    if (businessResult.status === 'fulfilled') {
+      const businessData = businessResult.value;
       setBusinessSettings((prev) => ({
         ...prev,
         businessName: businessData.businessName,
@@ -155,18 +157,40 @@ export default function Settings() {
         address: businessData.address,
         contactEmail: businessData.contactEmail,
       }));
-      setBusinessHours(hours);
+    }
+
+    if (hoursResult.status === 'fulfilled') {
+      setBusinessHours(hoursResult.value);
+    }
+
+    if (bookingResult.status === 'fulfilled') {
+      const bookingAdvance = bookingResult.value;
       setBookingSettings((prev) => ({
         ...prev,
         minAdvanceBooking: bookingAdvance.minAdvanceBooking,
         maxAdvanceBooking: bookingAdvance.maxAdvanceBooking,
       }));
-      setNotificationSettings(notifications);
-    } catch (error) {
-      toast({ title: 'Error al cargar configuración', variant: 'destructive' });
-    } finally {
-      setIsLoading(false);
     }
+
+    if (notificationsResult.status === 'fulfilled') {
+      setNotificationSettings(notificationsResult.value);
+    }
+
+    const failedSections = [
+      businessResult.status === 'rejected' && 'negocio',
+      hoursResult.status === 'rejected' && 'horario',
+      bookingResult.status === 'rejected' && 'reservas',
+      notificationsResult.status === 'rejected' && 'notificaciones',
+    ].filter(Boolean);
+
+    if (failedSections.length > 0) {
+      toast({
+        title: `Error al cargar: ${failedSections.join(', ')}`,
+        variant: 'destructive',
+      });
+    }
+
+    setIsLoading(false);
   };
 
   const saveBusinessSettings = async () => {
