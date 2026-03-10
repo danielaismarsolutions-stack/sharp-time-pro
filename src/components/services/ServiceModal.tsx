@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Scissors, Clock, DollarSign, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -21,12 +21,15 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Service } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import ServicePhotoUpload from '@/components/services/ServicePhotoUpload';
 
 interface ServiceModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   service?: Service | null;
-  onSave: (service: Partial<Service>) => Promise<void>;
+  onSave: (service: Partial<Service>, pendingPhotoFile?: File | null) => Promise<void>;
+  businessId: string;
+  onPhotoChange?: (serviceId: string, photoUrl: string | null) => void;
 }
 
 // Duration options based on barbershop needs
@@ -57,10 +60,14 @@ export default function ServiceModal({
   onOpenChange,
   service,
   onSave,
+  businessId,
+  onPhotoChange,
 }: ServiceModalProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
+  const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null);
   const [priceInput, setPriceInput] = useState('');
   const [formData, setFormData] = useState({
     name: '',
@@ -76,6 +83,9 @@ export default function ServiceModal({
   useEffect(() => {
     if (open) {
       setErrors({});
+      setPendingPhotoFile(null);
+      if (localPhotoUrl) URL.revokeObjectURL(localPhotoUrl);
+      setLocalPhotoUrl(null);
       if (service) {
         setFormData({
           name: service.name,
@@ -153,7 +163,7 @@ export default function ServiceModal({
         isActive: formData.isActive,
         bufferBefore: formData.bufferBefore,
         bufferAfter: formData.bufferAfter,
-      });
+      }, pendingPhotoFile);
     } catch (error) {
       // Error handled by parent
     } finally {
@@ -172,6 +182,62 @@ export default function ServiceModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3">
+          {/* Service Photo */}
+          {service ? (
+            <ServicePhotoUpload
+              serviceId={service.id}
+              businessId={businessId}
+              currentPhotoUrl={service.servicePhoto ?? null}
+              onPhotoChange={(url) => {
+                if (onPhotoChange && service) {
+                  onPhotoChange(service.id, url);
+                }
+              }}
+            />
+          ) : (
+            <div className="space-y-1">
+              <p className="text-xs font-medium">Foto del servicio</p>
+              <div className="flex items-center gap-3">
+                <div
+                  className={`
+                    relative w-[120px] h-[120px] rounded-lg border-2 border-dashed
+                    flex items-center justify-center cursor-pointer overflow-hidden
+                    transition-all duration-200 shrink-0
+                    border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50
+                  `}
+                  onClick={() => document.getElementById('new-service-photo')?.click()}
+                >
+                  {localPhotoUrl ? (
+                    <img src={localPhotoUrl} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                      <Scissors className="h-6 w-6" />
+                      <span className="text-[10px] text-center leading-tight">Subir foto</span>
+                    </div>
+                  )}
+                </div>
+                <input
+                  id="new-service-photo"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setPendingPhotoFile(file);
+                      if (localPhotoUrl) URL.revokeObjectURL(localPhotoUrl);
+                      setLocalPhotoUrl(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  JPG, PNG, WebP o GIF.<br />
+                  Máximo 5MB. Se subirá al crear.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-1">
             <Label className="text-xs">Nombre del servicio *</Label>
             <Input

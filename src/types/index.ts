@@ -48,6 +48,7 @@ export interface Service {
   bufferBefore: number;
   bufferAfter: number;
   sortOrder?: number;
+  servicePhoto?: string | null;
 }
 
 export interface BusinessSettings {
