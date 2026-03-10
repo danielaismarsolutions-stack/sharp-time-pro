@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Building2,
@@ -12,6 +12,8 @@ import {
   AlertTriangle,
   Plus,
   Trash2,
+  Upload,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,6 +49,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
 import { notifyAllAdmins } from '@/services/supabaseNotifications';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useBusinessBrand } from '@/contexts/BusinessBrandContext';
 
 const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const dayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -57,6 +60,9 @@ export default function Settings() {
   const { toast } = useToast();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const { user, logout } = useAuth();
+  const { brand, updateLogoUrl } = useBusinessBrand();
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(
@@ -191,6 +197,76 @@ export default function Settings() {
     }
 
     setIsLoading(false);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Solo se permiten imágenes', variant: 'destructive' });
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: 'La imagen debe ser menor a 2MB', variant: 'destructive' });
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    try {
+      const businessId = getBusinessId();
+      const ext = file.name.split('.').pop() || 'png';
+      const filePath = `${businessId}/logo.${ext}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('business-logos')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('business-logos')
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData.publicUrl;
+
+      // Save URL to business record
+      await supabaseBusinessesApi.update({ logoUrl: publicUrl });
+      updateLogoUrl(publicUrl);
+
+      toast({ title: 'Logo actualizado' });
+    } catch (error) {
+      toast({ title: 'Error al subir el logo', variant: 'destructive' });
+    } finally {
+      setIsUploadingLogo(false);
+      // Reset input so the same file can be selected again
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    const confirmed = await confirm({
+      title: 'Eliminar logo',
+      description: '¿Estás seguro de que quieres eliminar el logo del negocio?',
+      confirmLabel: 'Eliminar',
+    });
+    if (!confirmed) return;
+
+    setIsUploadingLogo(true);
+    try {
+      await supabaseBusinessesApi.update({ logoUrl: null });
+      updateLogoUrl(null);
+      toast({ title: 'Logo eliminado' });
+    } catch {
+      toast({ title: 'Error al eliminar el logo', variant: 'destructive' });
+    } finally {
+      setIsUploadingLogo(false);
+    }
   };
 
   const saveBusinessSettings = async () => {
@@ -411,6 +487,66 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Logo Upload */}
+              <div className="space-y-2">
+                <Label>Logo del Negocio</Label>
+                <div className="flex items-center gap-4">
+                  <div className="relative w-20 h-20 rounded-lg border border-border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
+                    {brand.logoUrl ? (
+                      <img
+                        src={brand.logoUrl}
+                        alt="Logo del negocio"
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <Upload className="h-8 w-8 text-muted-foreground" />
+                    )}
+                    {isUploadingLogo && (
+                      <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => logoInputRef.current?.click()}
+                        disabled={isUploadingLogo}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {brand.logoUrl ? 'Cambiar logo' : 'Subir logo'}
+                      </Button>
+                      {brand.logoUrl && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRemoveLogo}
+                          disabled={isUploadingLogo}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Eliminar
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      PNG, JPG o SVG. Máximo 2MB.
+                    </p>
+                  </div>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nombre del Negocio</Label>

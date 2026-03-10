@@ -23,6 +23,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBusinessBrand } from '@/contexts/BusinessBrandContext';
 import { cn } from '@/lib/utils';
 
 type ViewMode = 'day' | '3day' | 'week' | 'month' | 'agenda';
@@ -62,6 +63,7 @@ export function MobileDrawerMenu({
 }: MobileDrawerMenuProps) {
   const location = useLocation();
   const { logout, user, isAdmin } = useAuth();
+  const { brand } = useBusinessBrand();
 
   const navItems = allNavItems.filter(item => !item.adminOnly || isAdmin);
 
@@ -81,7 +83,7 @@ export function MobileDrawerMenu({
         <SheetHeader className="p-4 border-b border-border">
           <div className="flex items-center gap-3">
             <NexioMark size="lg" />
-            <SheetTitle className="text-lg font-semibold">Nexio</SheetTitle>
+            <SheetTitle className="text-lg font-semibold">{brand.businessName || 'Nexio'}</SheetTitle>
           </div>
         </SheetHeader>
 
