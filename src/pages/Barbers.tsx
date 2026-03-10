@@ -186,7 +186,7 @@ export default function Barbers() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'No se pudo guardar el barbero',
+        description: error instanceof Error ? error.message : 'No se pudo guardar el barbero',
         variant: 'destructive',
       });
       throw error;
