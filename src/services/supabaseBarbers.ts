@@ -270,8 +270,19 @@ export const supabaseBarbersApi = {
     );
 
     if (!response.ok) {
-      const error = await parseErrorMessage(response);
-      throw new Error(`Failed to create barber: ${error}`);
+      const errorText = await response.text();
+      let errorMessage = 'No se pudo crear el barbero';
+      try {
+        const json = JSON.parse(errorText);
+        if (json.code === '23505' && json.message?.includes('email')) {
+          errorMessage = 'Ya existe un usuario con ese email. Usa otro email o déjalo vacío.';
+        } else if (json.code === '23505') {
+          errorMessage = 'Ya existe un registro con esos datos.';
+        } else {
+          errorMessage = json.message || errorMessage;
+        }
+      } catch { /* use default */ }
+      throw new Error(errorMessage);
     }
 
     const data: DbUser[] = await response.json();
