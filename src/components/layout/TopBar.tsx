@@ -25,6 +25,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { useBusinessBrand } from '@/contexts/BusinessBrandContext';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 
 interface TopBarProps {
@@ -36,6 +37,7 @@ interface TopBarProps {
 export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarProps) {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const { user, logout, isAdmin } = useAuth();
+  const { brand } = useBusinessBrand();
   const navigate = useNavigate();
   const { 
     notifications, 
@@ -67,7 +69,7 @@ export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarPr
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <h1 className="font-bold text-lg">Nexio</h1>
+            <h1 className="font-bold text-lg">{brand.businessName || 'Nexio'}</h1>
           </>
         )}
         {!isMobile && (

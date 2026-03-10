@@ -31,6 +31,7 @@ export interface BusinessFormData {
   phone: string;
   address: string;
   contactEmail: string; // maps to contact_email column
+  logoUrl?: string | null; // maps to logo_url column
 }
 
 const supabaseHeaders = async () => ({
@@ -43,7 +44,7 @@ export const supabaseBusinessesApi = {
   async get(): Promise<BusinessFormData> {
     const businessId = getBusinessId();
     const headers = await supabaseHeaders();
-    const url = `${SUPABASE_CONFIG.url}/rest/v1/businesses?id=eq.${businessId}&select=business_name,phone,address,contact_email`;
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/businesses?id=eq.${businessId}&select=business_name,phone,address,contact_email,logo_url`;
 
     const res = await fetch(url, { headers });
     if (!res.ok) throw new Error(`Error fetching business: ${res.status}`);
@@ -57,6 +58,7 @@ export const supabaseBusinessesApi = {
       phone: row.phone ?? '',
       address: row.address ?? '',
       contactEmail: row.contact_email ?? '',
+      logoUrl: row.logo_url ?? null,
     };
   },
 
@@ -71,6 +73,7 @@ export const supabaseBusinessesApi = {
     if (data.phone !== undefined) payload.phone = data.phone;
     if (data.address !== undefined) payload.address = data.address;
     if (data.contactEmail !== undefined) payload.contact_email = data.contactEmail;
+    if (data.logoUrl !== undefined) payload.logo_url = data.logoUrl;
 
     const res = await fetch(url, {
       method: 'PATCH',

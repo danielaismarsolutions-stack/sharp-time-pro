@@ -16,6 +16,7 @@ import {
 import { NexioMark } from '@/components/NexioLogo';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBusinessBrand } from '@/contexts/BusinessBrandContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface SidebarProps {
@@ -37,6 +38,7 @@ const allNavItems = [
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useLocation();
   const { logout, user, isAdmin } = useAuth();
+  const { brand } = useBusinessBrand();
 
   const navItems = allNavItems.filter(item => !item.adminOnly || isAdmin);
 
@@ -97,7 +99,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {!collapsed && (
           <div className="flex items-center gap-2">
             <NexioMark size="md" />
-            <span className="font-semibold text-sidebar-foreground">Nexio</span>
+            <span className="font-semibold text-sidebar-foreground truncate">{brand.businessName || 'Nexio'}</span>
           </div>
         )}
         {collapsed && (
