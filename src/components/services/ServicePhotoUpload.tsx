@@ -156,10 +156,7 @@ export default function ServicePhotoUpload({
                     e.stopPropagation();
                     handleDelete();
                   }}
-                  className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white opacity-0 hover:opacity-100 transition-opacity group-hover:opacity-100 hover:bg-destructive"
-                  style={{ opacity: undefined }}
-                  onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                  onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}
+                  className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white hover:bg-destructive transition-colors"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
