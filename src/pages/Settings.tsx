@@ -41,7 +41,8 @@ import {
 import { settingsApi } from '@/services/api';
 import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
 import { supabaseBusinessesApi } from '@/services/supabaseBusinesses';
-import { supabase } from '@/lib/supabase';
+import { supabase, getAuthHeaders } from '@/lib/supabase';
+import { SUPABASE_CONFIG } from '@/config/api';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
@@ -221,19 +222,27 @@ export default function Settings() {
       const ext = file.name.split('.').pop() || 'png';
       const filePath = `${businessId}/logo.${ext}`;
 
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('business-logos')
-        .upload(filePath, file, { upsert: true });
+      // Upload to Supabase Storage via REST API
+      const headers = await getAuthHeaders();
+      const uploadUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/business-logos/${filePath}`;
 
-      if (uploadError) throw uploadError;
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'apikey': headers['apikey'],
+          'Authorization': headers['Authorization'],
+          'x-upsert': 'true',
+        },
+        body: file,
+      });
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('business-logos')
-        .getPublicUrl(filePath);
+      if (!uploadRes.ok) {
+        const errBody = await uploadRes.json().catch(() => ({}));
+        throw new Error(errBody.message || errBody.error || `Upload failed (${uploadRes.status})`);
+      }
 
-      const publicUrl = urlData.publicUrl;
+      // Build public URL
+      const publicUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/business-logos/${filePath}`;
 
       // Save URL to business record
       await supabaseBusinessesApi.update({ logoUrl: publicUrl });
