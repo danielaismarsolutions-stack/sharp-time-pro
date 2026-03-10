@@ -39,6 +39,7 @@ import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import ServiceModal from '@/components/services/ServiceModal';
 import { SortableServiceCard } from '@/components/services/SortableServiceCard';
 import { AnimatedCard } from '@/components/ui/animated-card';
+import { uploadServicePhoto } from '@/utils/uploadServicePhoto';
 
 export default function Services() {
   const { toast } = useToast();
@@ -118,7 +119,7 @@ export default function Services() {
     }
   };
 
-  const handleSaveService = async (serviceData: Partial<Service>) => {
+  const handleSaveService = async (serviceData: Partial<Service>, pendingPhotoFile?: File | null) => {
     if (editingService) {
       const confirmed = await confirm({
         title: 'Actualizar servicio',
@@ -153,6 +154,21 @@ export default function Services() {
       } else {
         // Create new service
         const created = await supabaseServicesApi.create(serviceData as Omit<Service, 'id'>);
+
+        // Upload pending photo if one was selected during creation
+        if (pendingPhotoFile) {
+          try {
+            const photoUrl = await uploadServicePhoto(pendingPhotoFile, getBusinessId(), created.id);
+            created.servicePhoto = photoUrl;
+          } catch {
+            toast({
+              title: 'Servicio creado, pero no se pudo subir la foto',
+              description: 'Puedes intentar subir la foto editando el servicio',
+              variant: 'destructive',
+            });
+          }
+        }
+
         setServices((prev) => [...prev, created]);
 
         // Notify all admins about service creation
@@ -440,10 +456,18 @@ export default function Services() {
                   >
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: service.color }}
-                        />
+                        {service.servicePhoto ? (
+                          <img
+                            src={service.servicePhoto}
+                            alt={service.name}
+                            className="w-8 h-8 rounded-full object-cover shrink-0"
+                          />
+                        ) : (
+                          <div
+                            className="w-3 h-3 rounded-full shrink-0"
+                            style={{ backgroundColor: service.color }}
+                          />
+                        )}
                         <div>
                           <p className="font-medium">{service.name}</p>
                           {service.description && (
@@ -482,6 +506,15 @@ export default function Services() {
         }}
         onSave={handleSaveService}
         service={editingService}
+        businessId={getBusinessId()}
+        onPhotoChange={(serviceId, photoUrl) => {
+          setServices((prev) =>
+            prev.map((s) => s.id === serviceId ? { ...s, servicePhoto: photoUrl } : s)
+          );
+          if (editingService?.id === serviceId) {
+            setEditingService((prev) => prev ? { ...prev, servicePhoto: photoUrl } : prev);
+          }
+        }}
       />
 
       {/* Generic Confirmation Dialog */}

@@ -96,6 +96,15 @@ export function SortableServiceCard({
           </div>
         </CardHeader>
         <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+          {service.servicePhoto && (
+            <div className="mb-3 rounded-md overflow-hidden">
+              <img
+                src={service.servicePhoto}
+                alt={service.name}
+                className="w-full h-32 object-cover"
+              />
+            </div>
+          )}
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <div className="flex items-center gap-3 md:gap-4">
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
