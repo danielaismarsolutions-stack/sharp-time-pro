@@ -241,7 +241,13 @@ export default function Settings() {
 
       toast({ title: 'Logo actualizado' });
     } catch (error) {
-      toast({ title: 'Error al subir el logo', variant: 'destructive' });
+      console.error('Logo upload error:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      toast({
+        title: 'Error al subir el logo',
+        description: message,
+        variant: 'destructive',
+      });
     } finally {
       setIsUploadingLogo(false);
       // Reset input so the same file can be selected again
