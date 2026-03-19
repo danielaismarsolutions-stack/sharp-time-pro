@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.91.1";
 
-const VAPID_SUBJECT = "mailto:admin@riojabarberstudio.com";
+const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:admin@example.com";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
