@@ -1,6 +1,46 @@
 import { SUPABASE_CONFIG } from '@/config/api';
 import { getAuthHeaders } from '@/lib/supabase';
 
+const NOTIFICATION_URL_MAP: Record<string, string> = {
+  booking_created: '/calendar',
+  booking_cancelled: '/calendar',
+  booking_modified: '/calendar',
+  booking_deleted: '/calendar',
+  booking_status_changed: '/calendar',
+  booking_reminder: '/calendar',
+  event_created: '/calendar',
+  event_modified: '/calendar',
+  event_deleted: '/calendar',
+  client_created: '/clients',
+  client_modified: '/clients',
+  client_deleted: '/clients',
+  consultation_created: '/consultations',
+  consultation_updated: '/consultations',
+  consultation_deleted: '/consultations',
+  service_created: '/services',
+  service_modified: '/services',
+  service_deleted: '/services',
+};
+
+async function sendPushNotification(userId: string, title: string, message: string, type: string): Promise<void> {
+  try {
+    const headers = await getAuthHeaders();
+    const url = `${SUPABASE_CONFIG.url}/functions/v1/send-push-notification`;
+    await fetch(url, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId,
+        title,
+        message,
+        url: NOTIFICATION_URL_MAP[type] || '/',
+      }),
+    });
+  } catch {
+    // Push is best-effort, don't block on failure
+  }
+}
+
 export type DbNotificationType =
   | 'booking_created'
   | 'booking_cancelled'
@@ -175,7 +215,12 @@ export async function createNotification(data: CreateNotificationData): Promise<
   }
 
   const notifications = await response.json();
-  return notifications[0];
+  const notification = notifications[0];
+
+  // Fire push notification (best-effort, non-blocking)
+  sendPushNotification(data.user_id, data.title, data.message, data.type);
+
+  return notification;
 }
 
 // Fetch all admin/owner user IDs for a business
@@ -236,5 +281,10 @@ export async function notifyAllAdmins(data: NotifyAdminsData): Promise<void> {
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Failed to notify admins: ${response.status}`);
+  }
+
+  // Fire push notifications for each admin (best-effort, non-blocking)
+  for (const adminId of adminIds) {
+    sendPushNotification(adminId, data.title, data.message, data.type);
   }
 }
