@@ -3,8 +3,8 @@ self.addEventListener('push', (event) => {
   
   const options = {
     body: data.body || 'Nueva notificación',
-    icon: '/nexioLogo2.png',
-    badge: '/nexioLogo2.png',
+    icon: '/definitivo.png',
+    badge: '/definitivo.png',
     vibrate: [200, 100, 200],
     data: {
       url: data.url || '/'
