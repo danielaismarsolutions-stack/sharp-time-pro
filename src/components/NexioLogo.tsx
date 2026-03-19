@@ -13,7 +13,7 @@ export function NexioMark({ className, size = 'md' }: { className?: string; size
 
   return (
     <img
-      src={brand.logoUrl || '/definitivo.png'}
+      src={brand.logoUrl || '/2345.jpeg'}
       alt={brand.businessName || 'Logo'}
       className={cn(sizeMap[size], 'rounded-lg object-contain', className)}
     />
