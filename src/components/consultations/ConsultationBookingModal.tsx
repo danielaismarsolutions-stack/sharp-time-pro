@@ -251,7 +251,7 @@ export function ConsultationBookingModal({
           business_id: getBusinessId(),
           type: 'booking_created',
           title: 'Nueva reserva desde consulta',
-          message: `${consultation.client_name} ha reservado ${selectedService.name} para el ${format(date, "dd/MM/yyyy", { locale: es })} a las ${formData.time}`,
+          message: `${consultation.client_name} ha reservado ${selectedService.name} con ${selectedBarber?.name || 'Sin asignar'} para el ${format(date, "dd/MM/yyyy", { locale: es })} a las ${formData.time}`,
           barber_user_id: formData.barberId || newBooking.user_id,
           performed_by_user_id: user?.id || '',
           metadata: {
