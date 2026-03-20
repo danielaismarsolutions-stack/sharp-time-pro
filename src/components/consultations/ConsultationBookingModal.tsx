@@ -34,7 +34,7 @@ import { supabaseBookingsApi, CreateBookingData } from '@/services/supabaseBooki
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { supabaseClientsApi } from '@/services/supabaseClients';
-import { notifyAllAdmins } from '@/services/supabaseNotifications';
+import { notifyBookingUsers } from '@/services/supabaseNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
 
@@ -245,13 +245,15 @@ export function ConsultationBookingModal({
 
       const newBooking = await supabaseBookingsApi.create(bookingData);
       
-      // Notify all admins about booking from consultation
+      // Notify admins + barber about booking from consultation
       try {
-        await notifyAllAdmins({
+        await notifyBookingUsers({
           business_id: getBusinessId(),
           type: 'booking_created',
           title: 'Nueva reserva desde consulta',
           message: `${consultation.client_name} ha reservado ${selectedService.name} para el ${format(date, "dd/MM/yyyy", { locale: es })} a las ${formData.time}`,
+          barber_user_id: formData.barberId || newBooking.user_id,
+          performed_by_user_id: user?.id || '',
           metadata: {
             booking_id: newBooking.id,
             consultation_id: consultation.id,

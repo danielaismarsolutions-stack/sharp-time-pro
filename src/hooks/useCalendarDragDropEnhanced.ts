@@ -8,7 +8,7 @@ import { es } from 'date-fns/locale';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Barber, BarberSchedule } from '@/types/barber';
 import { supabaseBookingsApi, supabaseEventBookingsApi, UpdateBookingData } from '@/services/supabaseBookings';
-import { notifyAllAdmins } from '@/services/supabaseNotifications';
+import { notifyAllAdmins, notifyBookingUsers } from '@/services/supabaseNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
 import { useToast } from '@/hooks/use-toast';
@@ -621,13 +621,15 @@ export function useCalendarDragDropEnhanced({
       onBookingUpdate(bookingId, updated);
       setUndoStack(prev => [...prev.slice(-9), { bookingId, previousState }]);
 
-      // Notify all admins about booking modification
+      // Notify admins + barber about booking modification
       try {
-        await notifyAllAdmins({
+        await notifyBookingUsers({
           business_id: getBusinessId(),
           type: 'booking_modified',
           title: 'Reserva modificada',
           message: `${booking.client_name} ha modificado su reserva de ${booking.service_name} al ${format(new Date(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,
+          barber_user_id: booking.user_id,
+          performed_by_user_id: user?.id || '',
           metadata: {
             booking_id: bookingId,
             client_name: booking.client_name,

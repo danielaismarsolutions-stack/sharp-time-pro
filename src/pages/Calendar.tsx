@@ -55,7 +55,7 @@ import { supabaseClientsApi } from '@/services/supabaseClients';
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBookingsApi, supabaseEventBookingsApi } from '@/services/supabaseBookings';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
-import { notifyAllAdmins } from '@/services/supabaseNotifications';
+import { notifyAllAdmins, notifyBookingUsers } from '@/services/supabaseNotifications';
 import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
@@ -258,14 +258,16 @@ export default function Calendar() {
         async (payload) => {
           const newBooking = payload.new as ApiBooking;
 
-          // Notify all admins when a booking comes in from online
+          // Notify admins + barber when a booking comes in from online
           if (newBooking.source === 'online') {
             try {
-              await notifyAllAdmins({
+              await notifyBookingUsers({
                 business_id: getBusinessId(),
                 type: 'booking_created',
                 title: 'Nueva reserva online',
                 message: `${newBooking.client_name} ha reservado ${newBooking.service_name} para el ${format(new Date(newBooking.booking_date), 'dd/MM/yyyy', { locale: es })} a las ${newBooking.start_time.substring(0, 5)}`,
+                barber_user_id: newBooking.user_id,
+                performed_by_user_id: '', // online booking = no logged-in user, notify everyone
                 metadata: {
                   booking_id: newBooking.id,
                   client_name: newBooking.client_name,
@@ -677,15 +679,17 @@ export default function Calendar() {
     try {
       await supabaseBookingsApi.updateStatus(bookingId, status as ApiBookingStatus);
 
-      // Notify all admins about status change
+      // Notify admins + barber about status change (in-app only, no push)
       {
         const booking = previousBookings.find((b) => b.id === bookingId);
         try {
-          await notifyAllAdmins({
+          await notifyBookingUsers({
             business_id: getBusinessId(),
             type: 'booking_status_changed',
             title: 'Estado de cita cambiado',
             message: `${user?.name || 'Usuario'} cambió la cita de ${booking?.client_name || 'cliente'} a "${statusLabels[status]}"`,
+            barber_user_id: booking?.user_id,
+            performed_by_user_id: user?.id || '',
             metadata: {
               booking_id: bookingId,
               client_name: booking?.client_name,
@@ -722,14 +726,16 @@ export default function Calendar() {
     try {
       await supabaseBookingsApi.delete(bookingId);
 
-      // Notify all admins about booking deletion
+      // Notify admins + barber about booking deletion
       if (deletedBooking) {
         try {
-          await notifyAllAdmins({
+          await notifyBookingUsers({
             business_id: getBusinessId(),
             type: 'booking_deleted',
             title: 'Cita eliminada',
             message: `${user?.name || 'Usuario'} eliminó la cita de ${deletedBooking.client_name} (${deletedBooking.service_name})`,
+            barber_user_id: deletedBooking.user_id,
+            performed_by_user_id: user?.id || '',
             metadata: {
               booking_id: bookingId,
               client_name: deletedBooking.client_name,
@@ -1660,13 +1666,15 @@ export default function Calendar() {
                 
                 setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updatedBooking : b));
                 
-                // Notify all admins about booking modification
+                // Notify admins + barber about booking modification
                 try {
-                  await notifyAllAdmins({
+                  await notifyBookingUsers({
                     business_id: getBusinessId(),
                     type: 'booking_modified',
                     title: 'Reserva modificada',
                     message: `${user?.name || 'Usuario'} modificó la cita de ${data.clientName} (${data.serviceName}) al ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
+                    barber_user_id: data.barberId || selectedBooking.user_id,
+                    performed_by_user_id: user?.id || '',
                     metadata: {
                       booking_id: selectedBooking.id,
                       client_name: data.clientName,
@@ -1701,13 +1709,15 @@ export default function Calendar() {
                 
                 setBookings(prev => [...prev, newBooking]);
                 
-                // Notify all admins about new booking
+                // Notify admins + barber about new booking
                 try {
-                  await notifyAllAdmins({
+                  await notifyBookingUsers({
                     business_id: getBusinessId(),
                     type: 'booking_created',
                     title: 'Nueva reserva',
                     message: `${user?.name || 'Usuario'} creó una cita para ${data.clientName} (${data.serviceName}) el ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
+                    barber_user_id: data.barberId || newBooking.user_id,
+                    performed_by_user_id: user?.id || '',
                     metadata: {
                       booking_id: newBooking.id,
                       client_name: data.clientName,

@@ -2,6 +2,7 @@
 CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 
 -- Function that fires on notification INSERT and calls the Edge Function via pg_net
+-- Only sends push notifications for booking-related types (not all notification types)
 CREATE OR REPLACE FUNCTION public.send_push_on_notification()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -9,9 +10,20 @@ DECLARE
   supabase_url TEXT;
   service_role_key TEXT;
   request_body JSONB;
+  performed_by TEXT;
 BEGIN
+  -- Only send push notifications for booking-related types
+  IF NEW.type NOT IN ('booking_created', 'booking_cancelled', 'booking_modified', 'booking_deleted') THEN
+    RETURN NEW;
+  END IF;
+
+  -- Skip push if the notification recipient is the same person who performed the action
+  performed_by := NEW.metadata ->> 'performed_by_user_id';
+  IF performed_by IS NOT NULL AND performed_by = NEW.user_id::text THEN
+    RETURN NEW;
+  END IF;
+
   -- Build the Edge Function URL from Supabase project URL
-  -- This reads from a config table or uses the known project URL
   supabase_url := current_setting('app.settings.supabase_url', true);
 
   -- Fallback to hardcoded project URL if setting not available
@@ -28,27 +40,7 @@ BEGIN
     'user_id', NEW.user_id,
     'title', NEW.title,
     'message', NEW.message,
-    'url', CASE NEW.type
-      WHEN 'booking_created' THEN '/calendar'
-      WHEN 'booking_cancelled' THEN '/calendar'
-      WHEN 'booking_modified' THEN '/calendar'
-      WHEN 'booking_deleted' THEN '/calendar'
-      WHEN 'booking_status_changed' THEN '/calendar'
-      WHEN 'booking_reminder' THEN '/calendar'
-      WHEN 'event_created' THEN '/calendar'
-      WHEN 'event_modified' THEN '/calendar'
-      WHEN 'event_deleted' THEN '/calendar'
-      WHEN 'client_created' THEN '/clients'
-      WHEN 'client_modified' THEN '/clients'
-      WHEN 'client_deleted' THEN '/clients'
-      WHEN 'consultation_created' THEN '/consultations'
-      WHEN 'consultation_updated' THEN '/consultations'
-      WHEN 'consultation_deleted' THEN '/consultations'
-      WHEN 'service_created' THEN '/services'
-      WHEN 'service_modified' THEN '/services'
-      WHEN 'service_deleted' THEN '/services'
-      ELSE '/'
-    END
+    'url', '/calendar'
   );
 
   -- Send async HTTP POST via pg_net (non-blocking, won't slow down the INSERT)
