@@ -2,7 +2,7 @@
 CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 
 -- Function that fires on notification INSERT and calls the Edge Function via pg_net
--- Only sends push notifications for booking-related types (not all notification types)
+-- Only sends push for new bookings and cancellations (not modifications/moves)
 CREATE OR REPLACE FUNCTION public.send_push_on_notification()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -12,8 +12,8 @@ DECLARE
   request_body JSONB;
   performed_by TEXT;
 BEGIN
-  -- Only send push notifications for booking-related types
-  IF NEW.type NOT IN ('booking_created', 'booking_cancelled', 'booking_modified', 'booking_deleted') THEN
+  -- Only send push notifications for new bookings and cancellations
+  IF NEW.type NOT IN ('booking_created', 'booking_cancelled') THEN
     RETURN NEW;
   END IF;
 

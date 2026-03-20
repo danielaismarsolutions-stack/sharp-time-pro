@@ -836,6 +836,7 @@ export default function Calendar() {
             type: 'event_deleted',
             title: 'Evento eliminado',
             message: `${user?.name || 'Usuario'} eliminó el evento "${deletedEvent.name}"`,
+            performed_by_user_id: user?.id || '',
             metadata: {
               event_id: eventId,
               event_name: deletedEvent.name,
@@ -912,6 +913,7 @@ export default function Calendar() {
             type: 'event_modified',
             title: 'Evento modificado',
             message: `${user?.name || 'Usuario'} modificó el evento "${data.name}"`,
+            performed_by_user_id: user?.id || '',
             metadata: {
               event_id: selectedEvent.id,
               event_name: data.name,
@@ -947,6 +949,7 @@ export default function Calendar() {
             type: 'event_created',
             title: 'Nuevo evento creado',
             message: `${user?.name || 'Usuario'} creó el evento "${data.name}" para el ${format(new Date(data.date), 'dd/MM/yyyy', { locale: es })}`,
+            performed_by_user_id: user?.id || '',
             metadata: {
               event_id: createdBooking.id,
               event_name: data.name,

@@ -716,6 +716,7 @@ export function useCalendarDragDropEnhanced({
           type: 'event_modified',
           title: 'Evento movido',
           message: `${user?.name || 'Usuario'} movió el evento "${evt.name}" al ${format(new Date(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,
+          performed_by_user_id: user?.id || '',
           metadata: {
             event_id: evt.id,
             event_name: evt.name,
