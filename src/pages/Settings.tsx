@@ -54,30 +54,36 @@ import { useBusinessBrand } from '@/contexts/BusinessBrandContext';
 const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const dayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-const VALID_TABS = ['business', 'hours', 'booking', 'notifications', 'account'];
+const ADMIN_TABS = ['business', 'hours', 'booking', 'notifications', 'account'];
+const BARBER_TABS = ['notifications', 'account'];
 
 export default function Settings() {
   const { toast } = useToast();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
+  const allowedTabs = isAdmin ? ADMIN_TABS : BARBER_TABS;
+  const defaultTab = isAdmin ? 'business' : 'notifications';
   const { brand, updateLogoUrl } = useBusinessBrand();
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(
-    tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'business'
+    tabParam && allowedTabs.includes(tabParam) ? tabParam : defaultTab
   );
 
   useEffect(() => {
-    if (tabParam && VALID_TABS.includes(tabParam) && tabParam !== activeTab) {
+    if (tabParam && allowedTabs.includes(tabParam) && tabParam !== activeTab) {
       setActiveTab(tabParam);
+    } else if (tabParam && !allowedTabs.includes(tabParam)) {
+      setActiveTab(defaultTab);
+      setSearchParams(defaultTab === 'business' ? {} : { tab: defaultTab }, { replace: true });
     }
-  }, [tabParam]);
+  }, [tabParam, allowedTabs]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    setSearchParams(value === 'business' ? {} : { tab: value }, { replace: true });
+    setSearchParams(value === defaultTab ? {} : { tab: value }, { replace: true });
   };
   const {
     permission,
@@ -461,18 +467,24 @@ export default function Settings() {
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 md:space-y-6">
         <TabsList className="w-full overflow-x-auto flex justify-start h-auto p-1">
-          <TabsTrigger value="business" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
-            <Building2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Negocio</span>
-          </TabsTrigger>
-          <TabsTrigger value="hours" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
-            <Clock className="h-4 w-4" />
-            <span className="hidden sm:inline">Horario</span>
-          </TabsTrigger>
-          <TabsTrigger value="booking" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Reservas</span>
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="business" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
+              <Building2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Negocio</span>
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger value="hours" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
+              <Clock className="h-4 w-4" />
+              <span className="hidden sm:inline">Horario</span>
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger value="booking" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
+              <Calendar className="h-4 w-4" />
+              <span className="hidden sm:inline">Reservas</span>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="notifications" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Notif.</span>
@@ -484,7 +496,7 @@ export default function Settings() {
         </TabsList>
 
         {/* Business Settings */}
-        <TabsContent value="business">
+        {isAdmin && <TabsContent value="business">
           <Card className="border-border">
             <CardHeader>
               <CardTitle>Perfil del Negocio</CardTitle>
@@ -598,10 +610,10 @@ export default function Settings() {
               </Button>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent>}
 
         {/* Business Hours */}
-        <TabsContent value="hours">
+        {isAdmin && <TabsContent value="hours">
           <Card className="border-border">
             <CardHeader>
               <CardTitle>Horario del Negocio</CardTitle>
@@ -674,10 +686,10 @@ export default function Settings() {
               </Button>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent>}
 
         {/* Booking Settings */}
-        <TabsContent value="booking">
+        {isAdmin && <TabsContent value="booking">
           <Card className="border-border">
             <CardHeader>
               <CardTitle>Configuración de Reservas</CardTitle>
@@ -759,7 +771,7 @@ export default function Settings() {
               </Button>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent>}
 
         {/* Notification Settings */}
         <TabsContent value="notifications">

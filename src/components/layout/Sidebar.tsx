@@ -32,7 +32,7 @@ const allNavItems = [
   { icon: Scissors, label: 'Servicios', path: '/services', adminOnly: true },
   { icon: LayoutDashboard, label: 'Finanzas', path: '/dashboard', adminOnly: true },
   { icon: BarChart3, label: 'Informes', path: '/reports', adminOnly: true },
-  { icon: Settings, label: 'Ajustes', path: '/settings', adminOnly: true },
+  { icon: Settings, label: 'Ajustes', path: '/settings', adminOnly: false },
 ];
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {

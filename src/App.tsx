@@ -67,7 +67,7 @@ const App = () => (
                   <Route path="/barbers" element={<AdminRoute><Barbers /></AdminRoute>} />
                   <Route path="/services" element={<AdminRoute><Services /></AdminRoute>} />
                   <Route path="/reports" element={<AdminRoute><Reports /></AdminRoute>} />
-                  <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
+                  <Route path="/settings" element={<Settings />} />
                 </Route>
                 {/* Legal pages (public) */}
                 <Route path="/terminos" element={<Terms />} />
