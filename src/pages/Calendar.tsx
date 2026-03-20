@@ -274,7 +274,7 @@ export default function Calendar() {
               await notifyBookingUsers({
                 business_id: getBusinessId(),
                 type: 'booking_created',
-                title: 'Nueva reserva online',
+                title: `Nueva reserva online - ${newBooking.barber || 'Sin asignar'}`,
                 message: `${newBooking.client_name} ha reservado ${newBooking.service_name} con ${newBooking.barber || 'Sin asignar'} para el ${format(new Date(newBooking.booking_date), 'dd/MM/yyyy', { locale: es })} a las ${newBooking.start_time.substring(0, 5)}`,
                 barber_user_id: newBooking.user_id,
                 performed_by_user_id: '', // online booking = no logged-in user, notify everyone
@@ -1728,7 +1728,7 @@ export default function Calendar() {
                   await notifyBookingUsers({
                     business_id: getBusinessId(),
                     type: 'booking_created',
-                    title: 'Nueva reserva',
+                    title: `Nueva reserva - ${data.barber || 'Sin asignar'}`,
                     message: `${user?.name || 'Usuario'} creó una cita para ${data.clientName} (${data.serviceName}) con ${data.barber || 'Sin asignar'} el ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
                     barber_user_id: data.barberId || newBooking.user_id,
                     performed_by_user_id: user?.id || '',
