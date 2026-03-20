@@ -217,8 +217,8 @@ export async function createNotification(data: CreateNotificationData): Promise<
   const notifications = await response.json();
   const notification = notifications[0];
 
-  // Fire push notification (best-effort, non-blocking)
-  sendPushNotification(data.user_id, data.title, data.message, data.type);
+  // Push notifications are handled by the DB trigger (send_push_on_notification).
+  // No client-side sendPushNotification call needed here.
 
   return notification;
 }
@@ -247,6 +247,8 @@ export interface NotifyAdminsData {
   title: string;
   message: string;
   metadata?: Record<string, unknown>;
+  /** The user_id of whoever performed the action (for skip-self logic in DB trigger) */
+  performed_by_user_id?: string;
 }
 
 /**
@@ -260,6 +262,12 @@ export async function notifyAllAdmins(data: NotifyAdminsData): Promise<void> {
   const headers = await getAuthHeaders();
   const url = `${SUPABASE_CONFIG.url}/rest/v1/notifications`;
 
+  // Ensure performed_by_user_id is in metadata for the DB trigger's skip-self logic
+  const metadata = {
+    ...(data.metadata || {}),
+    ...(data.performed_by_user_id ? { performed_by_user_id: data.performed_by_user_id } : {}),
+  };
+
   // Create one notification row per admin user
   const rows = adminIds.map((adminId) => ({
     user_id: adminId,
@@ -267,7 +275,7 @@ export async function notifyAllAdmins(data: NotifyAdminsData): Promise<void> {
     type: data.type,
     title: data.title,
     message: data.message,
-    metadata: data.metadata || null,
+    metadata,
     is_read: false,
   }));
 
@@ -283,10 +291,8 @@ export async function notifyAllAdmins(data: NotifyAdminsData): Promise<void> {
     throw new Error(`Failed to notify admins: ${response.status}`);
   }
 
-  // Fire push notifications for each admin (best-effort, non-blocking)
-  for (const adminId of adminIds) {
-    sendPushNotification(adminId, data.title, data.message, data.type);
-  }
+  // Push notifications are handled by the DB trigger (send_push_on_notification).
+  // No client-side sendPushNotification calls needed here.
 }
 
 export interface NotifyBookingUsersData {
