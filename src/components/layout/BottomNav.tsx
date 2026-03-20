@@ -77,7 +77,7 @@ const allNavItems: NavItem[] = [
   { id: 'consultations', icon: 'consultations', label: 'Consultas', path: '/consultations', barberOnly: true },
   { id: 'services', icon: 'services', label: 'Servicios', path: '/services', adminOnly: true },
   { id: 'customers', icon: 'customers', label: 'Clientes', path: '/clients' },
-  { id: 'settings', icon: 'settings', label: 'Ajustes', path: '/settings', adminOnly: true },
+  { id: 'settings', icon: 'settings', label: 'Ajustes', path: '/settings' },
 ];
 
 export default function BottomNav() {
