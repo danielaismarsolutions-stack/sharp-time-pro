@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 
 -- Function that fires on notification INSERT and calls the Edge Function via pg_net
 -- Only sends push for new bookings and cancellations (not modifications/moves)
-CREATE OR REPLACE FUNCTION public.send_push_on_notification()
+CREATE OR REPLACE FUNCTION public.send_push_notification()
 RETURNS TRIGGER AS $$
 DECLARE
   edge_function_url TEXT;
@@ -57,14 +57,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Create the trigger on the notifications table
-DROP TRIGGER IF EXISTS trigger_push_on_notification ON public.notifications;
+-- Create the trigger on the notifications table (matches existing trigger name)
+DROP TRIGGER IF EXISTS on_notification_send_push ON public.notifications;
 
-CREATE TRIGGER trigger_push_on_notification
+CREATE TRIGGER on_notification_send_push
   AFTER INSERT ON public.notifications
   FOR EACH ROW
-  EXECUTE FUNCTION public.send_push_on_notification();
+  EXECUTE FUNCTION public.send_push_notification();
 
 -- Add a comment explaining the trigger
-COMMENT ON FUNCTION public.send_push_on_notification() IS
+COMMENT ON FUNCTION public.send_push_notification() IS
   'Sends a Web Push notification via the send-push-notification Edge Function whenever a new notification is inserted. Uses pg_net for async HTTP calls.';
