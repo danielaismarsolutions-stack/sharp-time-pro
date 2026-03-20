@@ -626,8 +626,8 @@ export function useCalendarDragDropEnhanced({
         await notifyBookingUsers({
           business_id: getBusinessId(),
           type: 'booking_modified',
-          title: 'Reserva modificada',
-          message: `${booking.client_name} ha modificado su reserva de ${booking.service_name} al ${format(new Date(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,
+          title: 'Cita movida',
+          message: `${user?.name || 'Usuario'} movió la cita de ${booking.client_name} (${booking.service_name}) al ${format(new Date(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,
           barber_user_id: booking.user_id,
           performed_by_user_id: user?.id || '',
           metadata: {
