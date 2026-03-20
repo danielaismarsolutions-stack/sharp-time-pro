@@ -119,6 +119,9 @@ export default function Calendar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrollTrigger, setScrollTrigger] = useState(0);
 
+  // Track booking IDs created locally to avoid duplicate notifications from real-time subscription
+  const locallyCreatedBookingIds = useRef<Set<string>>(new Set());
+
   // Reset to 3-day view and auto-scroll when "Agenda" nav is clicked
   useEffect(() => {
     if (location.state?.resetView) {
@@ -257,6 +260,13 @@ export default function Calendar() {
         },
         async (payload) => {
           const newBooking = payload.new as ApiBooking;
+
+          // Skip notification for bookings created locally (already notified)
+          if (locallyCreatedBookingIds.current.has(newBooking.id)) {
+            locallyCreatedBookingIds.current.delete(newBooking.id);
+            loadData();
+            return;
+          }
 
           // Notify admins + barber when a booking comes in from online
           if (newBooking.source === 'online') {
@@ -1708,7 +1718,8 @@ export default function Calendar() {
                 });
                 
                 setBookings(prev => [...prev, newBooking]);
-                
+                locallyCreatedBookingIds.current.add(newBooking.id);
+
                 // Notify admins + barber about new booking
                 try {
                   await notifyBookingUsers({
