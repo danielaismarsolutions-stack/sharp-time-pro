@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Service, ServiceType } from '@/types';
+import { Service } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import ServicePhotoUpload from '@/components/services/ServicePhotoUpload';
 
@@ -78,7 +78,7 @@ export default function ServiceModal({
     isActive: true,
     bufferBefore: 0,
     bufferAfter: 5,
-    serviceType: 'service' as ServiceType,
+    isConsultation: false,
   });
 
   useEffect(() => {
@@ -97,7 +97,7 @@ export default function ServiceModal({
           isActive: service.isActive,
           bufferBefore: service.bufferBefore || 0,
           bufferAfter: service.bufferAfter || 5,
-          serviceType: service.serviceType || 'service',
+          isConsultation: service.isConsultation ?? false,
         });
         setPriceInput(service.price ? String(service.price) : '');
       } else {
@@ -110,7 +110,7 @@ export default function ServiceModal({
           isActive: true,
           bufferBefore: 0,
           bufferAfter: 5,
-          serviceType: 'service',
+          isConsultation: false,
         });
         setPriceInput('');
       }
@@ -130,7 +130,7 @@ export default function ServiceModal({
     }
     
     // Validate price and duration only for services (not consultations)
-    if (formData.serviceType === 'service') {
+    if (!formData.isConsultation) {
       if (formData.price < 0) {
         newErrors.price = 'El precio debe ser mayor o igual a 0';
       }
@@ -158,17 +158,16 @@ export default function ServiceModal({
 
     setIsLoading(true);
     try {
-      const isConsultation = formData.serviceType === 'consultation';
       await onSave({
         name: formData.name.trim(),
         description: formData.description.trim(),
-        duration: isConsultation ? 0 : formData.duration,
-        price: isConsultation ? 0 : formData.price,
+        duration: formData.isConsultation ? 0 : formData.duration,
+        price: formData.isConsultation ? 0 : formData.price,
         color: formData.color,
         isActive: formData.isActive,
-        bufferBefore: isConsultation ? 0 : formData.bufferBefore,
-        bufferAfter: isConsultation ? 0 : formData.bufferAfter,
-        serviceType: formData.serviceType,
+        bufferBefore: formData.isConsultation ? 0 : formData.bufferBefore,
+        bufferAfter: formData.isConsultation ? 0 : formData.bufferAfter,
+        isConsultation: formData.isConsultation,
       }, pendingPhotoFile);
     } catch (error) {
       // Error handled by parent
@@ -252,11 +251,11 @@ export default function ServiceModal({
                 type="button"
                 className={cn(
                   "flex items-center justify-center gap-1.5 rounded-md border p-2 text-xs font-medium transition-all",
-                  formData.serviceType === 'service'
+                  !formData.isConsultation
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border text-muted-foreground hover:border-primary/50"
                 )}
-                onClick={() => setFormData({ ...formData, serviceType: 'service' })}
+                onClick={() => setFormData({ ...formData, isConsultation: false })}
               >
                 <Scissors className="h-3.5 w-3.5" />
                 Servicio
@@ -265,17 +264,17 @@ export default function ServiceModal({
                 type="button"
                 className={cn(
                   "flex items-center justify-center gap-1.5 rounded-md border p-2 text-xs font-medium transition-all",
-                  formData.serviceType === 'consultation'
+                  formData.isConsultation
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border text-muted-foreground hover:border-primary/50"
                 )}
-                onClick={() => setFormData({ ...formData, serviceType: 'consultation' })}
+                onClick={() => setFormData({ ...formData, isConsultation: true })}
               >
                 <Clock className="h-3.5 w-3.5" />
                 Consulta
               </button>
             </div>
-            {formData.serviceType === 'consultation' && (
+            {formData.isConsultation && (
               <p className="text-[10px] text-muted-foreground">
                 Las consultas no requieren precio ni duración
               </p>
@@ -311,7 +310,7 @@ export default function ServiceModal({
             />
           </div>
 
-          {formData.serviceType === 'service' && (
+          {!formData.isConsultation && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="flex items-center gap-1.5 text-xs">
@@ -385,7 +384,7 @@ export default function ServiceModal({
             </div>
           </div>
 
-          {formData.serviceType === 'service' && (
+          {!formData.isConsultation && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Buffer antes (min)</Label>

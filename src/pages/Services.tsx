@@ -305,7 +305,7 @@ export default function Services() {
 
   // Statistics
   const activeServices = services.filter((s) => s.isActive);
-  const activeNonConsultations = activeServices.filter((s) => s.serviceType !== 'consultation');
+  const activeNonConsultations = activeServices.filter((s) => !s.isConsultation);
   const avgDuration = activeNonConsultations.length
     ? Math.round(activeNonConsultations.reduce((sum, s) => sum + s.duration, 0) / activeNonConsultations.length)
     : 0;
@@ -479,8 +479,8 @@ export default function Services() {
                         </div>
                       </div>
                     </td>
-                    <td className="p-4">{service.serviceType === 'consultation' ? '—' : `${service.duration}m`}</td>
-                    <td className="p-4">{service.serviceType === 'consultation' ? '—' : `€${service.price}`}</td>
+                    <td className="p-4">{service.isConsultation ? '—' : `${service.duration}m`}</td>
+                    <td className="p-4">{service.isConsultation ? '—' : `€${service.price}`}</td>
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded-full text-xs ${
                         service.isActive 
