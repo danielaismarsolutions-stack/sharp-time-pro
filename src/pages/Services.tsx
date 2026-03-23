@@ -158,12 +158,15 @@ export default function Services() {
         // Upload pending photo if one was selected during creation
         if (pendingPhotoFile) {
           try {
-            const photoUrl = await uploadServicePhoto(pendingPhotoFile, getBusinessId(), created.id);
+            const businessId = getBusinessId();
+            console.log('[ServicePhoto] Uploading photo for service:', created.id, 'business:', businessId, 'file:', pendingPhotoFile.name, pendingPhotoFile.type, pendingPhotoFile.size);
+            const photoUrl = await uploadServicePhoto(pendingPhotoFile, businessId, created.id);
             created.servicePhoto = photoUrl;
-          } catch {
+          } catch (photoError) {
+            console.error('[ServicePhoto] Upload failed:', photoError);
             toast({
               title: 'Servicio creado, pero no se pudo subir la foto',
-              description: 'Puedes intentar subir la foto editando el servicio',
+              description: photoError instanceof Error ? photoError.message : 'Puedes intentar subir la foto editando el servicio',
               variant: 'destructive',
             });
           }

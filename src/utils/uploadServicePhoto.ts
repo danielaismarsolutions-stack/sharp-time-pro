@@ -116,9 +116,11 @@ export async function uploadServicePhoto(
 
   // Optimize image before upload
   const optimizedFile = await optimizeImage(file);
+  console.log('[uploadServicePhoto] Optimized:', optimizedFile.name, optimizedFile.type, optimizedFile.size);
 
   const ext = getExtensionFromFile(optimizedFile);
   const filePath = `${businessId}/${serviceId}.${ext}`;
+  console.log('[uploadServicePhoto] Uploading to path:', filePath);
 
   // Upload to storage with upsert to replace existing
   const { error: uploadError } = await supabase.storage
@@ -126,9 +128,11 @@ export async function uploadServicePhoto(
     .upload(filePath, optimizedFile, {
       cacheControl: '3600',
       upsert: true,
+      contentType: optimizedFile.type,
     });
 
   if (uploadError) {
+    console.error('[uploadServicePhoto] Storage upload error:', uploadError);
     throw new Error(`Error al subir la imagen: ${uploadError.message}`);
   }
 
@@ -139,6 +143,7 @@ export async function uploadServicePhoto(
 
   // Add cache-bust param so browsers show the new image after re-upload
   const url = `${publicUrl}?t=${Date.now()}`;
+  console.log('[uploadServicePhoto] Updating service record with URL');
 
   // Update the service record with the photo URL
   const { error: updateError } = await supabase
@@ -148,9 +153,11 @@ export async function uploadServicePhoto(
     .eq('business_id', businessId);
 
   if (updateError) {
+    console.error('[uploadServicePhoto] DB update error:', updateError);
     throw new Error(`Error al actualizar el servicio: ${updateError.message}`);
   }
 
+  console.log('[uploadServicePhoto] Success');
   return url;
 }
 
