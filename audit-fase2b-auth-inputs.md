@@ -283,6 +283,24 @@ Las Edge Functions de booking no están en este repo (solo `send-push-notificati
 | SEC-013 | 🟢 BAJO | Mock auth code legacy en codebase | `src/services/api.ts:252` |
 | SEC-014 | 🟢 BAJO | Validación de imágenes solo client-side | `src/lib/imageValidation.ts:16` |
 | SEC-015 | 🟢 BAJO | CORS `*` en Edge Function sin auth | `send-push-notification/index.ts:6` |
+| SEC-016 | 🟠 ALTO | Storage migration da permisos upload/update/delete a `anon` | `supabase/migrations/create_barber_avatars_storage.sql:29-48` |
+
+---
+
+### SEC-016 | 🟠 ALTO | Storage migration otorga permisos CRUD a rol `anon`
+**Archivo:** `supabase/migrations/create_barber_avatars_storage.sql:29-48`
+**Riesgo:** Las policies de storage para `barber-avatars` otorgan INSERT, UPDATE y DELETE al rol `anon` además de `authenticated`. Cualquier visitante sin autenticación puede subir, modificar o borrar avatares de barberos.
+```sql
+-- Líneas 29-35: INSERT para authenticated Y anon
+TO authenticated, anon
+
+-- Líneas 38-42: UPDATE para authenticated Y anon
+TO authenticated, anon
+
+-- Líneas 44-48: DELETE para authenticated Y anon
+TO authenticated, anon
+```
+**Fix sugerido:** Eliminar `anon` de las policies. Solo `authenticated` debería poder modificar avatares.
 
 ---
 
@@ -296,6 +314,7 @@ Las Edge Functions de booking no están en este repo (solo `send-push-notificati
 3. **SEC-003**: Implementar `rememberMe` real — usar `sessionStorage` cuando sea false, o registrar listener `beforeunload` para sign out
 4. **SEC-005**: Añadir `encodeURIComponent()` a todos los valores interpolados en URLs REST
 5. **SEC-004**: Validar formato UUID de parámetros de URL antes de usarlos en queries
+6. **SEC-016**: Eliminar rol `anon` de las storage policies de `barber-avatars` — solo `authenticated` debería poder upload/update/delete
 
 ### Medio plazo (Medio)
 6. **SEC-007**: Añadir rate limiting visual y CAPTCHA tras N intentos fallidos
