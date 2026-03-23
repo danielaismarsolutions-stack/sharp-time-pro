@@ -6,13 +6,13 @@ const generateId = () => Math.random().toString(36).substring(2, 11);
 
 // Services
 export const mockServices: Service[] = [
-  { id: 's1', name: 'Rapar + arreglo de barba', description: '', duration: 25, price: 17, color: '#3b82f6', isActive: true, bufferBefore: 0, bufferAfter: 5 },
-  { id: 's2', name: 'Arreglo de barba', description: '', duration: 15, price: 10, color: '#10b981', isActive: true, bufferBefore: 0, bufferAfter: 5 },
-  { id: 's3', name: 'Corte degradado', description: '', duration: 40, price: 15, color: '#8b5cf6', isActive: true, bufferBefore: 0, bufferAfter: 5 },
-  { id: 's4', name: 'Corte clásico', description: '', duration: 30, price: 15, color: '#f59e0b', isActive: true, bufferBefore: 0, bufferAfter: 5 },
-  { id: 's5', name: 'Corte niño', description: '', duration: 30, price: 12, color: '#ec4899', isActive: true, bufferBefore: 0, bufferAfter: 5 },
-  { id: 's6', name: 'Mechas / Color', description: '', duration: 90, price: 0, color: '#6366f1', isActive: true, bufferBefore: 0, bufferAfter: 5 },
-  { id: 's7', name: 'Corte + barba', description: '', duration: 45, price: 21, color: '#14b8a6', isActive: true, bufferBefore: 0, bufferAfter: 5 },
+  { id: 's1', name: 'Rapar + arreglo de barba', description: '', duration: 25, price: 17, color: '#3b82f6', isActive: true, bufferBefore: 0, bufferAfter: 5, isConsultation: false },
+  { id: 's2', name: 'Arreglo de barba', description: '', duration: 15, price: 10, color: '#10b981', isActive: true, bufferBefore: 0, bufferAfter: 5, isConsultation: false },
+  { id: 's3', name: 'Corte degradado', description: '', duration: 40, price: 15, color: '#8b5cf6', isActive: true, bufferBefore: 0, bufferAfter: 5, isConsultation: false },
+  { id: 's4', name: 'Corte clásico', description: '', duration: 30, price: 15, color: '#f59e0b', isActive: true, bufferBefore: 0, bufferAfter: 5, isConsultation: false },
+  { id: 's5', name: 'Corte niño', description: '', duration: 30, price: 12, color: '#ec4899', isActive: true, bufferBefore: 0, bufferAfter: 5, isConsultation: false },
+  { id: 's6', name: 'Mechas / Color', description: '', duration: 90, price: 0, color: '#6366f1', isActive: true, bufferBefore: 0, bufferAfter: 5, isConsultation: false },
+  { id: 's7', name: 'Corte + barba', description: '', duration: 45, price: 21, color: '#14b8a6', isActive: true, bufferBefore: 0, bufferAfter: 5, isConsultation: false },
 ];
 
 // Clients with realistic data
