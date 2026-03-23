@@ -284,6 +284,32 @@ Las Edge Functions de booking no están en este repo (solo `send-push-notificati
 | SEC-014 | 🟢 BAJO | Validación de imágenes solo client-side | `src/lib/imageValidation.ts:16` |
 | SEC-015 | 🟢 BAJO | CORS `*` en Edge Function sin auth | `send-push-notification/index.ts:6` |
 | SEC-016 | 🟠 ALTO | Storage migration da permisos upload/update/delete a `anon` | `supabase/migrations/create_barber_avatars_storage.sql:29-48` |
+| SEC-017 | 🟠 ALTO | Logo upload acepta SVG (XSS via JavaScript embebido) | `src/pages/Settings.tsx:213` |
+| SEC-018 | 🟡 MEDIO | WhatsApp URL sin `encodeURIComponent` en ConsultationDetailModal | `src/components/consultations/ConsultationDetailModal.tsx:181` |
+
+---
+
+### SEC-017 | 🟠 ALTO | Logo upload acepta archivos SVG con potencial XSS
+**Archivo:** `src/pages/Settings.tsx:213`
+**Riesgo:** La validación de tipo usa `file.type.startsWith('image/')`, lo cual acepta `image/svg+xml`. Los archivos SVG pueden contener `<script>` tags y event handlers (`onload`, `onerror`) que ejecutan JavaScript. Si el SVG se sirve desde la URL pública del bucket y un usuario lo abre, se ejecuta el JS en el contexto del dominio de Supabase Storage.
+```typescript
+// Línea 213: acepta cualquier image/*, incluyendo SVG
+if (!file.type.startsWith('image/')) {
+```
+**Contraste:** Los otros uploads (`imageValidation.ts`, `uploadServicePhoto.ts`) usan whitelist explícita (`image/jpeg`, `image/png`, `image/webp`).
+**Fix sugerido:** Reemplazar con whitelist explícita: `['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)`. También cambiar el HTML `accept` de `image/*` a tipos específicos.
+
+---
+
+### SEC-018 | 🟡 MEDIO | WhatsApp URL sin encode en ConsultationDetailModal
+**Archivo:** `src/components/consultations/ConsultationDetailModal.tsx:181`
+**Riesgo:** `client_name` y `service_name` se interpolan en la URL de WhatsApp **sin** `encodeURIComponent()`. Un nombre con `&`, `#`, o `%` rompería la URL o inyectaría parámetros query adicionales.
+```tsx
+// Línea 181: SIN encode (inconsistente con ConsultationTable.tsx y ConsultationCard.tsx)
+href={`https://wa.me/34${consultation.client_phone.replace(/\D/g, '')}?text=Hola ${consultation.client_name}, ...`}
+```
+**Contraste:** `ConsultationTable.tsx:62` y `ConsultationCard.tsx:39` sí usan `encodeURIComponent()` correctamente.
+**Fix sugerido:** Añadir `encodeURIComponent()` al `client_name` y `service_name` en la línea 181.
 
 ---
 
@@ -315,12 +341,14 @@ TO authenticated, anon
 4. **SEC-005**: Añadir `encodeURIComponent()` a todos los valores interpolados en URLs REST
 5. **SEC-004**: Validar formato UUID de parámetros de URL antes de usarlos en queries
 6. **SEC-016**: Eliminar rol `anon` de las storage policies de `barber-avatars` — solo `authenticated` debería poder upload/update/delete
+7. **SEC-017**: Restringir logo upload a whitelist de MIME types (`jpeg`, `png`, `webp`, `gif`), rechazar SVG
 
 ### Medio plazo (Medio)
-6. **SEC-007**: Añadir rate limiting visual y CAPTCHA tras N intentos fallidos
-7. **SEC-009**: Migrar eventos de localStorage a tabla `calendar` en Supabase
-8. **SEC-010**: Validar formato de inputs en Edge Functions
-9. **SEC-014**: Configurar restricciones de MIME/tamaño en buckets de Supabase
+8. **SEC-018**: Añadir `encodeURIComponent()` a WhatsApp URL en ConsultationDetailModal
+9. **SEC-007**: Añadir rate limiting visual y CAPTCHA tras N intentos fallidos
+10. **SEC-009**: Migrar eventos de localStorage a tabla `calendar` en Supabase
+11. **SEC-010**: Validar formato de inputs en Edge Functions
+12. **SEC-014**: Configurar restricciones de MIME/tamaño en buckets de Supabase
 
 ### Baja prioridad
 10. **SEC-012**: Mejorar política de complejidad de passwords
