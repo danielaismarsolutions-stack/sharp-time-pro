@@ -253,6 +253,52 @@ const url = `...notifications?user_id=eq.${userId}&order=created_at.desc&limit=$
 
 ---
 
+### SCALE-015 | 🔴 CRÍTICO | N+1 en `getAll()` de barberos — 1 + 2N queries
+**Archivo:** `src/services/supabaseBarbers.ts:212-220`
+```typescript
+const barbersWithData = await Promise.all(
+  users.map(async (user) => {
+    const [schedule, timeOff] = await Promise.all([
+      this.getSchedule(user.id),   // Query N
+      this.getTimeOff(user.id),    // Query N
+    ]);
+    return mapUserToBarber(user, schedule, timeOff);
+  })
+);
+```
+**Problema:** Para N barberos, ejecuta 1 query (list users) + 2×N queries (schedule + time_off por barbero). Con 10 barberos = **21 queries**. Con 50 = **101 queries**.
+
+**Impacto a escala:** Esta función se llama desde Calendar, Reports, Barbers page, y cada realtime update. Es la función más frecuente del sistema.
+
+**Fix:** Reemplazar con 3 queries totales:
+```typescript
+// 1. Fetch all users
+const users = await fetchUsers(businessId);
+// 2. Fetch ALL schedules for business (1 query)
+const allSchedules = await fetch(`barber_schedules?business_id=eq.${businessId}`);
+// 3. Fetch ALL time_off for business (1 query)
+const allTimeOff = await fetch(`barber_time_off?business_id=eq.${businessId}`);
+// Then join in JavaScript
+```
+
+---
+
+### SCALE-016 | 🟡 MEDIO | N+1 en `updateOrder()` de servicios — N PATCH requests
+**Archivo:** `src/services/supabaseServices.ts:179-192`
+```typescript
+const updates = orderedIds.map((id, index) =>
+  supabaseFetch(`/services?id=eq.${id}&business_id=eq.${getBusinessId()}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ display_order: index }),
+  })
+);
+await Promise.all(updates);
+```
+**Problema:** Si hay 15 servicios, envía 15 PATCH requests individuales.
+**Fix:** Usar una función RPC que reciba el array de IDs y actualice en una sola query, o usar una transacción batch via PostgREST.
+
+---
+
 ### SCALE-013 | 🟢 BAJO | `services` y `business_hours`: seq scan ratio alto (98%) pero tablas diminutas
 **Problema:** 10,501 seq scans en `services` (27 filas), 2,349 en `business_hours` (28 filas).
 **Evaluación:** PostgreSQL elige seq scan porque la tabla cabe entera en una sola página de 8KB. Esto es **correcto y óptimo** para tablas tan pequeñas. No es un problema real.
@@ -279,11 +325,13 @@ const pollInterval = setInterval(() => {
 |---|---|---|---|
 | SCALE-005 | 🔴 CRÍTICO | `select(*)` en todas las queries, sin column projection | Ancho de banda × N con tablas JSONB pesadas |
 | SCALE-006 | 🔴 CRÍTICO | Bookings `limit: 10000`, sin paginación | Colapso con meses/años de datos |
+| SCALE-015 | 🔴 CRÍTICO | N+1 en barberos: 1 + 2N queries en `getAll()` | 101 queries con 50 barberos |
 | SCALE-008 | 🟠 ALTO | Reports: agregación completa en JavaScript del cliente | MBs de JSON + CPU del navegador |
 | SCALE-007 | 🟠 ALTO | Clientes sin paginación | Lista de 5K+ clientes en una request |
 | SCALE-001 | 🟠 ALTO | Falta índice compuesto `consultations(business_id, created_at DESC)` | Sorts en memoria |
 | SCALE-002 | 🟠 ALTO | Falta índice para conflict check `bookings(business_id, booking_date, barber)` | Escaneo de todos los bookings del día |
 | SCALE-012 | 🟡 MEDIO | Queries a barber_schedules/time_off sin business_id → seq scans | 85% seq scans actualmente |
+| SCALE-016 | 🟡 MEDIO | N PATCH requests en updateOrder de servicios | 15+ requests para reordenar |
 | SCALE-009 | 🟡 MEDIO | 2 queries secuenciales en getWithBookings | Latencia doble en client detail |
 | SCALE-010 | 🟡 MEDIO | N+1 DELETE en push notifications | N queries individuales |
 | SCALE-003 | 🟡 MEDIO | Falta índice `bookings(client_id, business_id, booking_date DESC)` | Historial de cliente lento |
@@ -328,15 +376,17 @@ DROP INDEX IF EXISTS idx_consultations_status;
 ## 9. Prioridades de fix
 
 ### Inmediato (antes de crecer)
-1. **SCALE-005**: Añadir `select` con columnas específicas en todas las queries
-2. **SCALE-012**: Añadir `business_id` a queries de barber_schedules/time_off (fix de seguridad + performance)
-3. **Crear** los 3 índices recomendados
+1. **SCALE-015**: Eliminar N+1 en barberos — fetch schedules y time_off en batch (3 queries en vez de 1+2N)
+2. **SCALE-005**: Añadir `select` con columnas específicas en todas las queries
+3. **SCALE-012**: Añadir `business_id` a queries de barber_schedules/time_off (fix de seguridad + performance)
+4. **Crear** los 3 índices recomendados
 
 ### Corto plazo
-4. **SCALE-006/007**: Implementar paginación real en bookings y clients
-5. **SCALE-008**: Mover agregaciones de reports a SQL server-side
-6. **SCALE-009**: Paralelizar queries en `getWithBookings()`
-7. **SCALE-014**: Eliminar polling de 30s en reports
+5. **SCALE-006/007**: Implementar paginación real en bookings y clients
+6. **SCALE-008**: Mover agregaciones de reports a SQL server-side
+7. **SCALE-009**: Paralelizar queries en `getWithBookings()`
+8. **SCALE-016**: Reemplazar N PATCHs en updateOrder con RPC batch
+9. **SCALE-014**: Eliminar polling de 30s en reports
 
 ### Limpieza
 8. **Eliminar** los 6 índices no utilizados para reducir overhead de escritura
