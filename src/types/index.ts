@@ -37,8 +37,6 @@ export interface Client {
   avatar?: string;
 }
 
-export type ServiceType = 'service' | 'consultation';
-
 export interface Service {
   id: string;
   name: string;
@@ -51,7 +49,7 @@ export interface Service {
   bufferAfter: number;
   sortOrder?: number;
   servicePhoto?: string | null;
-  serviceType: ServiceType;
+  isConsultation: boolean;
 }
 
 export interface BusinessSettings {

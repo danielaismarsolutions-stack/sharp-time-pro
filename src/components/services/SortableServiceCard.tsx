@@ -107,7 +107,7 @@ export function SortableServiceCard({
           )}
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <div className="flex items-center gap-3 md:gap-4">
-              {service.serviceType === 'consultation' ? (
+              {service.isConsultation ? (
                 <span className="text-sm text-muted-foreground italic">Consulta</span>
               ) : (
                 <>
