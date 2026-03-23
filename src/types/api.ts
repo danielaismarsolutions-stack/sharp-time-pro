@@ -70,6 +70,8 @@ export interface ApiClient {
 
 // ==================== Service Types (Future) ====================
 
+export type ApiServiceType = 'service' | 'consultation';
+
 export interface ApiService {
   id: string;
   business_id: string;
@@ -81,6 +83,7 @@ export interface ApiService {
   is_active: boolean;
   buffer_before: number;
   buffer_after: number;
+  service_type: ApiServiceType;
   created_at: string;
   updated_at: string;
 }

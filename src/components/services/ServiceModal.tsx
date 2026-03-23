@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Service } from '@/types';
+import { Service, ServiceType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import ServicePhotoUpload from '@/components/services/ServicePhotoUpload';
 
@@ -78,6 +78,7 @@ export default function ServiceModal({
     isActive: true,
     bufferBefore: 0,
     bufferAfter: 5,
+    serviceType: 'service' as ServiceType,
   });
 
   useEffect(() => {
@@ -96,6 +97,7 @@ export default function ServiceModal({
           isActive: service.isActive,
           bufferBefore: service.bufferBefore || 0,
           bufferAfter: service.bufferAfter || 5,
+          serviceType: service.serviceType || 'service',
         });
         setPriceInput(service.price ? String(service.price) : '');
       } else {
@@ -108,6 +110,7 @@ export default function ServiceModal({
           isActive: true,
           bufferBefore: 0,
           bufferAfter: 5,
+          serviceType: 'service',
         });
         setPriceInput('');
       }
@@ -126,14 +129,15 @@ export default function ServiceModal({
       newErrors.name = 'El nombre no puede exceder 100 caracteres';
     }
     
-    // Validate price
-    if (formData.price < 0) {
-      newErrors.price = 'El precio debe ser mayor o igual a 0';
-    }
-    
-    // Validate duration
-    if (!durationOptions.includes(formData.duration)) {
-      newErrors.duration = 'Selecciona una duración válida';
+    // Validate price and duration only for services (not consultations)
+    if (formData.serviceType === 'service') {
+      if (formData.price < 0) {
+        newErrors.price = 'El precio debe ser mayor o igual a 0';
+      }
+
+      if (!durationOptions.includes(formData.duration)) {
+        newErrors.duration = 'Selecciona una duración válida';
+      }
     }
     
     setErrors(newErrors);
@@ -154,15 +158,17 @@ export default function ServiceModal({
 
     setIsLoading(true);
     try {
+      const isConsultation = formData.serviceType === 'consultation';
       await onSave({
         name: formData.name.trim(),
         description: formData.description.trim(),
-        duration: formData.duration,
-        price: formData.price,
+        duration: isConsultation ? 0 : formData.duration,
+        price: isConsultation ? 0 : formData.price,
         color: formData.color,
         isActive: formData.isActive,
-        bufferBefore: formData.bufferBefore,
-        bufferAfter: formData.bufferAfter,
+        bufferBefore: isConsultation ? 0 : formData.bufferBefore,
+        bufferAfter: isConsultation ? 0 : formData.bufferAfter,
+        serviceType: formData.serviceType,
       }, pendingPhotoFile);
     } catch (error) {
       // Error handled by parent
@@ -238,6 +244,44 @@ export default function ServiceModal({
             </div>
           )}
 
+          {/* Service Type Selector */}
+          <div className="space-y-1">
+            <Label className="text-xs">Tipo *</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                className={cn(
+                  "flex items-center justify-center gap-1.5 rounded-md border p-2 text-xs font-medium transition-all",
+                  formData.serviceType === 'service'
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary/50"
+                )}
+                onClick={() => setFormData({ ...formData, serviceType: 'service' })}
+              >
+                <Scissors className="h-3.5 w-3.5" />
+                Servicio
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "flex items-center justify-center gap-1.5 rounded-md border p-2 text-xs font-medium transition-all",
+                  formData.serviceType === 'consultation'
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary/50"
+                )}
+                onClick={() => setFormData({ ...formData, serviceType: 'consultation' })}
+              >
+                <Clock className="h-3.5 w-3.5" />
+                Consulta
+              </button>
+            </div>
+            {formData.serviceType === 'consultation' && (
+              <p className="text-[10px] text-muted-foreground">
+                Las consultas no requieren precio ni duración
+              </p>
+            )}
+          </div>
+
           <div className="space-y-1">
             <Label className="text-xs">Nombre del servicio *</Label>
             <Input
@@ -267,60 +311,62 @@ export default function ServiceModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="flex items-center gap-1.5 text-xs">
-                <Clock className="h-3 w-3" />
-                Duración *
-              </Label>
-              <Select
-                value={formData.duration.toString()}
-                onValueChange={(value) => {
-                  setFormData({ ...formData, duration: parseInt(value) });
-                  if (errors.duration) setErrors({ ...errors, duration: undefined });
-                }}
-              >
-                <SelectTrigger className={cn("h-8 text-xs", errors.duration && 'border-destructive')}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {durationOptions.map((d) => (
-                    <SelectItem key={d} value={d.toString()}>
-                      {d} min
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.duration && (
-                <p className="text-[10px] text-destructive">{errors.duration}</p>
-              )}
-            </div>
+          {formData.serviceType === 'service' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="flex items-center gap-1.5 text-xs">
+                  <Clock className="h-3 w-3" />
+                  Duración *
+                </Label>
+                <Select
+                  value={formData.duration.toString()}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, duration: parseInt(value) });
+                    if (errors.duration) setErrors({ ...errors, duration: undefined });
+                  }}
+                >
+                  <SelectTrigger className={cn("h-8 text-xs", errors.duration && 'border-destructive')}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {durationOptions.map((d) => (
+                      <SelectItem key={d} value={d.toString()}>
+                        {d} min
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.duration && (
+                  <p className="text-[10px] text-destructive">{errors.duration}</p>
+                )}
+              </div>
 
-            <div className="space-y-1">
-              <Label className="flex items-center gap-1.5 text-xs">
-                <DollarSign className="h-3 w-3" />
-                Precio (€) *
-              </Label>
-              <Input
-                type="text"
-                inputMode="decimal"
-                value={priceInput}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
-                    setPriceInput(val);
-                    setFormData({ ...formData, price: val === '' ? 0 : parseFloat(val) || 0 });
-                    if (errors.price) setErrors({ ...errors, price: undefined });
-                  }
-                }}
-                placeholder="Ej: 15"
-                className={cn("h-8 text-xs", errors.price && 'border-destructive')}
-              />
-              {errors.price && (
-                <p className="text-[10px] text-destructive">{errors.price}</p>
-              )}
+              <div className="space-y-1">
+                <Label className="flex items-center gap-1.5 text-xs">
+                  <DollarSign className="h-3 w-3" />
+                  Precio (€) *
+                </Label>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  value={priceInput}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
+                      setPriceInput(val);
+                      setFormData({ ...formData, price: val === '' ? 0 : parseFloat(val) || 0 });
+                      if (errors.price) setErrors({ ...errors, price: undefined });
+                    }
+                  }}
+                  placeholder="Ej: 15"
+                  className={cn("h-8 text-xs", errors.price && 'border-destructive')}
+                />
+                {errors.price && (
+                  <p className="text-[10px] text-destructive">{errors.price}</p>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="space-y-1">
             <Label className="text-xs">Color</Label>
@@ -339,32 +385,34 @@ export default function ServiceModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Buffer antes (min)</Label>
-              <Input
-                type="number"
-                min="0"
-                max="60"
-                value={formData.bufferBefore}
-                onChange={(e) => setFormData({ ...formData, bufferBefore: Math.max(0, parseInt(e.target.value) || 0) })}
-                className="h-8 text-xs"
-              />
-              <p className="text-[10px] text-muted-foreground">Antes de la cita</p>
+          {formData.serviceType === 'service' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Buffer antes (min)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="60"
+                  value={formData.bufferBefore}
+                  onChange={(e) => setFormData({ ...formData, bufferBefore: Math.max(0, parseInt(e.target.value) || 0) })}
+                  className="h-8 text-xs"
+                />
+                <p className="text-[10px] text-muted-foreground">Antes de la cita</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Buffer después (min)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="60"
+                  value={formData.bufferAfter}
+                  onChange={(e) => setFormData({ ...formData, bufferAfter: Math.max(0, parseInt(e.target.value) || 0) })}
+                  className="h-8 text-xs"
+                />
+                <p className="text-[10px] text-muted-foreground">Después de la cita</p>
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Buffer después (min)</Label>
-              <Input
-                type="number"
-                min="0"
-                max="60"
-                value={formData.bufferAfter}
-                onChange={(e) => setFormData({ ...formData, bufferAfter: Math.max(0, parseInt(e.target.value) || 0) })}
-                className="h-8 text-xs"
-              />
-              <p className="text-[10px] text-muted-foreground">Después de la cita</p>
-            </div>
-          </div>
+          )}
 
           <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30">
             <div>

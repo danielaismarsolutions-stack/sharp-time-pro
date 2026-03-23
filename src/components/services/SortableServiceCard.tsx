@@ -107,14 +107,20 @@ export function SortableServiceCard({
           )}
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <div className="flex items-center gap-3 md:gap-4">
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                {service.duration}m
-              </div>
-              <div className="flex items-center gap-1 text-sm font-medium">
-                <DollarSign className="h-4 w-4" />
-                €{service.price}
-              </div>
+              {service.serviceType === 'consultation' ? (
+                <span className="text-sm text-muted-foreground italic">Consulta</span>
+              ) : (
+                <>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    {service.duration}m
+                  </div>
+                  <div className="flex items-center gap-1 text-sm font-medium">
+                    <DollarSign className="h-4 w-4" />
+                    €{service.price}
+                  </div>
+                </>
+              )}
             </div>
           </div>
           <div className="flex items-center justify-between">
