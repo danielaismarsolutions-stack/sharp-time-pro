@@ -305,11 +305,12 @@ export default function Services() {
 
   // Statistics
   const activeServices = services.filter((s) => s.isActive);
-  const avgDuration = activeServices.length
-    ? Math.round(activeServices.reduce((sum, s) => sum + s.duration, 0) / activeServices.length)
+  const activeNonConsultations = activeServices.filter((s) => s.serviceType !== 'consultation');
+  const avgDuration = activeNonConsultations.length
+    ? Math.round(activeNonConsultations.reduce((sum, s) => sum + s.duration, 0) / activeNonConsultations.length)
     : 0;
-  const avgPrice = activeServices.length
-    ? Math.round(activeServices.reduce((sum, s) => sum + s.price, 0) / activeServices.length)
+  const avgPrice = activeNonConsultations.length
+    ? Math.round(activeNonConsultations.reduce((sum, s) => sum + s.price, 0) / activeNonConsultations.length)
     : 0;
 
   if (isLoading) {
@@ -478,8 +479,8 @@ export default function Services() {
                         </div>
                       </div>
                     </td>
-                    <td className="p-4">{service.duration}m</td>
-                    <td className="p-4">€{service.price}</td>
+                    <td className="p-4">{service.serviceType === 'consultation' ? '—' : `${service.duration}m`}</td>
+                    <td className="p-4">{service.serviceType === 'consultation' ? '—' : `€${service.price}`}</td>
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded-full text-xs ${
                         service.isActive 

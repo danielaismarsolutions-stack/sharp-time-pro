@@ -20,6 +20,7 @@ interface DbService {
   is_active: boolean;
   display_order: number;
   service_photo: string | null;
+  service_type: 'service' | 'consultation';
   created_at: string;
   updated_at: string;
 }
@@ -38,6 +39,7 @@ function mapDbToService(db: DbService): Service {
     bufferAfter: db.buffer_after_minutes,
     sortOrder: db.display_order,
     servicePhoto: db.service_photo,
+    serviceType: db.service_type || 'service',
   };
 }
 
@@ -54,6 +56,7 @@ function mapServiceToDb(service: Partial<Service>): Partial<DbService> {
   if (service.bufferBefore !== undefined) db.buffer_before_minutes = service.bufferBefore;
   if (service.bufferAfter !== undefined) db.buffer_after_minutes = service.bufferAfter;
   if (service.servicePhoto !== undefined) db.service_photo = service.servicePhoto ?? null;
+  if (service.serviceType !== undefined) db.service_type = service.serviceType;
 
   return db;
 }
