@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -37,6 +37,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Client } from '@/types';
 import { supabaseClientsApi } from '@/services/supabaseClients';
 import { useToast } from '@/hooks/use-toast';
+import { useClients as useClientsQuery, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { cn } from '@/lib/utils';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { useAuth } from '@/contexts/AuthContext';
@@ -56,35 +57,14 @@ export default function Clients() {
   const { toast } = useToast();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const { user } = useAuth();
-  const [clients, setClients] = useState<Client[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: clients = [], isLoading, refetch: loadClients } = useClientsQuery();
+  const { invalidateClients } = useInvalidateQuery();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('lastVisit');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-
-  useEffect(() => {
-    loadClients();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadClients = async () => {
-    setIsLoading(true);
-    try {
-      const data = await supabaseClientsApi.getAll();
-      setClients(data);
-    } catch (error) {
-      toast({ 
-        title: 'Error al cargar clientes', 
-        description: 'Por favor, inténtalo de nuevo',
-        variant: 'destructive' 
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -174,8 +154,7 @@ export default function Clients() {
 
     try {
       if (editingClient) {
-        const updated = await supabaseClientsApi.update(editingClient.id, clientData);
-        setClients((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        await supabaseClientsApi.update(editingClient.id, clientData);
 
         // Notify all admins about client update
         try {
@@ -195,7 +174,6 @@ export default function Clients() {
         toast({ title: 'Cliente actualizado correctamente' });
       } else {
         const created = await supabaseClientsApi.create(clientData as Omit<Client, 'id' | 'createdAt' | 'totalVisits' | 'totalSpent' | 'lastVisit'>);
-        setClients((prev) => [created, ...prev]);
 
         // Notify all admins about client creation
         try {
@@ -214,6 +192,7 @@ export default function Clients() {
 
         toast({ title: 'Cliente creado correctamente' });
       }
+      invalidateClients();
       setEditingClient(null);
       setIsModalOpen(false);
     } catch (error) {
@@ -237,7 +216,6 @@ export default function Clients() {
 
     try {
       await supabaseClientsApi.delete(id);
-      setClients((prev) => prev.filter((c) => c.id !== id));
 
       // Notify all admins about client deletion
       try {
@@ -254,6 +232,7 @@ export default function Clients() {
         });
       } catch { /* ignored */ }
 
+      invalidateClients();
       toast({ title: 'Cliente eliminado' });
     } catch (error) {
       toast({

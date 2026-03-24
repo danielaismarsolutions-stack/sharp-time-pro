@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   DndContext,
@@ -31,6 +31,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Service } from '@/types';
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { useToast } from '@/hooks/use-toast';
+import { useServices as useServicesQuery, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
@@ -45,14 +46,20 @@ export default function Services() {
   const { toast } = useToast();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const { user } = useAuth();
-  const [services, setServices] = useState<Service[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: queryServices = [], isLoading: isQueryLoading, refetch: refetchServices } = useServicesQuery(true);
+  const { invalidateServices } = useInvalidateQuery();
+  const [localServices, setLocalServices] = useState<Service[] | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+
+  // Use local state for optimistic updates (drag-drop, toggle), fallback to query data
+  const services = localServices ?? queryServices;
+  const setServices = setLocalServices;
+  const isLoading = isQueryLoading && localServices === null;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -66,30 +73,11 @@ export default function Services() {
   );
 
   const loadServices = useCallback(async (showRefreshing = false) => {
-    if (showRefreshing) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
-    
-    try {
-      const data = await supabaseServicesApi.getAll(true);
-      setServices(data);
-    } catch (error) {
-      toast({ 
-        title: 'Error al cargar servicios', 
-        description: 'Comprueba tu conexión a internet',
-        variant: 'destructive' 
-      });
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    loadServices();
-  }, [loadServices]);
+    if (showRefreshing) setIsRefreshing(true);
+    await refetchServices();
+    setLocalServices(null); // Reset local overrides to use fresh query data
+    setIsRefreshing(false);
+  }, [refetchServices]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -132,8 +120,7 @@ export default function Services() {
     try {
       if (editingService) {
         // Update existing service
-        const updated = await supabaseServicesApi.update(editingService.id, serviceData);
-        setServices((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+        await supabaseServicesApi.update(editingService.id, serviceData);
 
         // Notify all admins about service update
         try {
@@ -172,8 +159,6 @@ export default function Services() {
           }
         }
 
-        setServices((prev) => [...prev, created]);
-
         // Notify all admins about service creation
         try {
           await notifyAllAdmins({
@@ -191,6 +176,8 @@ export default function Services() {
 
         toast({ title: 'Servicio creado correctamente' });
       }
+      invalidateServices();
+      setLocalServices(null);
       setEditingService(null);
       setIsModalOpen(false);
     } catch (error) {
@@ -241,11 +228,12 @@ export default function Services() {
         });
       } catch { /* ignored */ }
 
+      invalidateServices();
       toast({ title: `Servicio ${newStatus ? 'activado' : 'desactivado'}` });
     } catch (error) {
       // Rollback on error
       setServices((prev) =>
-        prev.map((s) => s.id === service.id ? { ...s, isActive: !newStatus } : s)
+        (prev ?? []).map((s) => s.id === service.id ? { ...s, isActive: !newStatus } : s)
       );
       toast({
         title: 'Error al actualizar estado',
@@ -290,10 +278,11 @@ export default function Services() {
         });
       } catch { /* ignored */ }
 
+      invalidateServices();
       toast({ title: 'Servicio desactivado' });
     } catch (error) {
       // Rollback
-      setServices((prev) => prev.map((s) => s.id === id ? { ...s, isActive: true } : s));
+      setServices((prev) => (prev ?? []).map((s) => s.id === id ? { ...s, isActive: true } : s));
       toast({
         title: 'Error al desactivar servicio',
         variant: 'destructive'

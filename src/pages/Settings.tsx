@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Building2,
@@ -42,6 +42,7 @@ import { settingsApi } from '@/services/api';
 import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
 import { supabaseBusinessesApi } from '@/services/supabaseBusinesses';
 import { supabase } from '@/lib/supabase';
+import { useBusinessSettings as useBusinessSettingsQuery, useBusinessHours as useBusinessHoursQuery, useBookingSettingsQuery, useNotificationSettings as useNotificationSettingsQuery, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
@@ -92,7 +93,15 @@ export default function Settings() {
     isSupported: isPushSupported,
     toggle: togglePush
   } = usePushNotifications(user?.id || null, user?.businessId || null);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // ── React Query hooks for cached settings data ──
+  const { data: queryBusiness, isLoading: isLoadingBusiness } = useBusinessSettingsQuery();
+  const { data: queryHours, isLoading: isLoadingHours } = useBusinessHoursQuery();
+  const { data: queryBooking, isLoading: isLoadingBooking } = useBookingSettingsQuery();
+  const { data: queryNotifications, isLoading: isLoadingNotifications } = useNotificationSettingsQuery();
+  const { invalidateSettings, invalidateBusinessHours: invalidateBH } = useInvalidateQuery();
+
+  const isLoading = isLoadingBusiness || isLoadingHours || isLoadingBooking || isLoadingNotifications;
   const [isSaving, setIsSaving] = useState(false);
 
   const [businessSettings, setBusinessSettings] = useState({
@@ -120,13 +129,38 @@ export default function Settings() {
     smsEnabled: false,
   });
 
+  // Sync query data into local form state
   useEffect(() => {
-    loadSettings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (queryBusiness) {
+      setBusinessSettings((prev) => ({
+        ...prev,
+        businessName: queryBusiness.businessName,
+        phone: queryBusiness.phone,
+        address: queryBusiness.address,
+        contactEmail: queryBusiness.contactEmail,
+      }));
+    }
+  }, [queryBusiness]);
+
+  useEffect(() => {
+    if (queryHours) setBusinessHours(queryHours);
+  }, [queryHours]);
+
+  useEffect(() => {
+    if (queryBooking) {
+      setBookingSettings((prev) => ({
+        ...prev,
+        minAdvanceBooking: queryBooking.minAdvanceBooking,
+        maxAdvanceBooking: queryBooking.maxAdvanceBooking,
+      }));
+    }
+  }, [queryBooking]);
+
+  useEffect(() => {
+    if (queryNotifications) setNotificationSettings(queryNotifications);
+  }, [queryNotifications]);
 
   // Real-time subscription for business_hours table
-  // Refetches all hours on any change (multiple rows per day makes partial merges complex)
   useEffect(() => {
     if (!user?.businessId) return;
 
@@ -141,7 +175,7 @@ export default function Settings() {
           filter: `business_id=eq.${user.businessId}`,
         },
         () => {
-          supabaseBusinessHoursApi.getAll().then(setBusinessHours).catch(() => {});
+          invalidateBH();
         }
       )
       .subscribe();
@@ -149,61 +183,7 @@ export default function Settings() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.businessId]);
-
-  const loadSettings = async () => {
-    setIsLoading(true);
-    const [businessResult, hoursResult, bookingResult, notificationsResult] = await Promise.allSettled([
-      supabaseBusinessesApi.get(),
-      supabaseBusinessHoursApi.getAll(),
-      supabaseBusinessesApi.getBookingSettings(),
-      settingsApi.getNotificationSettings(),
-    ]);
-
-    if (businessResult.status === 'fulfilled') {
-      const businessData = businessResult.value;
-      setBusinessSettings((prev) => ({
-        ...prev,
-        businessName: businessData.businessName,
-        phone: businessData.phone,
-        address: businessData.address,
-        contactEmail: businessData.contactEmail,
-      }));
-    }
-
-    if (hoursResult.status === 'fulfilled') {
-      setBusinessHours(hoursResult.value);
-    }
-
-    if (bookingResult.status === 'fulfilled') {
-      const bookingAdvance = bookingResult.value;
-      setBookingSettings((prev) => ({
-        ...prev,
-        minAdvanceBooking: bookingAdvance.minAdvanceBooking,
-        maxAdvanceBooking: bookingAdvance.maxAdvanceBooking,
-      }));
-    }
-
-    if (notificationsResult.status === 'fulfilled') {
-      setNotificationSettings(notificationsResult.value);
-    }
-
-    const failedSections = [
-      businessResult.status === 'rejected' && 'negocio',
-      hoursResult.status === 'rejected' && 'horario',
-      bookingResult.status === 'rejected' && 'reservas',
-      notificationsResult.status === 'rejected' && 'notificaciones',
-    ].filter(Boolean);
-
-    if (failedSections.length > 0) {
-      toast({
-        title: `Error al cargar: ${failedSections.join(', ')}`,
-        variant: 'destructive',
-      });
-    }
-
-    setIsLoading(false);
-  };
+  }, [user?.businessId, invalidateBH]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -311,6 +291,7 @@ export default function Settings() {
         });
       } catch { /* ignored */ }
 
+      invalidateSettings();
       toast({ title: 'Configuración guardada' });
     } catch (error) {
       toast({ title: 'Error al guardar configuración', variant: 'destructive' });
@@ -344,6 +325,8 @@ export default function Settings() {
         });
       } catch { /* ignored */ }
 
+      invalidateSettings();
+      invalidateBH();
       toast({ title: 'Horario guardado' });
     } catch (error) {
       toast({ title: 'Error al guardar configuración', variant: 'destructive' });
@@ -366,6 +349,7 @@ export default function Settings() {
         minAdvanceBooking: bookingSettings.minAdvanceBooking,
         maxAdvanceBooking: bookingSettings.maxAdvanceBooking,
       });
+      invalidateSettings();
       toast({ title: 'Configuración de reservas guardada' });
     } catch (error) {
       toast({ title: 'Error al guardar configuración', variant: 'destructive' });
@@ -385,6 +369,7 @@ export default function Settings() {
     setIsSaving(true);
     try {
       await settingsApi.updateNotificationSettings(notificationSettings);
+      invalidateSettings();
       toast({ title: 'Configuración de notificaciones guardada' });
     } catch (error) {
       toast({ title: 'Error al guardar configuración', variant: 'destructive' });

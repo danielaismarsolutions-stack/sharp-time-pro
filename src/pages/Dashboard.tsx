@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { format, subDays, isSameDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -10,8 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { supabaseBookingsApi } from '@/services/supabaseBookings';
 import { ApiBooking } from '@/types/api';
+import { useBookings, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { cn } from '@/lib/utils';
 import { AnimatedCard } from '@/components/ui/animated-card';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -25,43 +25,27 @@ type StatusFilter = 'all' | 'confirmed' | 'pending' | 'completed' | 'cancelled' 
 export default function Dashboard() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const [bookings, setBookings] = useState<ApiBooking[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: bookings = [], isLoading, isError, refetch } = useBookings();
+  const { invalidateBookings } = useInvalidateQuery();
+  const error = isError ? 'No se pudieron cargar las citas. Por favor, intente de nuevo.' : null;
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  
+
   // Filter and sort state
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [barberFilter, setBarberFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const loadBookings = useCallback(async () => {
-    try {
-      setError(null);
-      const data = await supabaseBookingsApi.getAll();
-      setBookings(data);
-    } catch (err) {
-      setError('No se pudieron cargar las citas. Por favor, intente de nuevo.');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadBookings();
-  }, [loadBookings]);
-
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    loadBookings();
+    await refetch();
+    setIsRefreshing(false);
   };
 
   // Get unique barbers for filter dropdown

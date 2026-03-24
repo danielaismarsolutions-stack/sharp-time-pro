@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -27,6 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Client, Booking } from '@/types';
 import { supabaseClientsApi, ClientWithBookings } from '@/services/supabaseClients';
 import { useToast } from '@/hooks/use-toast';
+import { useClientDetail, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { cn } from '@/lib/utils';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
@@ -46,36 +47,11 @@ export default function ClientDetail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
-  const [clientData, setClientData] = useState<ClientWithBookings | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: clientData, isLoading, refetch: loadClientData } = useClientDetail(id);
+  const { invalidateClients } = useInvalidateQuery();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTag, setNewTag] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
-
-  useEffect(() => {
-    if (id) {
-      loadClientData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  const loadClientData = async () => {
-    setIsLoading(true);
-    try {
-      const data = await supabaseClientsApi.getWithBookings(id!);
-      if (!data) {
-        toast({ title: 'Cliente no encontrado', variant: 'destructive' });
-        navigate('/clients');
-        return;
-      }
-      setClientData(data);
-    } catch (error) {
-      toast({ title: 'Error al cargar cliente', variant: 'destructive' });
-      navigate('/clients');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSaveClient = async (updates: Partial<Client>) => {
     const confirmed = await confirm({
@@ -86,8 +62,8 @@ export default function ClientDetail() {
     if (!confirmed) return;
 
     try {
-      const updated = await supabaseClientsApi.update(id!, updates);
-      setClientData(prev => prev ? { ...prev, ...updated } : null);
+      await supabaseClientsApi.update(id!, updates);
+      invalidateClients();
       toast({ title: 'Cliente actualizado correctamente' });
     } catch (error) {
       toast({ title: 'Error al actualizar cliente', variant: 'destructive' });
@@ -106,6 +82,7 @@ export default function ClientDetail() {
 
     try {
       await supabaseClientsApi.delete(id!);
+      invalidateClients();
       toast({ title: 'Cliente eliminado' });
       navigate('/clients');
     } catch (error) {
@@ -120,7 +97,7 @@ export default function ClientDetail() {
 
     try {
       await supabaseClientsApi.updateTags(id!, updatedTags);
-      setClientData(prev => prev ? { ...prev, tags: updatedTags } : null);
+      invalidateClients();
       setNewTag('');
       setIsAddingTag(false);
       toast({ title: 'Etiqueta añadida' });
@@ -144,7 +121,7 @@ export default function ClientDetail() {
 
     try {
       await supabaseClientsApi.updateTags(id!, updatedTags);
-      setClientData(prev => prev ? { ...prev, tags: updatedTags } : null);
+      invalidateClients();
       toast({ title: 'Etiqueta eliminada' });
     } catch (error) {
       toast({ title: 'Error al eliminar etiqueta', variant: 'destructive' });

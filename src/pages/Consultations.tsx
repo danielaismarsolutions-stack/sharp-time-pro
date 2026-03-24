@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { MessageSquare, Inbox, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +10,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
 import { supabaseConsultationsApi } from '@/services/supabaseConsultations';
+import { useConsultations as useConsultationsQuery, queryKeys } from '@/hooks/useQueryHooks';
 import { notifyAllAdmins } from '@/services/supabaseNotifications';
 import { Consultation, ConsultationStatus, STATUS_CONFIG } from '@/types/consultation';
 import { ConsultationTable } from '@/components/consultations/ConsultationTable';
@@ -46,10 +48,10 @@ export default function Consultations() {
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const isMobile = useIsMobile();
   
-  const [consultations, setConsultations] = useState<Consultation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: consultations = [], isLoading: loading } = useConsultationsQuery();
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
-  
+
   // Modal states
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -62,30 +64,14 @@ export default function Consultations() {
   const [deleteConsultation, setDeleteConsultation] = useState<Consultation | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Fetch consultations
-  const fetchConsultations = async () => {
-    try {
-      const data = await supabaseConsultationsApi.getAll();
-      setConsultations(data);
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'No se pudieron cargar las consultas',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const invalidateConsultations = () => queryClient.invalidateQueries({ queryKey: queryKeys.consultations });
 
+  // Real-time subscription with notification support
   useEffect(() => {
-    fetchConsultations();
-
-    // Set up real-time subscription with notification support
     const channel = supabaseConsultationsApi.subscribeToChanges(async (payload) => {
-      // Refresh the list
-      fetchConsultations();
-      
+      // Invalidate cache to trigger refetch
+      invalidateConsultations();
+
       // Notify all admins about new consultations
       if (payload.eventType === 'INSERT' && payload.new) {
         try {
@@ -167,14 +153,11 @@ export default function Consultations() {
         } catch { /* ignored */ }
       }
 
+      invalidateConsultations();
       toast({
         title: 'Estado actualizado',
         description: `La consulta se marcó como "${STATUS_CONFIG[status].label}"`,
       });
-      // Update local state optimistically
-      setConsultations((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, status } : c))
-      );
       if (selectedConsultation?.id === id) {
         setSelectedConsultation((prev) => prev ? { ...prev, status } : null);
       }
@@ -197,14 +180,11 @@ export default function Consultations() {
 
     try {
       await supabaseConsultationsApi.updateStaffNotes(id, notes);
+      invalidateConsultations();
       toast({
         title: 'Notas guardadas',
         description: 'Las notas se han guardado correctamente',
       });
-      // Update local state
-      setConsultations((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, staff_notes: notes } : c))
-      );
       if (selectedConsultation?.id === id) {
         setSelectedConsultation((prev) => prev ? { ...prev, staff_notes: notes } : null);
       }
@@ -255,7 +235,7 @@ export default function Consultations() {
       } catch { /* ignored */ }
       
       // Refresh consultations
-      fetchConsultations();
+      invalidateConsultations();
       toast({
         title: 'Consulta actualizada',
         description: 'La consulta se ha marcado como programada',
@@ -273,7 +253,7 @@ export default function Consultations() {
     setDeleting(true);
     try {
       await supabaseConsultationsApi.delete(deleteConsultation.id);
-      setConsultations((prev) => prev.filter((c) => c.id !== deleteConsultation.id));
+      invalidateConsultations();
       if (selectedConsultation?.id === deleteConsultation.id) {
         setSelectedConsultation(null);
       }
