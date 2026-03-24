@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   format,
   parse,
@@ -57,6 +58,7 @@ import { supabaseBookingsApi, supabaseEventBookingsApi } from '@/services/supaba
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { notifyAllAdmins, notifyBookingUsers } from '@/services/supabaseNotifications';
 import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
+import { useBookings, useClients, useServices, useBarbers, useBusinessHours, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
 import { supabase } from '@/lib/supabase';
@@ -142,11 +144,70 @@ export default function Calendar() {
   );
   
   // Main container needs to be a fixed height with overflow hidden, header fixed, content scrolls
-  const [bookings, setBookings] = useState<ApiBooking[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
-  const [barbers, setBarbers] = useState<Barber[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // ── React Query data fetching (cached across navigations) ──
+  const queryClient = useQueryClient();
+  const { data: allBookingsData = [], isLoading: isLoadingBookings } = useBookings();
+  const { data: queryClients = [], isLoading: isLoadingClients } = useClients();
+  const { data: queryServices = [], isLoading: isLoadingServices } = useServices();
+  const { data: queryBarbers = [], isLoading: isLoadingBarbers } = useBarbers(false);
+  const { data: queryBusinessHours = {}, isLoading: isLoadingHours } = useBusinessHours();
+  const { invalidateBookings, invalidateBarbers, invalidateClients, invalidateServices, invalidateBusinessHours } = useInvalidateQuery();
+
+  const isLoading = isLoadingBookings || isLoadingClients || isLoadingServices || isLoadingBarbers || isLoadingHours;
+
+  // Local state for optimistic updates — seeded from query data
+  const [localBookings, setLocalBookings] = useState<ApiBooking[] | null>(null);
+  const [localClients, setLocalClients] = useState<Client[] | null>(null);
+  const [localEvents, setLocalEvents] = useState<ApiCalendarEvent[] | null>(null);
+
+  // Parse query data: separate regular bookings from event-type bookings
+  const { queryBookings, queryEvents } = useMemo(() => {
+    const regularBookings: ApiBooking[] = [];
+    const eventBookings: ApiCalendarEvent[] = [];
+
+    for (const b of allBookingsData) {
+      if (b.booking_type === 'event') {
+        eventBookings.push({
+          id: b.id,
+          business_id: b.business_id,
+          name: b.event_name || b.client_name || '',
+          event_date: b.booking_date,
+          start_time: b.start_time,
+          end_time: b.end_time,
+          repeat: (b.recurrence_rule as { frequency?: string } | null)?.frequency as ApiCalendarEvent['repeat'] || 'none',
+          location: b.location || null,
+          notes: b.notes || null,
+          barber: b.barber || null,
+          color: b.color || '#d1d5db',
+          created_at: b.created_at,
+          updated_at: b.updated_at,
+        });
+      } else {
+        regularBookings.push(b);
+      }
+    }
+
+    return { queryBookings: regularBookings, queryEvents: eventBookings };
+  }, [allBookingsData]);
+
+  // Merge: use local optimistic state if set, otherwise use query data
+  const bookings = localBookings ?? queryBookings;
+  const calendarEvents = localEvents ?? queryEvents;
+  const clients = localClients ?? queryClients;
+  const services = queryServices;
+  const barbers = queryBarbers;
+  const businessHours = queryBusinessHours;
+
+  // Alias setters for optimistic updates (existing code uses setBookings, etc.)
+  const setBookings = setLocalBookings as React.Dispatch<React.SetStateAction<ApiBooking[]>>;
+  const setCalendarEvents = setLocalEvents as React.Dispatch<React.SetStateAction<ApiCalendarEvent[]>>;
+  const setClients = setLocalClients as React.Dispatch<React.SetStateAction<Client[]>>;
+
+  // Reset local overrides when query data changes (new data from server)
+  useEffect(() => { setLocalBookings(null); }, [queryBookings]);
+  useEffect(() => { setLocalEvents(null); }, [queryEvents]);
+  useEffect(() => { setLocalClients(null); }, [queryClients]);
+
   const [selectedBooking, setSelectedBooking] = useState<ApiBooking | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -157,16 +218,12 @@ export default function Calendar() {
   const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
 
   // Event state
-  const [calendarEvents, setCalendarEvents] = useState<ApiCalendarEvent[]>([]);
   const [isChoiceDialogOpen, setIsChoiceDialogOpen] = useState(false);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isEventDetailOpen, setIsEventDetailOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<ApiCalendarEvent | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
-
-  // Business hours state for closed-hours shading
-  const [businessHours, setBusinessHours] = useState<BusinessHours>({});
 
   // Set view mode based on screen size
   useEffect(() => {
@@ -175,66 +232,25 @@ export default function Calendar() {
     }
   }, [isMobile, viewMode]);
 
-  // Load data from Supabase
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [allBookingsData, clientsData, servicesData, barbersData, businessHoursData] = await Promise.all([
-        supabaseBookingsApi.getAll(),
-        supabaseClientsApi.getAll(),
-        supabaseServicesApi.getAll(),
-        supabaseBarbersApi.getAll(false),
-        supabaseBusinessHoursApi.getAll().catch(() => ({} as BusinessHours)),
-      ]);
-
-      // Separate regular bookings from event-type bookings
-      const regularBookings: ApiBooking[] = [];
-      const eventBookings: ApiCalendarEvent[] = [];
-
-      for (const b of allBookingsData) {
-        if (b.booking_type === 'event') {
-          eventBookings.push({
-            id: b.id,
-            business_id: b.business_id,
-            name: b.event_name || b.client_name || '',
-            event_date: b.booking_date,
-            start_time: b.start_time,
-            end_time: b.end_time,
-            repeat: (b.recurrence_rule as { frequency?: string } | null)?.frequency as ApiCalendarEvent['repeat'] || 'none',
-            location: b.location || null,
-            notes: b.notes || null,
-            barber: b.barber || null,
-            color: b.color || '#d1d5db',
-            created_at: b.created_at,
-            updated_at: b.updated_at,
-          });
-        } else {
-          regularBookings.push(b);
-        }
-      }
-
-      setBookings(regularBookings);
-      setClients(clientsData);
-      setServices(servicesData);
-      setBarbers(barbersData);
-      setCalendarEvents(eventBookings);
-      setBusinessHours(businessHoursData);
-    } catch (error) {
-      toast({ title: 'Error al cargar datos', variant: 'destructive' });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
+  // Invalidate all calendar-related queries (replaces old loadData)
+  const loadData = useCallback(() => {
+    setLocalBookings(null);
+    setLocalClients(null);
+    setLocalEvents(null);
+    invalidateBookings();
+    invalidateClients();
+    invalidateServices();
+    invalidateBarbers();
+    invalidateBusinessHours();
+  }, [invalidateBookings, invalidateClients, invalidateServices, invalidateBarbers, invalidateBusinessHours]);
 
   // Manual refresh triggered by the refresh button (shows spinner on the button)
   const handleManualRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    await loadData();
-    setIsRefreshing(false);
-  }, [loadData]);
-
-  useEffect(() => {
     loadData();
+    // Wait a short moment for queries to settle
+    await new Promise(r => setTimeout(r, 500));
+    setIsRefreshing(false);
   }, [loadData]);
 
   // Auto-set barber filter for barber users (employees only see their own bookings)
@@ -264,7 +280,7 @@ export default function Calendar() {
           // Skip notification for bookings created locally (already notified)
           if (locallyCreatedBookingIds.current.has(newBooking.id)) {
             locallyCreatedBookingIds.current.delete(newBooking.id);
-            loadData();
+            invalidateBookings();
             return;
           }
 
@@ -290,7 +306,7 @@ export default function Calendar() {
           }
 
           // Refresh bookings list
-          loadData();
+          invalidateBookings();
         }
       )
       .subscribe();
@@ -298,12 +314,9 @@ export default function Calendar() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, loadData]);
+  }, [user?.id, invalidateBookings]);
 
   // Real-time subscription for users table changes (new barbers added externally)
-  const loadDataRef = useRef(loadData);
-  loadDataRef.current = loadData;
-
   useEffect(() => {
     let businessId: string;
     try {
@@ -318,7 +331,7 @@ export default function Calendar() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'users', filter: `business_id=eq.${businessId}` },
         () => {
-          loadDataRef.current();
+          invalidateBarbers();
         },
       )
       .subscribe();
@@ -326,7 +339,7 @@ export default function Calendar() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [invalidateBarbers]);
 
   // Current hour height based on view mode
   const currentHourHeight = viewMode === 'day' ? HOUR_HEIGHT_DAY : HOUR_HEIGHT_WEEK;

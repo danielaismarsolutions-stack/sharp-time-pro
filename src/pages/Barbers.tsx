@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { supabaseStorageApi } from '@/services/supabaseStorage';
 import { supabase } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
+import { useBarbers as useBarbersQuery, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { useAuth } from '@/contexts/AuthContext';
 import { notifyAllAdmins } from '@/services/supabaseNotifications';
 import BarberCard from '@/components/barbers/BarberCard';
@@ -42,10 +43,18 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Barbers() {
-  const [barbers, setBarbers] = useState<Barber[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
   const [showInactive, setShowInactive] = useState(false);
+  const { data: rawBarbers = [], isLoading: loading, refetch: refetchBarbers } = useBarbersQuery(showInactive);
+  const { invalidateBarbers } = useInvalidateQuery();
+
+  // Sort so "Rioja" always appears first
+  const barbers = [...rawBarbers].sort((a, b) => {
+    if (a.name.toLowerCase() === 'rioja') return -1;
+    if (b.name.toLowerCase() === 'rioja') return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  const [searchQuery, setSearchQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
   const [scheduleSheetOpen, setScheduleSheetOpen] = useState(false);
@@ -57,35 +66,10 @@ export default function Barbers() {
   const { user } = useAuth();
 
   const loadBarbers = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await supabaseBarbersApi.getAll(showInactive);
-      // Sort so "Rioja" always appears first
-      data.sort((a, b) => {
-        if (a.name.toLowerCase() === 'rioja') return -1;
-        if (b.name.toLowerCase() === 'rioja') return 1;
-        return a.name.localeCompare(b.name);
-      });
-      setBarbers(data);
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'No se pudieron cargar los barberos',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [showInactive, toast]);
+    await refetchBarbers();
+  }, [refetchBarbers]);
 
-  useEffect(() => {
-    loadBarbers();
-  }, [loadBarbers]);
-
-  // Realtime subscription: reload barbers when users table changes for this business
-  const loadBarbersRef = useRef(loadBarbers);
-  loadBarbersRef.current = loadBarbers;
-
+  // Realtime subscription: invalidate query when users table changes
   useEffect(() => {
     let businessId: string;
     try {
@@ -101,7 +85,7 @@ export default function Barbers() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'users', filter: `business_id=eq.${businessId}` },
         () => {
-          loadBarbersRef.current();
+          invalidateBarbers();
         },
       )
       .subscribe();
@@ -109,7 +93,7 @@ export default function Barbers() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [invalidateBarbers]);
 
   const filteredBarbers = barbers.filter((barber) =>
     barber.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

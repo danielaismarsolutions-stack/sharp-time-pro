@@ -28,7 +28,16 @@ const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Cookies = lazy(() => import("./pages/Cookies"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 2, // 2 minutes — data is fresh, no re-fetch on mount
+      gcTime: 1000 * 60 * 10,   // 10 minutes — keep unused cache before garbage collection
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const PageLoader = () => (
   <div className="flex h-screen items-center justify-center">
