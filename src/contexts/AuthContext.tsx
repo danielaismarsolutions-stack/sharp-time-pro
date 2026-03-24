@@ -134,8 +134,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     );
 
+    // 3. Listen for session-expired events from getAuthHeaders()
+    const handleSessionExpired = () => {
+      clearBusinessId();
+      setUser(null);
+    };
+    window.addEventListener('supabase:session-expired', handleSessionExpired);
+
     return () => {
       subscription.unsubscribe();
+      window.removeEventListener('supabase:session-expired', handleSessionExpired);
     };
   }, []);
 
