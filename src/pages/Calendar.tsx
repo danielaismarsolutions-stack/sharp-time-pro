@@ -146,7 +146,19 @@ export default function Calendar() {
   // Main container needs to be a fixed height with overflow hidden, header fixed, content scrolls
   // ── React Query data fetching (cached across navigations) ──
   const queryClient = useQueryClient();
-  const { data: allBookingsData = [], isLoading: isLoadingBookings } = useBookings();
+
+  // Scope bookings to a ±2 month window around the current calendar date
+  // This avoids fetching all-time data and keeps payloads manageable
+  const bookingsDateRange = useMemo(() => {
+    const windowStart = subMonths(currentDate, 2);
+    const windowEnd = addMonths(currentDate, 2);
+    return {
+      start_date: format(windowStart, 'yyyy-MM-dd'),
+      end_date: format(windowEnd, 'yyyy-MM-dd'),
+    };
+  }, [currentDate]);
+
+  const { data: allBookingsData = [], isLoading: isLoadingBookings } = useBookings(bookingsDateRange);
   const { data: queryClients = [], isLoading: isLoadingClients } = useClients();
   const { data: queryServices = [], isLoading: isLoadingServices } = useServices();
   const { data: queryBarbers = [], isLoading: isLoadingBarbers } = useBarbers(false);

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { format, subDays, isSameDay, parseISO } from 'date-fns';
+import { format, subDays, subMonths, addMonths, isSameDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,7 +25,15 @@ type StatusFilter = 'all' | 'confirmed' | 'pending' | 'completed' | 'cancelled' 
 export default function Dashboard() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { data: bookings = [], isLoading, isError, refetch } = useBookings();
+  // Scope to last 3 months + 1 month ahead instead of fetching all-time bookings
+  const dashboardDateRange = useMemo(() => {
+    const now = new Date();
+    return {
+      start_date: format(subMonths(now, 3), 'yyyy-MM-dd'),
+      end_date: format(addMonths(now, 1), 'yyyy-MM-dd'),
+    };
+  }, []);
+  const { data: bookings = [], isLoading, isError, refetch } = useBookings(dashboardDateRange);
   const { invalidateBookings } = useInvalidateQuery();
   const error = isError ? 'No se pudieron cargar las citas. Por favor, intente de nuevo.' : null;
   const [isRefreshing, setIsRefreshing] = useState(false);

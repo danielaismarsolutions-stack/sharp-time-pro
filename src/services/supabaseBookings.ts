@@ -98,54 +98,83 @@ const mapDbToApiBooking = (dbBooking: DbBooking): ApiBooking => dbBooking;
 
 export const supabaseBookingsApi = {
   /**
-   * Fetch all bookings with optional filters
+   * Fetch all bookings with optional filters.
+   * Uses Supabase pagination (Range header) to avoid the default 1000-row cap
+   * and the old blanket limit=10000 that would silently drop data.
    */
   getAll: async (filters?: BookingFilters): Promise<ApiBooking[]> => {
-    const url = new URL(`${SUPABASE_CONFIG.url}/rest/v1/bookings`);
-    
-    // Always filter by business_id
-    url.searchParams.append('business_id', `eq.${getBusinessId()}`);
-    
-    // Apply filters
-    if (filters?.date) {
-      url.searchParams.append('booking_date', `eq.${filters.date}`);
-    }
-    if (filters?.status) {
-      url.searchParams.append('status', `eq.${filters.status}`);
-    }
-    if (filters?.client_id) {
-      url.searchParams.append('client_id', `eq.${filters.client_id}`);
-    }
-    if (filters?.start_date && filters?.end_date) {
-      url.searchParams.append('booking_date', `gte.${filters.start_date}`);
-      url.searchParams.append('booking_date', `lte.${filters.end_date}`);
-    } else if (filters?.start_date) {
-      url.searchParams.append('booking_date', `gte.${filters.start_date}`);
-    } else if (filters?.end_date) {
-      url.searchParams.append('booking_date', `lte.${filters.end_date}`);
-    }
-    if (filters?.barber) {
-      url.searchParams.append('barber', `eq.${filters.barber}`);
-    }
-    
-    // Increase default row limit for large date ranges (year view)
-    url.searchParams.append('limit', '10000');
+    const PAGE_SIZE = 1000;
+    let allRows: DbBooking[] = [];
+    let offset = 0;
+    let hasMore = true;
 
-    // Order by date and time
-    url.searchParams.append('order', 'booking_date.asc,start_time.asc');
-    
-    
-    const headers = await getAuthHeaders();
-    const response = await fetch(url.toString(), { headers });
+    while (hasMore) {
+      const url = new URL(`${SUPABASE_CONFIG.url}/rest/v1/bookings`);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error('Failed to fetch bookings');
+      // Always filter by business_id
+      url.searchParams.append('business_id', `eq.${getBusinessId()}`);
+
+      // Apply filters
+      if (filters?.date) {
+        url.searchParams.append('booking_date', `eq.${filters.date}`);
+      }
+      if (filters?.status) {
+        url.searchParams.append('status', `eq.${filters.status}`);
+      }
+      if (filters?.client_id) {
+        url.searchParams.append('client_id', `eq.${filters.client_id}`);
+      }
+      if (filters?.start_date && filters?.end_date) {
+        url.searchParams.append('booking_date', `gte.${filters.start_date}`);
+        url.searchParams.append('booking_date', `lte.${filters.end_date}`);
+      } else if (filters?.start_date) {
+        url.searchParams.append('booking_date', `gte.${filters.start_date}`);
+      } else if (filters?.end_date) {
+        url.searchParams.append('booking_date', `lte.${filters.end_date}`);
+      }
+      if (filters?.barber) {
+        url.searchParams.append('barber', `eq.${filters.barber}`);
+      }
+
+      // Order by date and time
+      url.searchParams.append('order', 'booking_date.asc,start_time.asc');
+
+      const headers = await getAuthHeaders();
+      // Use Range header for proper pagination instead of limit param
+      const rangeEnd = offset + PAGE_SIZE - 1;
+      const response = await fetch(url.toString(), {
+        headers: {
+          ...headers,
+          'Range-Unit': 'items',
+          'Range': `${offset}-${rangeEnd}`,
+          'Prefer': 'count=exact',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error('Failed to fetch bookings');
+      }
+
+      const page: DbBooking[] = await response.json();
+      allRows = allRows.concat(page);
+
+      // Check if there are more pages
+      // Supabase returns Content-Range: 0-999/1234 or */0
+      const contentRange = response.headers.get('Content-Range');
+      if (contentRange) {
+        const match = contentRange.match(/\/(\d+)/);
+        const total = match ? parseInt(match[1], 10) : 0;
+        hasMore = allRows.length < total;
+      } else {
+        // Fallback: if we got a full page, there might be more
+        hasMore = page.length === PAGE_SIZE;
+      }
+
+      offset += PAGE_SIZE;
     }
 
-    const data: DbBooking[] = await response.json();
-    
-    return data.map(mapDbToApiBooking);
+    return allRows.map(mapDbToApiBooking);
   },
 
   /**
