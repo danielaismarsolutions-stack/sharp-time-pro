@@ -58,17 +58,37 @@ supabase secrets set VAPID_PUBLIC_KEY_X="the-x-coordinate"
 supabase secrets set VAPID_PUBLIC_KEY_Y="the-y-coordinate"
 ```
 
-## Step 3: Set Postgres Config for pg_net Trigger
+## Step 3: Store Secrets in Supabase Vault
 
-In the Supabase SQL Editor, run:
+The trigger function reads secrets from Supabase Vault (encrypted at rest).
+Run in the Supabase SQL Editor:
 
 ```sql
-ALTER DATABASE postgres SET app.settings.supabase_url = 'https://omeeupvetsacxbgojifx.supabase.co';
-ALTER DATABASE postgres SET app.settings.service_role_key = 'your-service-role-key';
+-- Store the project URL
+SELECT vault.create_secret(
+  'https://omeeupvetsacxbgojifx.supabase.co',
+  'supabase_url',
+  'Supabase project URL for edge functions'
+);
+
+-- Store the service role key (find it in Dashboard → Settings → API)
+SELECT vault.create_secret(
+  'your-service-role-key',
+  'service_role_key',
+  'Supabase service role key for edge function auth'
+);
+```
+
+To update an existing secret (e.g. after key rotation):
+
+```sql
+UPDATE vault.secrets
+SET secret = 'new-key-value'
+WHERE name = 'service_role_key';
 ```
 
 ⚠️ The service role key is needed so the trigger can authenticate with the
-Edge Function. You can find it in Dashboard → Settings → API → service_role key.
+Edge Function. Never hardcode it in function source code — always use Vault.
 
 ## Step 4: Enable pg_net Extension
 
