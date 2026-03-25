@@ -22,6 +22,7 @@ export interface DbBusiness {
   contact_email: string | null;
   'antelacion_min (horas)': number | null;
   'antelacion_max (dias)': number | null;
+  client_notification_delay: number | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -119,6 +120,42 @@ export const supabaseBusinessesApi = {
     });
 
     if (!res.ok) throw new Error(`Error updating booking settings: ${res.status}`);
+  },
+
+  /** Fetch client notification delay setting */
+  async getNotificationSettings(): Promise<{ emailReminder: boolean; reminderTiming: number }> {
+    const businessId = getBusinessId();
+    const headers = await supabaseHeaders();
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/businesses?id=eq.${businessId}&select=client_notification_delay`;
+
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error(`Error fetching notification settings: ${res.status}`);
+
+    const rows: Pick<DbBusiness, 'client_notification_delay'>[] = await res.json();
+    const row = rows[0];
+    if (!row) throw new Error('Business not found');
+
+    return {
+      emailReminder: row.client_notification_delay !== null,
+      reminderTiming: row.client_notification_delay ?? 24,
+    };
+  },
+
+  /** Update client notification delay setting */
+  async updateNotificationSettings(data: { emailReminder: boolean; reminderTiming: number }): Promise<void> {
+    const businessId = getBusinessId();
+    const headers = await supabaseHeaders();
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/businesses?id=eq.${businessId}`;
+
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        client_notification_delay: data.emailReminder ? data.reminderTiming : null,
+      }),
+    });
+
+    if (!res.ok) throw new Error(`Error updating notification settings: ${res.status}`);
   },
 };
 

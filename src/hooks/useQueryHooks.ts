@@ -6,7 +6,6 @@ import { supabaseBookingsApi } from '@/services/supabaseBookings';
 import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
 import { supabaseBusinessesApi } from '@/services/supabaseBusinesses';
 import { supabaseConsultationsApi } from '@/services/supabaseConsultations';
-import { settingsApi } from '@/services/api';
 import type { Client, Service, BusinessHours } from '@/types';
 import type { Barber } from '@/types/barber';
 import type { ApiBooking } from '@/types/api';
@@ -102,7 +101,7 @@ export function useBookingSettingsQuery() {
 export function useNotificationSettings() {
   return useQuery({
     queryKey: queryKeys.notificationSettings,
-    queryFn: () => settingsApi.getNotificationSettings(),
+    queryFn: () => supabaseBusinessesApi.getNotificationSettings(),
     staleTime: 1000 * 60 * 5,
   });
 }
