@@ -38,7 +38,6 @@ import {
   BookingSettings,
   NotificationSettings,
 } from '@/types';
-import { settingsApi } from '@/services/api';
 import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
 import { supabaseBusinessesApi } from '@/services/supabaseBusinesses';
 import { supabase } from '@/lib/supabase';
@@ -157,7 +156,13 @@ export default function Settings() {
   }, [queryBooking]);
 
   useEffect(() => {
-    if (queryNotifications) setNotificationSettings(queryNotifications);
+    if (queryNotifications) {
+      setNotificationSettings((prev) => ({
+        ...prev,
+        emailReminder: queryNotifications.emailReminder,
+        reminderTiming: queryNotifications.reminderTiming,
+      }));
+    }
   }, [queryNotifications]);
 
   // Real-time subscription for business_hours table
@@ -368,7 +373,10 @@ export default function Settings() {
 
     setIsSaving(true);
     try {
-      await settingsApi.updateNotificationSettings(notificationSettings);
+      await supabaseBusinessesApi.updateNotificationSettings({
+        emailReminder: notificationSettings.emailReminder,
+        reminderTiming: notificationSettings.reminderTiming,
+      });
       invalidateSettings();
       toast({ title: 'Configuración de notificaciones guardada' });
     } catch (error) {
