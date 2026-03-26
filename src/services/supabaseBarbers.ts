@@ -249,44 +249,36 @@ export const supabaseBarbersApi = {
   },
 
   async create(barberData: CreateBarberData): Promise<Barber> {
+    const headers = await getAuthHeaders();
+
     const payload = {
-      business_id: getBusinessId(),
-      full_name: barberData.name,
-      email: barberData.email || null,
+      name: barberData.name,
+      email: barberData.email,
+      password: barberData.password,
+      role: barberData.role || 'barber',
       phone: barberData.phone || null,
-      avatar_url: barberData.avatar_url || null,
       bio: barberData.bio || null,
-      is_active: barberData.is_active ?? true,
-      role: 'barber',
+      business_id: getBusinessId(),
     };
 
     const response = await fetch(
-      `${SUPABASE_CONFIG.url}/rest/v1/users`,
+      `${SUPABASE_CONFIG.url}/functions/v1/create-barber`,
       {
         method: 'POST',
-        headers: await supabaseHeaders(),
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(payload),
       }
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = 'No se pudo crear el barbero';
-      try {
-        const json = JSON.parse(errorText);
-        if (json.code === '23505' && json.message?.includes('email')) {
-          errorMessage = 'Ya existe un usuario con ese email. Usa otro email o déjalo vacío.';
-        } else if (json.code === '23505') {
-          errorMessage = 'Ya existe un registro con esos datos.';
-        } else {
-          errorMessage = json.message || errorMessage;
-        }
-      } catch { /* use default */ }
-      throw new Error(errorMessage);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'No se pudo crear el barbero');
     }
 
-    const data: DbUser[] = await response.json();
-    const newBarber = data[0];
+    const { user: newBarber } = await response.json();
 
     // If schedule provided, save it to barber_schedules table
     if (barberData.schedule) {
