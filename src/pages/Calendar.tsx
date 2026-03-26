@@ -750,9 +750,9 @@ export default function Calendar() {
     const isPaying = method !== null;
     const now = new Date().toISOString();
 
-    // Optimistic update
-    setBookings((prev) =>
-      (prev || []).map((b) =>
+    // Optimistic update — use resolved `bookings` (not raw localBookings which may be null)
+    setBookings(
+      bookings.map((b) =>
         b.id === bookingId
           ? {
               ...b,
