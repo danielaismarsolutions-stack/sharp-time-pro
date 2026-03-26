@@ -182,7 +182,7 @@ export default function ClientDetail() {
         <Button 
           variant="outline" 
           size="icon"
-          onClick={loadClientData}
+          onClick={() => loadClientData()}
           className="h-10 w-10 min-h-[44px] min-w-[44px]"
         >
           <RefreshCw className="h-4 w-4" />
