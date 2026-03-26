@@ -382,14 +382,14 @@ export default function Calendar() {
     bookings,
     barbers,
     onBookingUpdate: (id, updated) => {
-      setBookings(prev => prev.map(b => b.id === id ? updated : b));
+      setBookings(prev => (prev || []).map(b => b.id === id ? updated : b));
     },
     onBookingsChange: setBookings,
     hourHeight: currentHourHeight,
     startHour: START_HOUR,
     events: calendarEvents,
     onEventUpdate: (id, updated) => {
-      setCalendarEvents(prev => prev.map(e => e.id === id ? updated : e));
+      setCalendarEvents(prev => (prev || []).map(e => e.id === id ? updated : e));
     },
     onEventsChange: setCalendarEvents,
   });
@@ -699,7 +699,7 @@ export default function Calendar() {
     const previousSelected = selectedBooking;
 
     setBookings((prev) =>
-      prev.map((b) =>
+      (prev || []).map((b) =>
         b.id === bookingId
           ? { ...b, status: status as ApiBookingStatus, updated_at: new Date().toISOString() }
           : b
@@ -754,7 +754,7 @@ export default function Calendar() {
 
     const previousBookings = [...bookings];
     const deletedBooking = bookings.find((b) => b.id === bookingId);
-    setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+    setBookings((prev) => (prev || []).filter((b) => b.id !== bookingId));
     setIsDetailOpen(false);
     setSelectedBooking(null);
 
@@ -847,7 +847,7 @@ export default function Calendar() {
 
     const previous = [...calendarEvents];
     const deletedEvent = calendarEvents.find((e) => e.id === eventId);
-    setCalendarEvents((prev) => prev.filter((e) => e.id !== eventId));
+    setCalendarEvents((prev) => (prev || []).filter((e) => e.id !== eventId));
     setIsEventDetailOpen(false);
     setSelectedEvent(null);
     try {
@@ -928,7 +928,7 @@ export default function Calendar() {
         });
         const updatedEvent = bookingToCalendarEvent(updatedBooking);
         setCalendarEvents((prev) =>
-          prev.map((e) => (e.id === selectedEvent.id ? updatedEvent : e))
+          (prev || []).map((e) => (e.id === selectedEvent.id ? updatedEvent : e))
         );
 
         // Notify all admins about event update
@@ -965,7 +965,7 @@ export default function Calendar() {
           recurrence_rule: buildRecurrenceRule(data.repeat),
         });
         const createdEvent = bookingToCalendarEvent(createdBooking);
-        setCalendarEvents((prev) => [...prev, createdEvent]);
+        setCalendarEvents((prev) => [...(prev || []), createdEvent]);
 
         // Notify all admins about new event
         try {
@@ -1702,7 +1702,7 @@ export default function Calendar() {
                   service_price: data.servicePrice || selectedBooking.service_price,
                 });
                 
-                setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updatedBooking : b));
+                setBookings(prev => (prev || []).map(b => b.id === selectedBooking.id ? updatedBooking : b));
                 
                 // Notify admins + barber about booking modification
                 try {
@@ -1745,7 +1745,7 @@ export default function Calendar() {
                   barber: data.barber || null,
                 });
                 
-                setBookings(prev => [...prev, newBooking]);
+                setBookings(prev => [...(prev || []), newBooking]);
                 locallyCreatedBookingIds.current.add(newBooking.id);
 
                 // Notify admins + barber about new booking
