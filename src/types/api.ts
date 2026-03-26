@@ -16,6 +16,8 @@ export interface ApiResponse<T> {
 
 export type ApiBookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
 export type ApiBookingSource = 'online' | 'phone' | 'walk_in';
+export type ApiPaymentStatus = 'unpaid' | 'paid';
+export type ApiPaymentMethod = 'cash' | 'card' | 'bizum';
 
 export type ApiBookingType = 'booking' | 'event';
 
@@ -40,6 +42,9 @@ export interface ApiBooking {
   notes: string | null;
   cancellation_reason: string | null;
   reminder_sent_at: string | null;
+  payment_status: ApiPaymentStatus;
+  payment_method: ApiPaymentMethod | null;
+  paid_at: string | null;
   created_at: string; // ISO timestamp
   updated_at: string; // ISO timestamp
   // Event-specific columns (populated when booking_type = 'event')

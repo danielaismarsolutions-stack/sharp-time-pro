@@ -4,7 +4,7 @@
 import { SUPABASE_CONFIG } from '@/config/api';
 import { getAuthHeaders } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
-import { ApiBooking, ApiBookingStatus, ApiBookingSource, ApiBookingType } from '@/types/api';
+import { ApiBooking, ApiBookingStatus, ApiBookingSource, ApiBookingType, ApiPaymentStatus, ApiPaymentMethod } from '@/types/api';
 
 // ==================== Types ====================
 
@@ -28,6 +28,9 @@ export interface DbBooking {
   barber: string | null;
   notes: string | null;
   cancellation_reason: string | null;
+  payment_status: ApiPaymentStatus;
+  payment_method: ApiPaymentMethod | null;
+  paid_at: string | null;
   reminder_sent_at: string | null;
   created_at: string;
   updated_at: string;
@@ -57,6 +60,9 @@ export interface CreateBookingData {
   service_price: number;
   barber?: string | null;
   notes?: string | null;
+  payment_status?: ApiPaymentStatus;
+  payment_method?: ApiPaymentMethod | null;
+  paid_at?: string | null;
 }
 
 export interface UpdateBookingData {
@@ -76,6 +82,9 @@ export interface UpdateBookingData {
   service_name?: string;
   service_duration?: number;
   service_price?: number;
+  payment_status?: ApiPaymentStatus;
+  payment_method?: ApiPaymentMethod | null;
+  paid_at?: string | null;
 }
 
 export interface BookingFilters {
@@ -297,6 +306,28 @@ export const supabaseBookingsApi = {
     }
     
     return supabaseBookingsApi.update(bookingId, updates);
+  },
+
+  /**
+   * Update payment info for a booking
+   */
+  updatePayment: async (bookingId: string, paymentMethod: ApiPaymentMethod): Promise<ApiBooking> => {
+    return supabaseBookingsApi.update(bookingId, {
+      payment_status: 'paid',
+      payment_method: paymentMethod,
+      paid_at: new Date().toISOString(),
+    });
+  },
+
+  /**
+   * Clear payment info for a booking
+   */
+  clearPayment: async (bookingId: string): Promise<ApiBooking> => {
+    return supabaseBookingsApi.update(bookingId, {
+      payment_status: 'unpaid',
+      payment_method: null,
+      paid_at: null,
+    });
   },
 
   /**

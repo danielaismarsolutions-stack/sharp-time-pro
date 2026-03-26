@@ -22,11 +22,15 @@ import {
   Footprints,
   UserCheck,
   ChevronRight,
+  Banknote,
+  CreditCard,
+  Smartphone,
+  Undo2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { StatusBadge, BookingStatus } from './StatusBadge';
-import { ApiBooking } from '@/types/api';
+import { ApiBooking, ApiPaymentMethod } from '@/types/api';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -40,6 +44,7 @@ interface BookingDetailModalProps {
   open: boolean;
   onClose: () => void;
   onStatusChange: (bookingId: string, status: BookingStatus) => void;
+  onPaymentChange: (bookingId: string, method: ApiPaymentMethod | null) => void;
   onEdit: (booking: ApiBooking) => void;
   onDelete: (bookingId: string) => void;
 }
@@ -55,6 +60,7 @@ export function BookingDetailModal({
   open,
   onClose,
   onStatusChange,
+  onPaymentChange,
   onEdit,
   onDelete,
 }: BookingDetailModalProps) {
@@ -217,6 +223,66 @@ export function BookingDetailModal({
               </div>
             </>
           )}
+
+          <Separator />
+
+          {/* Payment Section */}
+          <div className="space-y-1.5">
+            <h4 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+              Pago
+            </h4>
+            {currentBooking.payment_status === 'paid' ? (
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
+                    <span className="text-xs font-medium text-emerald-400">
+                      Pagado - {currentBooking.payment_method === 'cash' ? 'Efectivo' : currentBooking.payment_method === 'card' ? 'Tarjeta' : 'Bizum'}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground"
+                    onClick={() => onPaymentChange(currentBooking.id, null)}
+                  >
+                    <Undo2 className="h-3 w-3 mr-1" />
+                    Deshacer
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-[11px] px-2 flex flex-col items-center gap-0.5 py-1"
+                  onClick={() => onPaymentChange(currentBooking.id, 'cash')}
+                >
+                  <Banknote className="h-3.5 w-3.5 text-emerald-400" />
+                  Efectivo
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-[11px] px-2 flex flex-col items-center gap-0.5 py-1"
+                  onClick={() => onPaymentChange(currentBooking.id, 'card')}
+                >
+                  <CreditCard className="h-3.5 w-3.5 text-blue-400" />
+                  Tarjeta
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-[11px] px-2 flex flex-col items-center gap-0.5 py-1"
+                  onClick={() => onPaymentChange(currentBooking.id, 'bizum')}
+                >
+                  <Smartphone className="h-3.5 w-3.5 text-violet-400" />
+                  Bizum
+                </Button>
+              </div>
+            )}
+          </div>
 
           <Separator />
 
