@@ -6,10 +6,12 @@ import { supabaseBookingsApi } from '@/services/supabaseBookings';
 import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
 import { supabaseBusinessesApi } from '@/services/supabaseBusinesses';
 import { supabaseConsultationsApi } from '@/services/supabaseConsultations';
+import { supabaseTimeEntriesApi } from '@/services/supabaseTimeEntries';
 import type { Client, Service, BusinessHours } from '@/types';
 import type { Barber } from '@/types/barber';
 import type { ApiBooking } from '@/types/api';
 import type { Consultation } from '@/types/consultation';
+import type { TimeEntry, TimeEntryFilters, TimeEntryCorrectionData } from '@/types/timeEntry';
 
 // ── Query Keys (centralized for invalidation) ──────────────────────────
 
@@ -24,6 +26,10 @@ export const queryKeys = {
   bookingSettings: ['bookingSettings'] as const,
   notificationSettings: ['notificationSettings'] as const,
   consultations: ['consultations'] as const,
+  timeTrackingSettings: ['timeTrackingSettings'] as const,
+  activeSession: (userId: string) => ['timeEntries', 'active', userId] as const,
+  activeSessions: ['timeEntries', 'active'] as const,
+  timeEntries: (filters?: TimeEntryFilters) => ['timeEntries', filters ?? {}] as const,
 };
 
 // ── Clients ─────────────────────────────────────────────────────────────
@@ -115,6 +121,87 @@ export function useConsultations() {
   });
 }
 
+// ── Time Tracking Settings ──────────────────────────────────────────────
+
+export function useTimeTrackingSettings() {
+  return useQuery<{ timeTrackingEnabled: boolean }>({
+    queryKey: queryKeys.timeTrackingSettings,
+    queryFn: () => supabaseBusinessesApi.getTimeTrackingSettings(),
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+// ── Time Entries ────────────────────────────────────────────────────────
+
+export function useActiveSession(userId: string | undefined) {
+  return useQuery<TimeEntry | null>({
+    queryKey: queryKeys.activeSession(userId!),
+    queryFn: () => supabaseTimeEntriesApi.getOpenSession(userId!),
+    enabled: !!userId,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+}
+
+export function useActiveSessions() {
+  return useQuery<TimeEntry[]>({
+    queryKey: queryKeys.activeSessions,
+    queryFn: () => supabaseTimeEntriesApi.getActiveSessions(),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+}
+
+export function useTimeEntries(filters?: TimeEntryFilters) {
+  return useQuery<TimeEntry[]>({
+    queryKey: queryKeys.timeEntries(filters),
+    queryFn: () => supabaseTimeEntriesApi.getByFilters(filters),
+  });
+}
+
+export function useClockIn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, notes }: { userId: string; notes?: string }) =>
+      supabaseTimeEntriesApi.clockIn(userId, notes),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+    },
+  });
+}
+
+export function useClockOut() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ entryId, notes }: { entryId: string; notes?: string }) =>
+      supabaseTimeEntriesApi.clockOut(entryId, notes),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+    },
+  });
+}
+
+export function useCorrectTimeEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ entryId, correctedById, data }: { entryId: string; correctedById: string; data: TimeEntryCorrectionData }) =>
+      supabaseTimeEntriesApi.correctEntry(entryId, correctedById, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+    },
+  });
+}
+
+export function useDeleteTimeEntry() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (entryId: string) => supabaseTimeEntriesApi.deleteEntry(entryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+    },
+  });
+}
+
 // ── Invalidation helper ─────────────────────────────────────────────────
 
 export function useInvalidateQuery() {
@@ -132,5 +219,7 @@ export function useInvalidateQuery() {
       queryClient.invalidateQueries({ queryKey: queryKeys.bookingSettings });
       queryClient.invalidateQueries({ queryKey: queryKeys.notificationSettings });
     },
+    invalidateTimeEntries: () => queryClient.invalidateQueries({ queryKey: ['timeEntries'] }),
+    invalidateTimeTrackingSettings: () => queryClient.invalidateQueries({ queryKey: queryKeys.timeTrackingSettings }),
   };
 }

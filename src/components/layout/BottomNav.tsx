@@ -1,8 +1,9 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, Settings, ListTodo, MessageSquare } from 'lucide-react';
+import { Users, Settings, ListTodo, MessageSquare, Fingerprint } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTimeTrackingSettings } from '@/hooks/useQueryHooks';
 
 // Dynamic calendar icon component showing current date
 function CalendarDateIcon({ className, isActive }: { className?: string; isActive?: boolean }) {
@@ -67,14 +68,16 @@ interface NavItem {
   id: string;
   label: string;
   path: string;
-  icon: 'calendar' | 'services' | 'customers' | 'settings' | 'consultations';
+  icon: 'calendar' | 'services' | 'customers' | 'settings' | 'consultations' | 'time-tracking';
   adminOnly?: boolean;
   barberOnly?: boolean;
+  requiresTimeTracking?: boolean;
 }
 
 const allNavItems: NavItem[] = [
   { id: 'calendar', icon: 'calendar', label: 'Agenda', path: '/calendar' },
   { id: 'consultations', icon: 'consultations', label: 'Consultas', path: '/consultations', barberOnly: true },
+  { id: 'time-tracking', icon: 'time-tracking', label: 'Fichajes', path: '/time-tracking', requiresTimeTracking: true },
   { id: 'services', icon: 'services', label: 'Servicios', path: '/services', adminOnly: true },
   { id: 'customers', icon: 'customers', label: 'Clientes', path: '/clients' },
   { id: 'settings', icon: 'settings', label: 'Ajustes', path: '/settings' },
@@ -84,10 +87,12 @@ export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin, isBarber } = useAuth();
+  const { data: timeTrackingSettings } = useTimeTrackingSettings();
 
   const navItems = allNavItems.filter(item => {
     if (item.adminOnly && !isAdmin) return false;
     if (item.barberOnly && !isBarber) return false;
+    if (item.requiresTimeTracking && !timeTrackingSettings?.timeTrackingEnabled) return false;
     return true;
   });
 
@@ -101,6 +106,8 @@ export default function BottomNav() {
         return <SmileyIcon isActive={isActive} />;
       case 'consultations':
         return <MessageSquare className={cn('w-6 h-6', isActive ? 'text-foreground' : 'text-gray-400')} />;
+      case 'time-tracking':
+        return <Fingerprint className={cn('w-6 h-6', isActive ? 'text-foreground' : 'text-gray-400')} />;
       case 'settings':
         return <Settings className={cn('w-6 h-6', isActive ? 'text-foreground' : 'text-gray-400')} />;
     }

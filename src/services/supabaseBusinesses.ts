@@ -23,6 +23,7 @@ export interface DbBusiness {
   'antelacion_min (horas)': number | null;
   'antelacion_max (dias)': number | null;
   client_notification_delay: number | null;
+  time_tracking_enabled: boolean;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -156,6 +157,39 @@ export const supabaseBusinessesApi = {
     });
 
     if (!res.ok) throw new Error(`Error updating notification settings: ${res.status}`);
+  },
+
+  /** Fetch time tracking enabled setting */
+  async getTimeTrackingSettings(): Promise<{ timeTrackingEnabled: boolean }> {
+    const businessId = getBusinessId();
+    const headers = await supabaseHeaders();
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/businesses?id=eq.${businessId}&select=time_tracking_enabled`;
+
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error(`Error fetching time tracking settings: ${res.status}`);
+
+    const rows: Pick<DbBusiness, 'time_tracking_enabled'>[] = await res.json();
+    const row = rows[0];
+    if (!row) throw new Error('Business not found');
+
+    return {
+      timeTrackingEnabled: row.time_tracking_enabled ?? false,
+    };
+  },
+
+  /** Update time tracking enabled setting */
+  async updateTimeTrackingSettings(enabled: boolean): Promise<void> {
+    const businessId = getBusinessId();
+    const headers = await supabaseHeaders();
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/businesses?id=eq.${businessId}`;
+
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ time_tracking_enabled: enabled }),
+    });
+
+    if (!res.ok) throw new Error(`Error updating time tracking settings: ${res.status}`);
   },
 };
 
