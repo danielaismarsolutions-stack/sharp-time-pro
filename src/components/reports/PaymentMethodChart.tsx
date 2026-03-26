@@ -82,6 +82,7 @@ export default function PaymentMethodChart({ data }: PaymentMethodChartProps) {
               {data.filter(d => d.count > 0).map((item) => {
                 const Icon = METHOD_ICONS[item.method] || CircleOff;
                 const pct = total > 0 ? Math.round((item.count / total) * 100) : 0;
+                const formattedRevenue = item.revenue.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0 });
 
                 return (
                   <div key={item.method} className="flex items-center gap-3">
@@ -94,7 +95,11 @@ export default function PaymentMethodChart({ data }: PaymentMethodChartProps) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-medium">{item.label}</span>
-                        <span className="text-xs text-muted-foreground">{item.count} citas</span>
+                        <span className="text-xs font-semibold tabular-nums">{formattedRevenue}</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-0.5">
+                        <span className="text-[10px] text-muted-foreground">{item.count} citas</span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">{pct}%</span>
                       </div>
                       <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
                         <div
@@ -103,7 +108,6 @@ export default function PaymentMethodChart({ data }: PaymentMethodChartProps) {
                         />
                       </div>
                     </div>
-                    <span className="text-xs font-bold tabular-nums shrink-0 w-10 text-right">{pct}%</span>
                   </div>
                 );
               })}
