@@ -61,6 +61,7 @@ export interface ReportsAnalytics {
   busiestHours: Array<{ hour: string; bookings: number }>;
   topClients: Array<{ name: string; revenue: number; visits: number }>;
   barberMetrics: BarberMetric[];
+  paymentMethods: Array<{ method: string; label: string; count: number; revenue: number; color: string }>;
 }
 
 // ── Internal types for the RPC response ─────────────────────────────
@@ -159,6 +160,46 @@ async function fetchReportAggregations(businessId: string, startDate: string, en
   return data as RpcResult;
 }
 
+const PAYMENT_METHOD_CONFIG: Record<string, { label: string; color: string }> = {
+  cash: { label: 'Efectivo', color: '#10b981' },
+  card: { label: 'Tarjeta', color: '#3b82f6' },
+  bizum: { label: 'Bizum', color: '#8b5cf6' },
+  unpaid: { label: 'Sin cobrar', color: '#6b7280' },
+};
+
+async function fetchPaymentMethodDistribution(
+  businessId: string,
+  startDate: string,
+  endDate: string,
+): Promise<Array<{ method: string; count: number; revenue: number }>> {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('payment_status, payment_method, service_price')
+    .eq('business_id', businessId)
+    .gte('booking_date', startDate)
+    .lte('booking_date', endDate)
+    .in('status', ['completed', 'confirmed', 'pending'])
+    .eq('booking_type', 'booking');
+
+  if (error) throw error;
+
+  const grouped = new Map<string, { count: number; revenue: number }>();
+  for (const row of data ?? []) {
+    const key = row.payment_status === 'paid' && row.payment_method
+      ? row.payment_method
+      : 'unpaid';
+    const entry = grouped.get(key) || { count: 0, revenue: 0 };
+    entry.count += 1;
+    entry.revenue += Number(row.service_price ?? 0);
+    grouped.set(key, entry);
+  }
+
+  return Array.from(grouped.entries()).map(([method, data]) => ({
+    method,
+    ...data,
+  }));
+}
+
 const STATUS_LABELS: Record<string, { name: string; color: string }> = {
   completed: { name: 'Completadas', color: '#10b981' },
   pending: { name: 'Pendientes', color: '#f59e0b' },
@@ -247,6 +288,7 @@ const EMPTY_ANALYTICS: ReportsAnalytics = {
   busiestHours: [],
   topClients: [],
   barberMetrics: [],
+  paymentMethods: [],
 };
 
 // ── Hook ────────────────────────────────────────────────────────────
@@ -266,6 +308,13 @@ export function useReportsData(period: Period) {
   const { data: previousAgg, isLoading: isLoadingPrevious } = useQuery({
     queryKey: ['reports', 'aggregations', 'previous', previous.start, previous.end],
     queryFn: () => fetchReportAggregations(businessId, previous.start, previous.end),
+    staleTime: 1000 * 60 * 2,
+  });
+
+  // Payment method distribution (lightweight client-side aggregation)
+  const { data: paymentMethodsRaw } = useQuery({
+    queryKey: ['reports', 'payment-methods', current.start, current.end],
+    queryFn: () => fetchPaymentMethodDistribution(businessId, current.start, current.end),
     staleTime: 1000 * 60 * 2,
   });
 
@@ -393,6 +442,15 @@ export function useReportsData(period: Period) {
       currentEndDate,
     );
 
+    // Payment methods
+    const paymentMethods = (paymentMethodsRaw ?? [])
+      .map(pm => {
+        const config = PAYMENT_METHOD_CONFIG[pm.method];
+        return config ? { method: pm.method, label: config.label, count: pm.count, revenue: pm.revenue, color: config.color } : null;
+      })
+      .filter((d): d is NonNullable<typeof d> => d !== null)
+      .sort((a, b) => b.count - a.count);
+
     return {
       kpis: {
         revenue: { value: totalRevenue, ...revenueChg },
@@ -411,8 +469,9 @@ export function useReportsData(period: Period) {
       busiestHours,
       topClients,
       barberMetrics,
+      paymentMethods,
     };
-  }, [currentAgg, previousAgg, barbers, period, currentStartDate, currentEndDate]);
+  }, [currentAgg, previousAgg, barbers, period, currentStartDate, currentEndDate, paymentMethodsRaw]);
 
   return {
     analytics,
