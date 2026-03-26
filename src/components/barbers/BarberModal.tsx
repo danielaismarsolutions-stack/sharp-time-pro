@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Barber, CreateBarberData, DEFAULT_SCHEDULE } from '@/types/barber';
 import { Loader2 } from 'lucide-react';
 import AvatarUpload from './AvatarUpload';
@@ -23,12 +24,16 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [bio, setBio] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'barber' | 'admin'>('barber');
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [deleteAvatar, setDeleteAvatar] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const { toast } = useToast();
+
+  const isCreating = !barber;
 
   useEffect(() => {
     if (barber) {
@@ -42,6 +47,8 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
       setEmail('');
       setPhone('');
       setBio('');
+      setPassword('');
+      setRole('barber');
       setIsActive(true);
     }
     setAvatarFile(null);
@@ -92,6 +99,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
         avatar_url: avatarUrl,
         schedule: barber?.schedule || DEFAULT_SCHEDULE,
         is_active: isActive,
+        ...(isCreating ? { password, role } : {}),
       };
 
       // For new barbers with avatar, pass the file to parent to handle upload after creation
@@ -137,16 +145,48 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
           />
 
           <div className="space-y-1">
-            <Label htmlFor="email" className="text-xs">Email</Label>
+            <Label htmlFor="email" className="text-xs">Email {isCreating && '*'}</Label>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="email@ejemplo.com"
+              required={isCreating}
               className="h-8 text-xs"
             />
           </div>
+
+          {isCreating && (
+            <div className="space-y-1">
+              <Label htmlFor="password" className="text-xs">Contraseña *</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                required
+                minLength={6}
+                className="h-8 text-xs"
+              />
+            </div>
+          )}
+
+          {isCreating && (
+            <div className="space-y-1">
+              <Label className="text-xs">Rol</Label>
+              <Select value={role} onValueChange={(v) => setRole(v as 'barber' | 'admin')}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="barber">Barbero</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-1">
             <Label htmlFor="phone" className="text-xs">Teléfono</Label>
@@ -184,7 +224,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
             <Button type="button" variant="outline" size="sm" className="text-xs h-8" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" size="sm" className="text-xs h-8" disabled={saving || uploadingAvatar || !name.trim()}>
+            <Button type="submit" size="sm" className="text-xs h-8" disabled={saving || uploadingAvatar || !name.trim() || (isCreating && (!email.trim() || password.length < 6))}>
               {(saving || uploadingAvatar) && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
               {uploadingAvatar ? 'Subiendo...' : barber ? 'Guardar' : 'Crear'}
             </Button>

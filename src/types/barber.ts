@@ -53,6 +53,8 @@ export interface CreateBarberData {
   bio?: string | null;
   schedule?: BarberSchedule;
   is_active?: boolean;
+  password?: string;                    // Only for creation (sent to edge function, never stored)
+  role?: 'barber' | 'admin';           // Defaults to 'barber'
 }
 
 export interface UpdateBarberData {
