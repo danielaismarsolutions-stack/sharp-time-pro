@@ -6,6 +6,7 @@ import RevenueTrendChart from '@/components/reports/RevenueTrendChart';
 import ServiceBreakdownChart from '@/components/reports/ServiceBreakdownChart';
 import StatusAndHoursCharts from '@/components/reports/StatusAndHoursCharts';
 import TopClients from '@/components/reports/TopClients';
+import PaymentMethodChart from '@/components/reports/PaymentMethodChart';
 import BarberPerformance from '@/components/reports/BarberPerformance';
 
 export default function Reports() {
@@ -48,11 +49,12 @@ export default function Reports() {
       </div>
 
       {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <StatusAndHoursCharts
           statusData={analytics.statusDistribution}
           hoursData={analytics.busiestHours}
         />
+        <PaymentMethodChart data={analytics.paymentMethods} />
         <TopClients clients={analytics.topClients} />
       </div>
 
