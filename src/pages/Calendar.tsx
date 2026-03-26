@@ -51,7 +51,7 @@ import {
 } from '@/components/ui/select';
 import { Client, Service, BookingStatus, BookingSource, BusinessHours } from '@/types';
 import { Barber, BarberSchedule } from '@/types/barber';
-import { ApiBooking, ApiBookingStatus, ApiCalendarEvent } from '@/types/api';
+import { ApiBooking, ApiBookingStatus, ApiCalendarEvent, ApiPaymentMethod } from '@/types/api';
 import { supabaseClientsApi } from '@/services/supabaseClients';
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBookingsApi, supabaseEventBookingsApi } from '@/services/supabaseBookings';
@@ -740,6 +740,60 @@ export default function Calendar() {
       setBookings(previousBookings);
       setSelectedBooking(previousSelected);
       toast({ title: 'Error al actualizar', variant: 'destructive' });
+    }
+  };
+
+  const handlePaymentChange = async (bookingId: string, method: ApiPaymentMethod | null) => {
+    const previousBookings = [...bookings];
+    const previousSelected = selectedBooking;
+
+    const isPaying = method !== null;
+    const now = new Date().toISOString();
+
+    // Optimistic update
+    setBookings((prev) =>
+      (prev || []).map((b) =>
+        b.id === bookingId
+          ? {
+              ...b,
+              payment_status: isPaying ? 'paid' as const : 'unpaid' as const,
+              payment_method: method,
+              paid_at: isPaying ? now : null,
+              updated_at: now,
+            }
+          : b
+      )
+    );
+    if (selectedBooking?.id === bookingId) {
+      setSelectedBooking((prev) =>
+        prev
+          ? {
+              ...prev,
+              payment_status: isPaying ? 'paid' as const : 'unpaid' as const,
+              payment_method: method,
+              paid_at: isPaying ? now : null,
+              updated_at: now,
+            }
+          : null
+      );
+    }
+
+    try {
+      if (isPaying) {
+        await supabaseBookingsApi.updatePayment(bookingId, method);
+      } else {
+        await supabaseBookingsApi.clearPayment(bookingId);
+      }
+      const methodLabels: Record<string, string> = { cash: 'efectivo', card: 'tarjeta', bizum: 'Bizum' };
+      toast({
+        title: isPaying
+          ? `Pago registrado (${methodLabels[method]})`
+          : 'Pago desmarcado',
+      });
+    } catch {
+      setBookings(previousBookings);
+      setSelectedBooking(previousSelected);
+      toast({ title: 'Error al actualizar el pago', variant: 'destructive' });
     }
   };
 
@@ -1619,6 +1673,7 @@ export default function Calendar() {
             setTimeout(() => setSelectedBooking(null), 250);
           }}
           onStatusChange={handleStatusChange}
+          onPaymentChange={handlePaymentChange}
           onEdit={handleEditBooking}
           onDelete={handleDeleteBooking}
         />
