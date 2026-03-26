@@ -320,7 +320,7 @@ export default function Clients() {
           <Button 
             variant="outline" 
             size="icon"
-            onClick={loadClients}
+            onClick={() => loadClients()}
             className="h-11 w-11 min-h-[44px] min-w-[44px]"
           >
             <RefreshCw className="h-4 w-4" />
