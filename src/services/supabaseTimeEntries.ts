@@ -49,7 +49,7 @@ export const supabaseTimeEntriesApi = {
   async getOpenSession(userId: string): Promise<TimeEntry | null> {
     const businessId = getBusinessId();
     const headers = await supabaseHeaders();
-    const url = `${SUPABASE_CONFIG.url}/rest/v1/time_entries?business_id=eq.${businessId}&user_id=eq.${userId}&status=eq.open&select=*,users(full_name,avatar_url)&limit=1`;
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/time_entries?business_id=eq.${businessId}&user_id=eq.${userId}&status=eq.open&select=*,users!user_id(full_name,avatar_url)&limit=1`;
 
     const res = await fetch(url, { headers });
     if (!res.ok) throw new Error(`Error fetching open session: ${res.status}`);
@@ -118,7 +118,7 @@ export const supabaseTimeEntriesApi = {
   async getActiveSessions(): Promise<TimeEntry[]> {
     const businessId = getBusinessId();
     const headers = await supabaseHeaders();
-    const url = `${SUPABASE_CONFIG.url}/rest/v1/time_entries?business_id=eq.${businessId}&status=eq.open&select=*,users(full_name,avatar_url)&order=clock_in.asc`;
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/time_entries?business_id=eq.${businessId}&status=eq.open&select=*,users!user_id(full_name,avatar_url)&order=clock_in.asc`;
 
     const res = await fetch(url, { headers });
     if (!res.ok) throw new Error(`Error fetching active sessions: ${res.status}`);
@@ -134,7 +134,7 @@ export const supabaseTimeEntriesApi = {
 
     const params = new URLSearchParams();
     params.set('business_id', `eq.${businessId}`);
-    params.set('select', '*,users(full_name,avatar_url)');
+    params.set('select', '*,users!user_id(full_name,avatar_url)');
     params.set('order', 'clock_in.desc');
     params.set('limit', '500');
 
