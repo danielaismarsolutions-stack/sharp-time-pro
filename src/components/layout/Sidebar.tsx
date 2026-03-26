@@ -12,11 +12,13 @@ import {
   LogOut,
   UserCog,
   MessageSquare,
+  Fingerprint,
 } from 'lucide-react';
 import { NexioMark } from '@/components/NexioLogo';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessBrand } from '@/contexts/BusinessBrandContext';
+import { useTimeTrackingSettings } from '@/hooks/useQueryHooks';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface SidebarProps {
@@ -25,22 +27,28 @@ interface SidebarProps {
 }
 
 const allNavItems = [
-  { icon: Calendar, label: 'Agenda', path: '/calendar', adminOnly: false },
-  { icon: MessageSquare, label: 'Consultas', path: '/consultations', adminOnly: false },
-  { icon: Users, label: 'Clientes', path: '/clients', adminOnly: false },
-  { icon: UserCog, label: 'Barberos', path: '/barbers', adminOnly: true },
-  { icon: Scissors, label: 'Servicios', path: '/services', adminOnly: true },
-  { icon: LayoutDashboard, label: 'Finanzas', path: '/dashboard', adminOnly: true },
-  { icon: BarChart3, label: 'Informes', path: '/reports', adminOnly: true },
-  { icon: Settings, label: 'Ajustes', path: '/settings', adminOnly: false },
+  { icon: Calendar, label: 'Agenda', path: '/calendar', adminOnly: false, requiresTimeTracking: false },
+  { icon: MessageSquare, label: 'Consultas', path: '/consultations', adminOnly: false, requiresTimeTracking: false },
+  { icon: Fingerprint, label: 'Fichajes', path: '/time-tracking', adminOnly: false, requiresTimeTracking: true },
+  { icon: Users, label: 'Clientes', path: '/clients', adminOnly: false, requiresTimeTracking: false },
+  { icon: UserCog, label: 'Barberos', path: '/barbers', adminOnly: true, requiresTimeTracking: false },
+  { icon: Scissors, label: 'Servicios', path: '/services', adminOnly: true, requiresTimeTracking: false },
+  { icon: LayoutDashboard, label: 'Finanzas', path: '/dashboard', adminOnly: true, requiresTimeTracking: false },
+  { icon: BarChart3, label: 'Informes', path: '/reports', adminOnly: true, requiresTimeTracking: false },
+  { icon: Settings, label: 'Ajustes', path: '/settings', adminOnly: false, requiresTimeTracking: false },
 ];
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useLocation();
   const { logout, user, isAdmin } = useAuth();
   const { brand } = useBusinessBrand();
+  const { data: timeTrackingSettings } = useTimeTrackingSettings();
 
-  const navItems = allNavItems.filter(item => !item.adminOnly || isAdmin);
+  const navItems = allNavItems.filter(item => {
+    if (item.adminOnly && !isAdmin) return false;
+    if (item.requiresTimeTracking && !timeTrackingSettings?.timeTrackingEnabled) return false;
+    return true;
+  });
 
   const navigate = useNavigate();
 

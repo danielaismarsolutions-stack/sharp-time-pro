@@ -27,6 +27,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Cookies = lazy(() => import("./pages/Cookies"));
+const TimeTracking = lazy(() => import("./pages/TimeTracking"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,6 +72,7 @@ const App = () => (
                   <Route path="/consultations" element={<Consultations />} />
                   <Route path="/clients" element={<Clients />} />
                   <Route path="/clients/:id" element={<ClientDetail />} />
+                  <Route path="/time-tracking" element={<TimeTracking />} />
                   {/* Admin-only routes */}
                   <Route path="/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
                   <Route path="/barbers" element={<AdminRoute><Barbers /></AdminRoute>} />

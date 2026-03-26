@@ -14,6 +14,7 @@ import {
   Trash2,
   Upload,
   X,
+  Fingerprint,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,7 +42,7 @@ import {
 import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
 import { supabaseBusinessesApi } from '@/services/supabaseBusinesses';
 import { supabase } from '@/lib/supabase';
-import { useBusinessSettings as useBusinessSettingsQuery, useBusinessHours as useBusinessHoursQuery, useBookingSettingsQuery, useNotificationSettings as useNotificationSettingsQuery, useInvalidateQuery } from '@/hooks/useQueryHooks';
+import { useBusinessSettings as useBusinessSettingsQuery, useBusinessHours as useBusinessHoursQuery, useBookingSettingsQuery, useNotificationSettings as useNotificationSettingsQuery, useTimeTrackingSettings, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
@@ -54,7 +55,7 @@ import { useBusinessBrand } from '@/contexts/BusinessBrandContext';
 const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const dayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-const ADMIN_TABS = ['business', 'hours', 'booking', 'notifications', 'account'];
+const ADMIN_TABS = ['business', 'hours', 'booking', 'time-tracking', 'notifications', 'account'];
 const BARBER_TABS = ['notifications', 'account'];
 
 export default function Settings() {
@@ -98,7 +99,8 @@ export default function Settings() {
   const { data: queryHours, isLoading: isLoadingHours } = useBusinessHoursQuery();
   const { data: queryBooking, isLoading: isLoadingBooking } = useBookingSettingsQuery();
   const { data: queryNotifications, isLoading: isLoadingNotifications } = useNotificationSettingsQuery();
-  const { invalidateSettings, invalidateBusinessHours: invalidateBH } = useInvalidateQuery();
+  const { data: queryTimeTracking } = useTimeTrackingSettings();
+  const { invalidateSettings, invalidateBusinessHours: invalidateBH, invalidateTimeTrackingSettings } = useInvalidateQuery();
 
   const isLoading = isLoadingBusiness || isLoadingHours || isLoadingBooking || isLoadingNotifications;
   const [isSaving, setIsSaving] = useState(false);
@@ -478,6 +480,12 @@ export default function Settings() {
               <span className="hidden sm:inline">Reservas</span>
             </TabsTrigger>
           )}
+          {isAdmin && (
+            <TabsTrigger value="time-tracking" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
+              <Fingerprint className="h-4 w-4" />
+              <span className="hidden sm:inline">Fichajes</span>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="notifications" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Notif.</span>
@@ -762,6 +770,78 @@ export default function Settings() {
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                 Guardar Configuración
               </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>}
+
+        {/* Time Tracking Settings */}
+        {isAdmin && <TabsContent value="time-tracking">
+          <Card className="border-border">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Fingerprint className="h-5 w-5" />
+                Control de Fichajes
+              </CardTitle>
+              <CardDescription>
+                Permite a tus empleados fichar entrada y salida para registrar sus horas trabajadas.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <Label htmlFor="time-tracking-enabled" className="text-base font-medium">
+                    Activar sistema de fichajes
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Al activarlo, aparecerá la sección "Fichajes" en el menú para todos los empleados.
+                    Podrán fichar entrada al llegar y salida al irse.
+                  </p>
+                </div>
+                <Switch
+                  id="time-tracking-enabled"
+                  checked={queryTimeTracking?.timeTrackingEnabled ?? false}
+                  onCheckedChange={async (checked) => {
+                    try {
+                      await supabaseBusinessesApi.updateTimeTrackingSettings(checked);
+                      invalidateTimeTrackingSettings();
+                      toast({
+                        title: checked ? 'Fichajes activados' : 'Fichajes desactivados',
+                        description: checked
+                          ? 'Tus empleados ya pueden fichar entrada y salida.'
+                          : 'El sistema de fichajes ha sido desactivado.',
+                      });
+                    } catch {
+                      toast({
+                        title: 'Error',
+                        description: 'No se pudo actualizar la configuración.',
+                        variant: 'destructive',
+                      });
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium text-sm">Como funciona</h4>
+                <ul className="text-sm text-muted-foreground space-y-2">
+                  <li className="flex gap-2">
+                    <span className="text-green-500 font-bold">1.</span>
+                    Los empleados fichan entrada al llegar con un solo click.
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-red-500 font-bold">2.</span>
+                    Fichan salida al terminar su jornada.
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-blue-500 font-bold">3.</span>
+                    Si olvidan fichar salida, el sistema cierra automaticamente a las 23:00 usando el horario programado del empleado.
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-purple-500 font-bold">4.</span>
+                    Los administradores pueden ver todos los registros y corregir errores.
+                  </li>
+                </ul>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>}
