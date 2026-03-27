@@ -53,7 +53,7 @@ export const supabaseBarberServicesApi = {
     if (serviceIds.length === 0) return {};
 
     const businessId = getBusinessId();
-    const idsParam = serviceIds.map(id => `"${id}"`).join(',');
+    const idsParam = serviceIds.join(',');
     const endpoint = `/barber_services?business_id=eq.${businessId}&service_id=in.(${idsParam})&select=barber_id,service_id`;
 
     const data = await supabaseFetch<Pick<DbBarberService, 'barber_id' | 'service_id'>[]>(endpoint);

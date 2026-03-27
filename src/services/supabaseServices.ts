@@ -110,8 +110,13 @@ export const supabaseServicesApi = {
     const services = data.map(mapDbToService);
 
     // Batch-fetch barber assignments for all services
-    const serviceIds = services.map(s => s.id);
-    const barberMap = await supabaseBarberServicesApi.getBarberIdsForServices(serviceIds);
+    let barberMap: Record<string, string[]> = {};
+    try {
+      const serviceIds = services.map(s => s.id);
+      barberMap = await supabaseBarberServicesApi.getBarberIdsForServices(serviceIds);
+    } catch {
+      // If barber_services fetch fails, services still load (barberIds will be empty)
+    }
 
     return services.map(s => ({
       ...s,
