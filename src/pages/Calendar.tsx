@@ -382,14 +382,14 @@ export default function Calendar() {
     bookings,
     barbers,
     onBookingUpdate: (id, updated) => {
-      setBookings(prev => (prev || []).map(b => b.id === id ? updated : b));
+      setLocalBookings(prev => (prev ?? queryBookings).map(b => b.id === id ? updated : b));
     },
     onBookingsChange: setBookings,
     hourHeight: currentHourHeight,
     startHour: START_HOUR,
     events: calendarEvents,
     onEventUpdate: (id, updated) => {
-      setCalendarEvents(prev => (prev || []).map(e => e.id === id ? updated : e));
+      setLocalEvents(prev => (prev ?? queryEvents).map(e => e.id === id ? updated : e));
     },
     onEventsChange: setCalendarEvents,
   });
@@ -678,41 +678,44 @@ export default function Calendar() {
       .sort((a, b) => a.start_time.localeCompare(b.start_time));
   };
 
-  const handleStatusChange = async (bookingId: string, status: BookingStatus) => {
-    const statusLabels: Record<BookingStatus, string> = {
+  const handleStatusChange = async (bookingId: string, status: BookingStatus | ApiBookingStatus) => {
+    // Normalize status to ApiBookingStatus (underscore format) for DB consistency
+    const apiStatus: ApiBookingStatus = status === 'no-show' ? 'no_show' : status as ApiBookingStatus;
+
+    const statusLabels: Record<ApiBookingStatus, string> = {
       pending: 'pendiente',
       confirmed: 'confirmada',
       completed: 'completada',
       cancelled: 'cancelada',
-      'no-show': 'no presentado',
+      no_show: 'no presentado',
     };
 
     const confirmed = await confirm({
       title: 'Cambiar estado de cita',
-      description: `¿Estás seguro de marcar esta cita como "${statusLabels[status]}"?`,
+      description: `¿Estás seguro de marcar esta cita como "${statusLabels[apiStatus]}"?`,
       confirmLabel: 'Confirmar',
-      variant: status === 'cancelled' ? 'destructive' : 'default',
+      variant: apiStatus === 'cancelled' ? 'destructive' : 'default',
     });
     if (!confirmed) return;
 
     const previousBookings = [...bookings];
     const previousSelected = selectedBooking;
 
-    setBookings((prev) =>
-      (prev || []).map((b) =>
+    setBookings(
+      bookings.map((b) =>
         b.id === bookingId
-          ? { ...b, status: status as ApiBookingStatus, updated_at: new Date().toISOString() }
+          ? { ...b, status: apiStatus, updated_at: new Date().toISOString() }
           : b
       )
     );
     if (selectedBooking?.id === bookingId) {
       setSelectedBooking((prev) =>
-        prev ? { ...prev, status: status as ApiBookingStatus, updated_at: new Date().toISOString() } : null
+        prev ? { ...prev, status: apiStatus, updated_at: new Date().toISOString() } : null
       );
     }
 
     try {
-      await supabaseBookingsApi.updateStatus(bookingId, status as ApiBookingStatus);
+      await supabaseBookingsApi.updateStatus(bookingId, apiStatus);
 
       // Notify admins + barber about status change (in-app only, no push)
       {
@@ -722,20 +725,20 @@ export default function Calendar() {
             business_id: getBusinessId(),
             type: 'booking_status_changed',
             title: 'Estado de cita cambiado',
-            message: `${user?.name || 'Usuario'} cambió la cita de ${booking?.client_name || 'cliente'} a "${statusLabels[status]}"`,
+            message: `${user?.name || 'Usuario'} cambió la cita de ${booking?.client_name || 'cliente'} a "${statusLabels[apiStatus]}"`,
             barber_user_id: booking?.user_id,
             performed_by_user_id: user?.id || '',
             metadata: {
               booking_id: bookingId,
               client_name: booking?.client_name,
-              new_status: status,
+              new_status: apiStatus,
               changed_by: user?.name,
             },
           });
         } catch { /* ignored */ }
       }
 
-      toast({ title: `Cita marcada como ${statusLabels[status]}` });
+      toast({ title: `Cita marcada como ${statusLabels[apiStatus]}` });
     } catch (error) {
       setBookings(previousBookings);
       setSelectedBooking(previousSelected);
@@ -808,7 +811,7 @@ export default function Calendar() {
 
     const previousBookings = [...bookings];
     const deletedBooking = bookings.find((b) => b.id === bookingId);
-    setBookings((prev) => (prev || []).filter((b) => b.id !== bookingId));
+    setBookings(bookings.filter((b) => b.id !== bookingId));
     setIsDetailOpen(false);
     setSelectedBooking(null);
 
@@ -901,7 +904,7 @@ export default function Calendar() {
 
     const previous = [...calendarEvents];
     const deletedEvent = calendarEvents.find((e) => e.id === eventId);
-    setCalendarEvents((prev) => (prev || []).filter((e) => e.id !== eventId));
+    setCalendarEvents(calendarEvents.filter((e) => e.id !== eventId));
     setIsEventDetailOpen(false);
     setSelectedEvent(null);
     try {
@@ -981,8 +984,8 @@ export default function Calendar() {
           recurrence_rule: buildRecurrenceRule(data.repeat),
         });
         const updatedEvent = bookingToCalendarEvent(updatedBooking);
-        setCalendarEvents((prev) =>
-          (prev || []).map((e) => (e.id === selectedEvent.id ? updatedEvent : e))
+        setCalendarEvents(
+          calendarEvents.map((e) => (e.id === selectedEvent.id ? updatedEvent : e))
         );
 
         // Notify all admins about event update
@@ -1019,7 +1022,7 @@ export default function Calendar() {
           recurrence_rule: buildRecurrenceRule(data.repeat),
         });
         const createdEvent = bookingToCalendarEvent(createdBooking);
-        setCalendarEvents((prev) => [...(prev || []), createdEvent]);
+        setCalendarEvents([...calendarEvents, createdEvent]);
 
         // Notify all admins about new event
         try {
@@ -1757,7 +1760,7 @@ export default function Calendar() {
                   service_price: data.servicePrice || selectedBooking.service_price,
                 });
                 
-                setBookings(prev => (prev || []).map(b => b.id === selectedBooking.id ? updatedBooking : b));
+                setBookings(bookings.map(b => b.id === selectedBooking.id ? updatedBooking : b));
                 
                 // Notify admins + barber about booking modification
                 try {
@@ -1800,7 +1803,7 @@ export default function Calendar() {
                   barber: data.barber || null,
                 });
                 
-                setBookings(prev => [...(prev || []), newBooking]);
+                setBookings([...bookings, newBooking]);
                 locallyCreatedBookingIds.current.add(newBooking.id);
 
                 // Notify admins + barber about new booking
