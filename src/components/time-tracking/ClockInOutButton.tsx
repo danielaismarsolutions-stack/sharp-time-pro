@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { useActiveSession, useClockIn, useClockOut } from '@/hooks/useQueryHooks';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { notifyAllAdmins } from '@/services/supabaseNotifications';
+import { getBusinessId } from '@/config/session';
 import type { TimeEntry } from '@/types/timeEntry';
 
 function formatElapsed(clockIn: string): string {
@@ -48,7 +50,17 @@ export default function ClockInOutButton({ compact = false }: ClockInOutButtonPr
       clockOut.mutate(
         { entryId: (activeSession as TimeEntry).id },
         {
-          onSuccess: () => toast({ title: 'Salida fichada', description: `Has trabajado ${elapsed}` }),
+          onSuccess: () => {
+            toast({ title: 'Salida fichada', description: `Has trabajado ${elapsed}` });
+            // Notify admins (fire-and-forget)
+            notifyAllAdmins({
+              business_id: getBusinessId(),
+              type: 'time_entry_clock_out',
+              title: 'Fichaje de salida',
+              message: `${user.name} ha fichado salida (${elapsed})`,
+              performed_by_user_id: user.id,
+            });
+          },
           onError: (err) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
         }
       );
@@ -56,7 +68,17 @@ export default function ClockInOutButton({ compact = false }: ClockInOutButtonPr
       clockIn.mutate(
         { userId: user.id },
         {
-          onSuccess: () => toast({ title: 'Entrada fichada', description: 'Tu jornada ha comenzado.' }),
+          onSuccess: () => {
+            toast({ title: 'Entrada fichada', description: 'Tu jornada ha comenzado.' });
+            // Notify admins (fire-and-forget)
+            notifyAllAdmins({
+              business_id: getBusinessId(),
+              type: 'time_entry_clock_in',
+              title: 'Fichaje de entrada',
+              message: `${user.name} ha fichado entrada`,
+              performed_by_user_id: user.id,
+            });
+          },
           onError: (err) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
         }
       );
