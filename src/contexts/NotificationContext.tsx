@@ -12,7 +12,7 @@ import {
   clearAllNotifications,
   deleteNotification,
 } from '@/services/supabaseNotifications';
-import { CalendarPlus, CalendarX, CalendarCog, CalendarMinus, Bell, User, UserPlus, UserCog, UserX, Info, MessageSquare, MessageSquareText, MessageSquareX, CalendarCheck, Scissors, SquarePen, SquareX, Clock, CalendarOff, Building2, Settings } from 'lucide-react';
+import { CalendarPlus, CalendarX, CalendarCog, CalendarMinus, Bell, User, UserPlus, UserCog, UserX, Info, MessageSquare, MessageSquareText, MessageSquareX, CalendarCheck, Scissors, SquarePen, SquareX, Clock, CalendarOff, Building2, Settings, LogIn, LogOut } from 'lucide-react';
 
 export type NotificationType =
   | 'booking_created'
@@ -39,6 +39,8 @@ export type NotificationType =
   | 'time_off_modified'
   | 'business_hours_modified'
   | 'business_settings_modified'
+  | 'time_entry_clock_in'
+  | 'time_entry_clock_out'
   | 'info';
 
 export interface Notification {
@@ -318,6 +320,10 @@ export function getNotificationIcon(type: NotificationType) {
       return Clock;
     case 'business_settings_modified':
       return Settings;
+    case 'time_entry_clock_in':
+      return LogIn;
+    case 'time_entry_clock_out':
+      return LogOut;
     default:
       return Info;
   }
@@ -368,6 +374,10 @@ export function getNotificationIconColor(type: NotificationType): string {
     case 'business_hours_modified':
     case 'business_settings_modified':
       return 'text-primary';
+    case 'time_entry_clock_in':
+      return 'text-green-500';
+    case 'time_entry_clock_out':
+      return 'text-orange-500';
     default:
       return 'text-muted-foreground';
   }
@@ -406,6 +416,9 @@ export function getNotificationPath(notification: Notification): string | null {
     case 'business_hours_modified':
     case 'business_settings_modified':
       return '/settings';
+    case 'time_entry_clock_in':
+    case 'time_entry_clock_out':
+      return '/time-tracking';
     default:
       return null;
   }

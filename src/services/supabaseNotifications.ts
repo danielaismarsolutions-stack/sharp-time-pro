@@ -20,6 +20,8 @@ const NOTIFICATION_URL_MAP: Record<string, string> = {
   service_created: '/services',
   service_modified: '/services',
   service_deleted: '/services',
+  time_entry_clock_in: '/time-tracking',
+  time_entry_clock_out: '/time-tracking',
 };
 
 async function sendPushNotification(userId: string, title: string, message: string, type: string): Promise<void> {
@@ -66,6 +68,8 @@ export type DbNotificationType =
   | 'time_off_modified'
   | 'business_hours_modified'
   | 'business_settings_modified'
+  | 'time_entry_clock_in'
+  | 'time_entry_clock_out'
   | 'info';
 
 export interface DbNotification {
