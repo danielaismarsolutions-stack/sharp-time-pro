@@ -30,8 +30,9 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Service } from '@/types';
 import { supabaseServicesApi } from '@/services/supabaseServices';
+import { supabaseBarberServicesApi } from '@/services/supabaseBarberServices';
 import { useToast } from '@/hooks/use-toast';
-import { useServices as useServicesQuery, useInvalidateQuery } from '@/hooks/useQueryHooks';
+import { useServices as useServicesQuery, useBarbers as useBarbersQuery, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
@@ -47,6 +48,7 @@ export default function Services() {
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const { user } = useAuth();
   const { data: queryServices = [], isLoading: isQueryLoading, refetch: refetchServices } = useServicesQuery(true);
+  const { data: barbers = [] } = useBarbersQuery(false);
   const { invalidateServices } = useInvalidateQuery();
   const [localServices, setLocalServices] = useState<Service[] | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -122,6 +124,11 @@ export default function Services() {
         // Update existing service
         await supabaseServicesApi.update(editingService.id, serviceData);
 
+        // Update barber assignments
+        if (serviceData.barberIds) {
+          await supabaseBarberServicesApi.replaceBarberAssignments(editingService.id, serviceData.barberIds);
+        }
+
         // Notify all admins about service update
         try {
           await notifyAllAdmins({
@@ -141,6 +148,13 @@ export default function Services() {
       } else {
         // Create new service
         const created = await supabaseServicesApi.create(serviceData as Omit<Service, 'id'>);
+
+        // Assign barbers to the new service
+        if (serviceData.barberIds && serviceData.barberIds.length > 0) {
+          await supabaseBarberServicesApi.replaceBarberAssignments(created.id, serviceData.barberIds);
+        } else {
+          await supabaseBarberServicesApi.assignAllActiveBarbers(created.id);
+        }
 
         // Upload pending photo if one was selected during creation
         if (pendingPhotoFile) {
@@ -500,6 +514,7 @@ export default function Services() {
         onSave={handleSaveService}
         service={editingService}
         businessId={getBusinessId()}
+        barbers={barbers}
         onPhotoChange={(serviceId, photoUrl) => {
           setServices((prev) =>
             prev.map((s) => s.id === serviceId ? { ...s, servicePhoto: photoUrl } : s)

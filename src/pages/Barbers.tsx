@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Barber, CreateBarberData, BarberSchedule, TimeOff } from '@/types/barber';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
+import { supabaseBarberServicesApi } from '@/services/supabaseBarberServices';
 import { supabaseStorageApi } from '@/services/supabaseStorage';
 import { supabase } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
@@ -135,6 +136,11 @@ export default function Barbers() {
       } else {
         // Creating new barber
         const newBarber = await supabaseBarbersApi.create(data);
+
+        // Auto-assign new barber to all active services
+        try {
+          await supabaseBarberServicesApi.assignBarberToAllServices(newBarber.id);
+        } catch { /* ignored - non-critical */ }
 
         // If there's an avatar file, upload it now
         if (avatarFile) {

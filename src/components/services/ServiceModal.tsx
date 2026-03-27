@@ -19,7 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Service } from '@/types';
+import { Barber } from '@/types/barber';
 import { useToast } from '@/hooks/use-toast';
 import ServicePhotoUpload from '@/components/services/ServicePhotoUpload';
 
@@ -30,6 +32,7 @@ interface ServiceModalProps {
   onSave: (service: Partial<Service>, pendingPhotoFile?: File | null) => Promise<void>;
   businessId: string;
   onPhotoChange?: (serviceId: string, photoUrl: string | null) => void;
+  barbers?: Barber[];
 }
 
 // Duration options based on barbershop needs
@@ -62,6 +65,7 @@ export default function ServiceModal({
   onSave,
   businessId,
   onPhotoChange,
+  barbers = [],
 }: ServiceModalProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -69,6 +73,7 @@ export default function ServiceModal({
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
   const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null);
   const [priceInput, setPriceInput] = useState('');
+  const [selectedBarberIds, setSelectedBarberIds] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -100,6 +105,7 @@ export default function ServiceModal({
           isConsultation: service.isConsultation ?? false,
         });
         setPriceInput(service.price ? String(service.price) : '');
+        setSelectedBarberIds(service.barberIds ?? barbers.map(b => b.id));
       } else {
         setFormData({
           name: '',
@@ -113,6 +119,7 @@ export default function ServiceModal({
           isConsultation: false,
         });
         setPriceInput('');
+        setSelectedBarberIds(barbers.map(b => b.id));
       }
     }
   }, [service, open]);
@@ -168,6 +175,7 @@ export default function ServiceModal({
         bufferBefore: formData.isConsultation ? 0 : formData.bufferBefore,
         bufferAfter: formData.isConsultation ? 0 : formData.bufferAfter,
         isConsultation: formData.isConsultation,
+        barberIds: selectedBarberIds,
       }, pendingPhotoFile);
     } catch (error) {
       // Error handled by parent
@@ -409,6 +417,44 @@ export default function ServiceModal({
                   className="h-8 text-xs"
                 />
                 <p className="text-[10px] text-muted-foreground">Después de la cita</p>
+              </div>
+            </div>
+          )}
+
+          {/* Barber Assignment */}
+          {barbers.length > 0 && (
+            <div className="space-y-1">
+              <Label className="text-xs">Barberos asignados</Label>
+              <div className="border rounded-lg p-2 max-h-32 overflow-y-auto space-y-1.5">
+                <div className="flex items-center justify-between pb-1 border-b">
+                  <span className="text-[10px] text-muted-foreground">
+                    {selectedBarberIds.length} de {barbers.length} seleccionados
+                  </span>
+                  <button
+                    type="button"
+                    className="text-[10px] text-primary hover:underline"
+                    onClick={() =>
+                      setSelectedBarberIds(
+                        selectedBarberIds.length === barbers.length ? [] : barbers.map(b => b.id)
+                      )
+                    }
+                  >
+                    {selectedBarberIds.length === barbers.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+                  </button>
+                </div>
+                {barbers.map((barber) => (
+                  <label key={barber.id} className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={selectedBarberIds.includes(barber.id)}
+                      onCheckedChange={(checked) => {
+                        setSelectedBarberIds(prev =>
+                          checked ? [...prev, barber.id] : prev.filter(id => id !== barber.id)
+                        );
+                      }}
+                    />
+                    <span className="text-xs">{barber.name}</span>
+                  </label>
+                ))}
               </div>
             </div>
           )}

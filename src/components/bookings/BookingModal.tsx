@@ -132,6 +132,14 @@ export default function BookingModal({
   const selectedClient = clients.find((c) => c.id === formData.clientId);
   const selectedBarber = barbers.find((b) => b.id === formData.barberId);
 
+  // Filter barbers based on selected service's barber assignments
+  const availableBarbers = useMemo(() => {
+    if (!formData.serviceId) return barbers;
+    const service = services.find(s => s.id === formData.serviceId);
+    if (!service?.barberIds || service.barberIds.length === 0) return barbers;
+    return barbers.filter(b => service.barberIds!.includes(b.id));
+  }, [formData.serviceId, barbers, services]);
+
   // Fetch bookings for the selected date when barber changes
   useEffect(() => {
     const fetchBookingsForDate = async () => {
@@ -476,7 +484,16 @@ export default function BookingModal({
             <Label className="text-xs font-medium">Servicio</Label>
             <Select
               value={formData.serviceId}
-              onValueChange={(value) => setFormData({ ...formData, serviceId: value })}
+              onValueChange={(value) => {
+                const service = services.find(s => s.id === value);
+                const validBarberIds = service?.barberIds;
+                const barberStillValid = !validBarberIds || validBarberIds.length === 0 || validBarberIds.includes(formData.barberId);
+                setFormData({
+                  ...formData,
+                  serviceId: value,
+                  barberId: barberStillValid ? formData.barberId : '',
+                });
+              }}
             >
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder="Selecciona un servicio" />
@@ -508,7 +525,7 @@ export default function BookingModal({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Sin asignar</SelectItem>
-                {barbers.map((barber) => (
+                {availableBarbers.map((barber) => (
                   <SelectItem key={barber.id} value={barber.id}>
                     {barber.name}
                   </SelectItem>
