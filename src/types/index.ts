@@ -50,6 +50,7 @@ export interface Service {
   sortOrder?: number;
   servicePhoto?: string | null;
   isConsultation: boolean;
+  barberIds?: string[];
 }
 
 export interface BusinessSettings {

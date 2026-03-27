@@ -5,6 +5,7 @@ import { SUPABASE_CONFIG } from '@/config/api';
 import { getAuthHeaders } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
 import { Service } from '@/types';
+import { supabaseBarberServicesApi } from './supabaseBarberServices';
 
 // Database service type (maps to Supabase schema)
 interface DbService {
@@ -106,7 +107,16 @@ export const supabaseServicesApi = {
     }
     
     const data = await supabaseFetch<DbService[]>(endpoint);
-    return data.map(mapDbToService);
+    const services = data.map(mapDbToService);
+
+    // Batch-fetch barber assignments for all services
+    const serviceIds = services.map(s => s.id);
+    const barberMap = await supabaseBarberServicesApi.getBarberIdsForServices(serviceIds);
+
+    return services.map(s => ({
+      ...s,
+      barberIds: barberMap[s.id] || [],
+    }));
   },
 
   /**
