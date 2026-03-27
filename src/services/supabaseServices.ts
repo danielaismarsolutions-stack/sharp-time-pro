@@ -5,7 +5,6 @@ import { SUPABASE_CONFIG } from '@/config/api';
 import { getAuthHeaders } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
 import { Service } from '@/types';
-import { supabaseBarberServicesApi } from './supabaseBarberServices';
 
 // Database service type (maps to Supabase schema)
 interface DbService {
@@ -24,6 +23,7 @@ interface DbService {
   is_consultation: boolean;
   created_at: string;
   updated_at: string;
+  barber_services?: { barber_id: string }[];
 }
 
 // Convert DB format to frontend format
@@ -41,6 +41,7 @@ function mapDbToService(db: DbService): Service {
     sortOrder: db.display_order,
     servicePhoto: db.service_photo,
     isConsultation: db.is_consultation ?? false,
+    barberIds: (db.barber_services ?? []).map(bs => bs.barber_id),
   };
 }
 
@@ -100,28 +101,14 @@ export const supabaseServicesApi = {
    * Fetch all services for the business
    */
   getAll: async (includeInactive = true): Promise<Service[]> => {
-    let endpoint = `/services?business_id=eq.${getBusinessId()}&order=display_order.asc,name.asc`;
-    
+    let endpoint = `/services?select=*,barber_services(barber_id)&business_id=eq.${getBusinessId()}&order=display_order.asc,name.asc`;
+
     if (!includeInactive) {
       endpoint += '&is_active=eq.true';
     }
-    
+
     const data = await supabaseFetch<DbService[]>(endpoint);
-    const services = data.map(mapDbToService);
-
-    // Batch-fetch barber assignments for all services
-    let barberMap: Record<string, string[]> = {};
-    try {
-      const serviceIds = services.map(s => s.id);
-      barberMap = await supabaseBarberServicesApi.getBarberIdsForServices(serviceIds);
-    } catch {
-      // If barber_services fetch fails, services still load (barberIds will be empty)
-    }
-
-    return services.map(s => ({
-      ...s,
-      barberIds: barberMap[s.id] || [],
-    }));
+    return data.map(mapDbToService);
   },
 
   /**
