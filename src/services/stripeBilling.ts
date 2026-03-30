@@ -17,6 +17,7 @@ export interface PaymentRecord {
 }
 
 export interface BillingInfo {
+  plan_type: 'paid' | 'ambassador';
   monthly_price: number | null;
   subscription_status: 'none' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'trialing' | 'incomplete' | 'incomplete_expired';
   current_period_end: string | null;

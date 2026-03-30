@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CreditCard, ExternalLink } from 'lucide-react';
+import { CreditCard, ExternalLink, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { BillingInfo } from '@/services/stripeBilling';
 
@@ -48,9 +48,29 @@ export default function BillingStatusCard({
   isActivating,
   isOpeningPortal,
 }: BillingStatusCardProps) {
+  const isAmbassador = billing.plan_type === 'ambassador';
   const status = statusConfig[billing.subscription_status] ?? statusConfig.none;
-  const canActivate = billing.subscription_status === 'none' && billing.monthly_price != null && billing.monthly_price > 0;
+  const canActivate = !isAmbassador && billing.subscription_status === 'none' && billing.monthly_price != null && billing.monthly_price > 0;
   const hasSubscription = billing.has_subscription && billing.subscription_status !== 'none';
+
+  if (isAmbassador) {
+    return (
+      <Card className="border-amber-300 dark:border-amber-700">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-lg font-semibold">Plan Embajador</CardTitle>
+          <Star className="h-5 w-5 text-amber-500" />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 hover:bg-amber-100">
+            Embajador
+          </Badge>
+          <p className="text-sm text-muted-foreground">
+            Tu negocio tiene acceso completo a Sharp Time Pro como embajador. No se requiere ningún pago.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

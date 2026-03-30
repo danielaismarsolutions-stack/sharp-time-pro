@@ -17,7 +17,7 @@ export default function DashboardLayout() {
   const location = useLocation();
   const { isAdmin } = useAuth();
   const { data: billing } = useBillingInfo(isAdmin);
-  const showPastDueBanner = isAdmin && billing?.subscription_status === 'past_due';
+  const showPastDueBanner = isAdmin && billing?.plan_type !== 'ambassador' && billing?.subscription_status === 'past_due';
 
   // Check if we're on the calendar page - it has its own header
   const isCalendarPage = location.pathname === '/calendar' || location.pathname === '/';

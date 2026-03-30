@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     const { data: business, error: bizErr } = await supabaseAdmin
       .from("businesses")
       .select(
-        "monthly_price, subscription_status, current_period_end, stripe_customer_id, stripe_subscription_id"
+        "plan_type, monthly_price, subscription_status, current_period_end, stripe_customer_id, stripe_subscription_id"
       )
       .eq("id", profile.business_id)
       .single();
@@ -84,6 +84,7 @@ Deno.serve(async (req) => {
     }
 
     return jsonResponse(200, {
+      plan_type: business.plan_type ?? "paid",
       monthly_price: business.monthly_price,
       subscription_status: business.subscription_status ?? "none",
       current_period_end: business.current_period_end,
