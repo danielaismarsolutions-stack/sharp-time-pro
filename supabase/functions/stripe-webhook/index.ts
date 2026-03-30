@@ -22,7 +22,8 @@ Deno.serve(async (req) => {
 
   const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false, autoRefreshToken: false } }
   );
 
   // 1. Verify webhook signature
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
         // Fetch subscription to get current_period_end
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-        await supabaseAdmin
+        const { error: checkoutUpdateErr } = await supabaseAdmin
           .from("businesses")
           .update({
             stripe_customer_id: customerId ?? null,
@@ -80,7 +81,8 @@ Deno.serve(async (req) => {
           })
           .eq("id", businessId);
 
-        console.log(`Checkout completed for business ${businessId}, customer ${customerId}`);
+        if (checkoutUpdateErr) console.error("checkout update failed:", checkoutUpdateErr);
+        else console.log(`Checkout completed for business ${businessId}, customer ${customerId}`);
         break;
       }
 
@@ -130,28 +132,33 @@ Deno.serve(async (req) => {
         }
 
         // Insert payment record (idempotent via UNIQUE constraint)
-        await supabaseAdmin.from("payment_history").upsert(
-          {
-            business_id: business.id,
-            stripe_invoice_id: invoice.id,
-            amount_paid: (invoice.amount_paid ?? 0) / 100,
-            currency: invoice.currency ?? "eur",
-            status: "paid",
-            invoice_url: invoice.hosted_invoice_url ?? null,
-            period_start: invoice.period_start
-              ? new Date(invoice.period_start * 1000).toISOString()
-              : null,
-            period_end: invoice.period_end
-              ? new Date(invoice.period_end * 1000).toISOString()
-              : null,
-          },
-          { onConflict: "stripe_invoice_id" }
-        );
+        const paymentRow = {
+          business_id: business.id,
+          stripe_invoice_id: invoice.id,
+          amount_paid: (invoice.amount_paid ?? 0) / 100,
+          currency: invoice.currency ?? "eur",
+          status: "paid" as const,
+          invoice_url: invoice.hosted_invoice_url ?? null,
+          period_start: invoice.period_start
+            ? new Date(invoice.period_start * 1000).toISOString()
+            : null,
+          period_end: invoice.period_end
+            ? new Date(invoice.period_end * 1000).toISOString()
+            : null,
+        };
+        console.log("Inserting payment_history:", JSON.stringify(paymentRow));
+
+        const { error: upsertErr } = await supabaseAdmin
+          .from("payment_history")
+          .upsert(paymentRow, { onConflict: "stripe_invoice_id" });
+
+        if (upsertErr) console.error("payment_history upsert FAILED:", JSON.stringify(upsertErr));
+        else console.log("payment_history upsert OK");
 
         // Fetch subscription to update current_period_end
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-        await supabaseAdmin
+        const { error: bizUpdateErr } = await supabaseAdmin
           .from("businesses")
           .update({
             subscription_status: "active",
@@ -161,6 +168,7 @@ Deno.serve(async (req) => {
           })
           .eq("id", business.id);
 
+        if (bizUpdateErr) console.error("business update failed:", bizUpdateErr);
         console.log(`Invoice paid for business ${business.id}`);
         break;
       }
