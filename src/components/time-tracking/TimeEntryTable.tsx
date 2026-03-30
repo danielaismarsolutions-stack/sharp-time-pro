@@ -55,7 +55,7 @@ export default function TimeEntryTable({ entries, showEmployee = false, isAdmin 
     const confirmed = await confirm({
       title: 'Eliminar fichaje',
       description: `Se eliminara el fichaje de ${entry.user_name ?? 'empleado'} del ${formatDate(entry.clock_in)}. Esta accion no se puede deshacer.`,
-      confirmText: 'Eliminar',
+      confirmLabel: 'Eliminar',
       variant: 'destructive',
     });
     if (!confirmed) return;
