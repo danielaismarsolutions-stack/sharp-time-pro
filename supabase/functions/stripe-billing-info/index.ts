@@ -1,18 +1,22 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-function getAllowedOrigin(req: Request): string {
-  const allowed = (Deno.env.get("FRONTEND_URL") || "http://localhost:5173").replace(/\/$/, "");
+function getCorsOrigin(req: Request): string {
+  const frontendUrl = Deno.env.get("FRONTEND_URL");
+  if (!frontendUrl) return "*";
+  const allowed = frontendUrl.replace(/\/$/, "");
   const origin = req.headers.get("Origin") || "";
   return origin === allowed ? allowed : "";
 }
 
 function corsHeaders(req: Request) {
-  return {
-    "Access-Control-Allow-Origin": getAllowedOrigin(req),
+  const origin = getCorsOrigin(req);
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Vary": "Origin",
   };
+  if (origin !== "*") headers["Vary"] = "Origin";
+  return headers;
 }
 
 function jsonResponse(status: number, body: Record<string, unknown>, req: Request) {
