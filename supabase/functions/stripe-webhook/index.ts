@@ -51,6 +51,10 @@ Deno.serve(async (req) => {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const businessId = session.metadata?.business_id;
+        const customerId =
+          typeof session.customer === "string"
+            ? session.customer
+            : session.customer?.id;
         const subscriptionId =
           typeof session.subscription === "string"
             ? session.subscription
@@ -67,6 +71,7 @@ Deno.serve(async (req) => {
         await supabaseAdmin
           .from("businesses")
           .update({
+            stripe_customer_id: customerId ?? null,
             stripe_subscription_id: subscriptionId,
             subscription_status: "active",
             current_period_end: new Date(
@@ -75,7 +80,7 @@ Deno.serve(async (req) => {
           })
           .eq("id", businessId);
 
-        console.log(`Checkout completed for business ${businessId}`);
+        console.log(`Checkout completed for business ${businessId}, customer ${customerId}`);
         break;
       }
 
@@ -88,12 +93,36 @@ Deno.serve(async (req) => {
 
         if (!subscriptionId) break;
 
-        // Find business by subscription ID
-        const { data: business } = await supabaseAdmin
+        // Find business by subscription ID, fallback to customer ID
+        let business: { id: string } | null = null;
+
+        const { data: bizBySub } = await supabaseAdmin
           .from("businesses")
           .select("id")
           .eq("stripe_subscription_id", subscriptionId)
           .single();
+        business = bizBySub;
+
+        if (!business) {
+          const customerId =
+            typeof invoice.customer === "string"
+              ? invoice.customer
+              : invoice.customer?.id;
+          if (customerId) {
+            const { data: bizByCus } = await supabaseAdmin
+              .from("businesses")
+              .select("id")
+              .eq("stripe_customer_id", customerId)
+              .single();
+            business = bizByCus;
+            if (business) {
+              await supabaseAdmin
+                .from("businesses")
+                .update({ stripe_subscription_id: subscriptionId })
+                .eq("id", business.id);
+            }
+          }
+        }
 
         if (!business) {
           console.error(`No business found for subscription ${subscriptionId}`);
@@ -145,11 +174,30 @@ Deno.serve(async (req) => {
 
         if (!subscriptionId) break;
 
-        const { data: business } = await supabaseAdmin
+        // Find business by subscription ID, fallback to customer ID
+        let business: { id: string } | null = null;
+
+        const { data: bizBySub } = await supabaseAdmin
           .from("businesses")
           .select("id")
           .eq("stripe_subscription_id", subscriptionId)
           .single();
+        business = bizBySub;
+
+        if (!business) {
+          const customerId =
+            typeof invoice.customer === "string"
+              ? invoice.customer
+              : invoice.customer?.id;
+          if (customerId) {
+            const { data: bizByCus } = await supabaseAdmin
+              .from("businesses")
+              .select("id")
+              .eq("stripe_customer_id", customerId)
+              .single();
+            business = bizByCus;
+          }
+        }
 
         if (!business) break;
 
