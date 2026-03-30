@@ -22,7 +22,8 @@ Deno.serve(async (req) => {
 
   const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false, autoRefreshToken: false } }
   );
 
   // 1. Verify webhook signature
@@ -51,6 +52,10 @@ Deno.serve(async (req) => {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const businessId = session.metadata?.business_id;
+        const customerId =
+          typeof session.customer === "string"
+            ? session.customer
+            : session.customer?.id;
         const subscriptionId =
           typeof session.subscription === "string"
             ? session.subscription
@@ -64,9 +69,10 @@ Deno.serve(async (req) => {
         // Fetch subscription to get current_period_end
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-        await supabaseAdmin
+        const { error: checkoutUpdateErr } = await supabaseAdmin
           .from("businesses")
           .update({
+            stripe_customer_id: customerId ?? null,
             stripe_subscription_id: subscriptionId,
             subscription_status: "active",
             current_period_end: new Date(
@@ -75,7 +81,8 @@ Deno.serve(async (req) => {
           })
           .eq("id", businessId);
 
-        console.log(`Checkout completed for business ${businessId}`);
+        if (checkoutUpdateErr) console.error("checkout update failed:", checkoutUpdateErr);
+        else console.log(`Checkout completed for business ${businessId}, customer ${customerId}`);
         break;
       }
 
@@ -88,12 +95,36 @@ Deno.serve(async (req) => {
 
         if (!subscriptionId) break;
 
-        // Find business by subscription ID
-        const { data: business } = await supabaseAdmin
+        // Find business by subscription ID, fallback to customer ID
+        let business: { id: string } | null = null;
+
+        const { data: bizBySub } = await supabaseAdmin
           .from("businesses")
           .select("id")
           .eq("stripe_subscription_id", subscriptionId)
           .single();
+        business = bizBySub;
+
+        if (!business) {
+          const customerId =
+            typeof invoice.customer === "string"
+              ? invoice.customer
+              : invoice.customer?.id;
+          if (customerId) {
+            const { data: bizByCus } = await supabaseAdmin
+              .from("businesses")
+              .select("id")
+              .eq("stripe_customer_id", customerId)
+              .single();
+            business = bizByCus;
+            if (business) {
+              await supabaseAdmin
+                .from("businesses")
+                .update({ stripe_subscription_id: subscriptionId })
+                .eq("id", business.id);
+            }
+          }
+        }
 
         if (!business) {
           console.error(`No business found for subscription ${subscriptionId}`);
@@ -101,23 +132,27 @@ Deno.serve(async (req) => {
         }
 
         // Insert payment record (idempotent via UNIQUE constraint)
-        await supabaseAdmin.from("payment_history").upsert(
-          {
-            business_id: business.id,
-            stripe_invoice_id: invoice.id,
-            amount_paid: (invoice.amount_paid ?? 0) / 100,
-            currency: invoice.currency ?? "eur",
-            status: "paid",
-            invoice_url: invoice.hosted_invoice_url ?? null,
-            period_start: invoice.period_start
-              ? new Date(invoice.period_start * 1000).toISOString()
-              : null,
-            period_end: invoice.period_end
-              ? new Date(invoice.period_end * 1000).toISOString()
-              : null,
-          },
-          { onConflict: "stripe_invoice_id" }
-        );
+        const { error: upsertErr } = await supabaseAdmin
+          .from("payment_history")
+          .upsert(
+            {
+              business_id: business.id,
+              stripe_invoice_id: invoice.id,
+              amount_paid: (invoice.amount_paid ?? 0) / 100,
+              currency: invoice.currency ?? "eur",
+              status: "paid" as const,
+              invoice_url: invoice.hosted_invoice_url ?? null,
+              period_start: invoice.period_start
+                ? new Date(invoice.period_start * 1000).toISOString()
+                : null,
+              period_end: invoice.period_end
+                ? new Date(invoice.period_end * 1000).toISOString()
+                : null,
+            },
+            { onConflict: "stripe_invoice_id" }
+          );
+
+        if (upsertErr) console.error("payment_history upsert FAILED:", JSON.stringify(upsertErr));
 
         // Fetch subscription to update current_period_end
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -145,11 +180,30 @@ Deno.serve(async (req) => {
 
         if (!subscriptionId) break;
 
-        const { data: business } = await supabaseAdmin
+        // Find business by subscription ID, fallback to customer ID
+        let business: { id: string } | null = null;
+
+        const { data: bizBySub } = await supabaseAdmin
           .from("businesses")
           .select("id")
           .eq("stripe_subscription_id", subscriptionId)
           .single();
+        business = bizBySub;
+
+        if (!business) {
+          const customerId =
+            typeof invoice.customer === "string"
+              ? invoice.customer
+              : invoice.customer?.id;
+          if (customerId) {
+            const { data: bizByCus } = await supabaseAdmin
+              .from("businesses")
+              .select("id")
+              .eq("stripe_customer_id", customerId)
+              .single();
+            business = bizByCus;
+          }
+        }
 
         if (!business) break;
 

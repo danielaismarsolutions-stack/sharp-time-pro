@@ -1,30 +1,38 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17?target=deno";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+function getAllowedOrigin(req: Request): string {
+  const allowed = (Deno.env.get("FRONTEND_URL") || "http://localhost:5173").replace(/\/$/, "");
+  const origin = req.headers.get("Origin") || "";
+  return origin === allowed ? allowed : "";
+}
 
-function jsonResponse(status: number, body: Record<string, unknown>) {
+function corsHeaders(req: Request) {
+  return {
+    "Access-Control-Allow-Origin": getAllowedOrigin(req),
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
+
+function jsonResponse(status: number, body: Record<string, unknown>, req: Request) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders(req) });
   }
 
   try {
     // 1. Verify JWT
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return jsonResponse(401, { error: "Token de autorización requerido" });
+      return jsonResponse(401, { error: "Token de autorización requerido" }, req);
     }
     const token = authHeader.replace("Bearer ", "");
 
@@ -39,7 +47,7 @@ Deno.serve(async (req) => {
     } = await supabaseAdmin.auth.getUser(token);
 
     if (authErr || !authUser) {
-      return jsonResponse(401, { error: "Sesión expirada. Inicia sesión de nuevo." });
+      return jsonResponse(401, { error: "Sesión expirada. Inicia sesión de nuevo." }, req);
     }
 
     // 2. Get user profile and verify role
@@ -50,11 +58,11 @@ Deno.serve(async (req) => {
       .single();
 
     if (profileErr || !profile) {
-      return jsonResponse(403, { error: "No se encontró tu perfil de usuario" });
+      return jsonResponse(403, { error: "No se encontró tu perfil de usuario" }, req);
     }
 
     if (!["owner", "admin"].includes(profile.role)) {
-      return jsonResponse(403, { error: "No tienes permisos para gestionar la suscripción" });
+      return jsonResponse(403, { error: "No tienes permisos para gestionar la suscripción" }, req);
     }
 
     // 3. Get business Stripe customer ID
@@ -67,7 +75,7 @@ Deno.serve(async (req) => {
     if (bizErr || !business || !business.stripe_customer_id) {
       return jsonResponse(400, {
         error: "No hay una suscripción activa. Primero activa tu suscripción.",
-      });
+      }, req);
     }
 
     // 4. Create Stripe Billing Portal session
@@ -82,9 +90,9 @@ Deno.serve(async (req) => {
       return_url: `${FRONTEND_URL}/billing`,
     });
 
-    return jsonResponse(200, { url: portalSession.url });
+    return jsonResponse(200, { url: portalSession.url }, req);
   } catch (err) {
     console.error("Error in stripe-portal:", err);
-    return jsonResponse(500, { error: "Error interno. Inténtalo de nuevo." });
+    return jsonResponse(500, { error: "Error interno. Inténtalo de nuevo." }, req);
   }
 });
