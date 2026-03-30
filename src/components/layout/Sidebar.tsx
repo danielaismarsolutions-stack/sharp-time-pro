@@ -13,6 +13,7 @@ import {
   UserCog,
   MessageSquare,
   Fingerprint,
+  CreditCard,
 } from 'lucide-react';
 import { NexioMark } from '@/components/NexioLogo';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ const allNavItems = [
   { icon: Scissors, label: 'Servicios', path: '/services', adminOnly: true, requiresTimeTracking: false },
   { icon: LayoutDashboard, label: 'Finanzas', path: '/dashboard', adminOnly: true, requiresTimeTracking: false },
   { icon: BarChart3, label: 'Informes', path: '/reports', adminOnly: true, requiresTimeTracking: false },
+  { icon: CreditCard, label: 'Facturación', path: '/billing', adminOnly: true, requiresTimeTracking: false },
   { icon: Settings, label: 'Ajustes', path: '/settings', adminOnly: false, requiresTimeTracking: false },
 ];
 

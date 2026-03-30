@@ -28,6 +28,7 @@ const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Cookies = lazy(() => import("./pages/Cookies"));
 const TimeTracking = lazy(() => import("./pages/TimeTracking"));
+const Billing = lazy(() => import("./pages/Billing"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -78,6 +79,7 @@ const App = () => (
                   <Route path="/barbers" element={<AdminRoute><Barbers /></AdminRoute>} />
                   <Route path="/services" element={<AdminRoute><Services /></AdminRoute>} />
                   <Route path="/reports" element={<AdminRoute><Reports /></AdminRoute>} />
+                  <Route path="/billing" element={<AdminRoute><Billing /></AdminRoute>} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
                 {/* Legal pages (public) */}

@@ -7,6 +7,7 @@ import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
 import { supabaseBusinessesApi } from '@/services/supabaseBusinesses';
 import { supabaseConsultationsApi } from '@/services/supabaseConsultations';
 import { supabaseTimeEntriesApi } from '@/services/supabaseTimeEntries';
+import { stripeBillingApi, type BillingInfo } from '@/services/stripeBilling';
 import type { Client, Service, BusinessHours } from '@/types';
 import type { Barber } from '@/types/barber';
 import type { ApiBooking } from '@/types/api';
@@ -30,6 +31,7 @@ export const queryKeys = {
   activeSession: (userId: string) => ['timeEntries', 'active', userId] as const,
   activeSessions: ['timeEntries', 'active'] as const,
   timeEntries: (filters?: TimeEntryFilters) => ['timeEntries', filters ?? {}] as const,
+  billing: ['billing'] as const,
 };
 
 // ── Clients ─────────────────────────────────────────────────────────────
@@ -202,6 +204,35 @@ export function useDeleteTimeEntry() {
   });
 }
 
+// ── Billing ────────────────────────────────────────────────────────────
+
+export function useBillingInfo(enabled = true) {
+  return useQuery<BillingInfo>({
+    queryKey: queryKeys.billing,
+    queryFn: () => stripeBillingApi.getBillingInfo(),
+    staleTime: 1000 * 60, // 1 min
+    enabled,
+  });
+}
+
+export function useCreateCheckoutSession() {
+  return useMutation({
+    mutationFn: () => stripeBillingApi.createCheckoutSession(),
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+  });
+}
+
+export function useCreatePortalSession() {
+  return useMutation({
+    mutationFn: () => stripeBillingApi.createPortalSession(),
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+  });
+}
+
 // ── Invalidation helper ─────────────────────────────────────────────────
 
 export function useInvalidateQuery() {
@@ -221,5 +252,6 @@ export function useInvalidateQuery() {
     },
     invalidateTimeEntries: () => queryClient.invalidateQueries({ queryKey: ['timeEntries'] }),
     invalidateTimeTrackingSettings: () => queryClient.invalidateQueries({ queryKey: queryKeys.timeTrackingSettings }),
+    invalidateBilling: () => queryClient.invalidateQueries({ queryKey: queryKeys.billing }),
   };
 }
