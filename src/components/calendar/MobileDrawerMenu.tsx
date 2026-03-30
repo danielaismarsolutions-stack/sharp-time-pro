@@ -10,6 +10,7 @@ import {
   UserCog,
   MessageSquare,
   Fingerprint,
+  CreditCard,
   List,
   LayoutGrid,
   Columns3,
@@ -47,6 +48,7 @@ const allNavItems = [
   { icon: Scissors, label: 'Servicios', path: '/services', adminOnly: true, requiresTimeTracking: false },
   { icon: LayoutDashboard, label: 'Finanzas', path: '/dashboard', adminOnly: true, requiresTimeTracking: false },
   { icon: BarChart3, label: 'Informes', path: '/reports', adminOnly: true, requiresTimeTracking: false },
+  { icon: CreditCard, label: 'Facturación', path: '/billing', adminOnly: true, requiresTimeTracking: false },
   { icon: Settings, label: 'Ajustes', path: '/settings', adminOnly: true, requiresTimeTracking: false },
 ];
 

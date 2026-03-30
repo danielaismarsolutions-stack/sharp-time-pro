@@ -4,14 +4,20 @@ import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
 import { MobileDrawerMenu } from '@/components/calendar/MobileDrawerMenu';
+import SubscriptionBanner from '@/components/billing/SubscriptionBanner';
 import { cn } from '@/lib/utils';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { useAuth } from '@/contexts/AuthContext';
+import { useBillingInfo } from '@/hooks/useQueryHooks';
 
 export default function DashboardLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { isAdmin } = useAuth();
+  const { data: billing } = useBillingInfo(isAdmin);
+  const showPastDueBanner = isAdmin && billing?.plan_type !== 'ambassador' && billing?.subscription_status === 'past_due';
 
   // Check if we're on the calendar page - it has its own header
   const isCalendarPage = location.pathname === '/calendar' || location.pathname === '/';
@@ -52,6 +58,7 @@ export default function DashboardLayout() {
       >
         {/* Hide TopBar on calendar page - it has its own header */}
         {!isCalendarPage && <TopBar isMobile={isMobile} onMenuClick={() => setIsMobileMenuOpen(true)} />}
+        {showPastDueBanner && <SubscriptionBanner />}
         <main className={cn(
           'flex-1 scrollbar-dark overflow-x-hidden w-full max-w-full',
           isCalendarPage ? 'overflow-y-hidden' : 'overflow-y-auto',

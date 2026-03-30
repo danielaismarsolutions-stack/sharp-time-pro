@@ -24,6 +24,11 @@ export interface DbBusiness {
   'antelacion_max (dias)': number | null;
   client_notification_delay: number | null;
   time_tracking_enabled: boolean;
+  monthly_price: number | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  subscription_status: string | null;
+  current_period_end: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
