@@ -65,7 +65,7 @@ export default function BillingStatusCard({
             Embajador
           </Badge>
           <p className="text-sm text-muted-foreground">
-            Tu negocio tiene acceso completo a Sharp Time Pro como embajador. No se requiere ningún pago.
+            Tu negocio tiene acceso completo a Nexio como embajador. No se requiere ningún pago.
           </p>
         </CardContent>
       </Card>
