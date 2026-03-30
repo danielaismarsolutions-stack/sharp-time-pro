@@ -49,7 +49,10 @@ CREATE OR REPLACE FUNCTION protect_stripe_columns()
 RETURNS trigger AS $$
 BEGIN
   -- Allow service_role to update anything
-  IF current_setting('request.jwt.claim.role', true) = 'service_role' THEN
+  IF current_setting('request.jwt.claim.role', true) = 'service_role'
+     OR current_setting('role', true) = 'service_role'
+     OR current_user = 'supabase_admin'
+  THEN
     RETURN NEW;
   END IF;
 

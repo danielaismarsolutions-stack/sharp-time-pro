@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
           price_data: {
             currency: "eur",
             product_data: {
-              name: "Sharp Time Pro — Suscripción Mensual",
+              name: "Nexio — Suscripción Mensual",
               description: `Plan mensual para ${business.business_name}`,
             },
             unit_amount: Math.round(business.monthly_price * 100),
