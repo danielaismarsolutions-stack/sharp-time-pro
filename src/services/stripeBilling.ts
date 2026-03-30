@@ -32,14 +32,22 @@ async function callEdgeFunction<T>(fnName: string): Promise<T> {
     `${SUPABASE_CONFIG.url}/functions/v1/${fnName}`,
     {
       method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ business_id: getBusinessId() }),
     }
   );
 
-  const data = await res.json();
+  let data: Record<string, unknown>;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(`${fnName}: respuesta no válida (HTTP ${res.status})`);
+  }
+
   if (!res.ok) {
-    throw new Error(data.error || `Error calling ${fnName}`);
+    // Supabase relay uses "msg", Edge Functions use "error"
+    const message = (data.error ?? data.msg ?? `Error HTTP ${res.status}`) as string;
+    throw new Error(message);
   }
   return data as T;
 }
