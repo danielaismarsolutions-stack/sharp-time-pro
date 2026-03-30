@@ -375,14 +375,6 @@ export interface UpdateEventBookingData {
   recurrence_rule?: Record<string, unknown> | null;
 }
 
-export interface EventConflict {
-  id: string;
-  client_name: string;
-  start_time: string;
-  end_time: string;
-  booking_type?: string;
-}
-
 // ==================== Validation ====================
 
 export function normalizeTime(time: string): string {
@@ -425,48 +417,6 @@ export function timesOverlap(
   return a0 < b1 && a1 > b0;
 }
 
-async function checkEventConflicts(
-  barber: string | null | undefined,
-  date: string,
-  startTime: string,
-  endTime: string,
-  excludeId?: string
-): Promise<EventConflict[]> {
-  if (!barber) return []; // No barber assigned → no conflicts to check
-
-  const url = new URL(`${SUPABASE_CONFIG.url}/rest/v1/bookings`);
-  url.searchParams.append('business_id', `eq.${getBusinessId()}`);
-  url.searchParams.append('booking_date', `eq.${date}`);
-  url.searchParams.append('barber', `eq.${barber}`);
-  url.searchParams.append('select', 'id,client_name,start_time,end_time,status,booking_type');
-
-  const headers = await getAuthHeaders();
-  const response = await fetch(url.toString(), { headers });
-  if (!response.ok) {
-    return [];
-  }
-
-  const rows: Array<{
-    id: string;
-    client_name: string;
-    start_time: string;
-    end_time: string;
-    status: string;
-    booking_type?: string;
-  }> = await response.json();
-
-  return rows.filter((row) => {
-    if (excludeId && row.id === excludeId) return false;
-    // Only check against bookings, not other events
-    if (row.booking_type === 'event') return false;
-    const isRelevant =
-      row.status === 'confirmed' ||
-      row.status === 'pending';
-    if (!isRelevant) return false;
-    return timesOverlap(startTime, endTime, row.start_time, row.end_time);
-  });
-}
-
 // ==================== Event Bookings API ====================
 
 export const supabaseEventBookingsApi = {
@@ -480,21 +430,7 @@ export const supabaseEventBookingsApi = {
       throw new Error(validationError);
     }
 
-    // 2. Check conflicts
-    const conflicts = await checkEventConflicts(
-      data.barber,
-      data.booking_date,
-      data.start_time,
-      data.end_time
-    );
-    if (conflicts.length > 0) {
-      const conflictNames = conflicts
-        .map((c) => `${c.client_name} (${c.start_time.substring(0, 5)}-${c.end_time.substring(0, 5)})`)
-        .join(', ');
-      throw new Error(`Conflicto de horario con: ${conflictNames}`);
-    }
-
-    // 3. Build payload
+    // 2. Build payload
     const startTime = normalizeTime(data.start_time);
     const endTime = normalizeTime(data.end_time);
 
@@ -552,23 +488,6 @@ export const supabaseEventBookingsApi = {
       const endTime = normalizeTime(data.end_time);
       if (startTime >= endTime) {
         throw new Error('La hora de inicio debe ser anterior a la hora de fin');
-      }
-    }
-
-    // Check conflicts if barber, date, and times are available
-    if (data.barber !== undefined && data.booking_date && data.start_time && data.end_time) {
-      const conflicts = await checkEventConflicts(
-        data.barber,
-        data.booking_date,
-        data.start_time,
-        data.end_time,
-        eventId
-      );
-      if (conflicts.length > 0) {
-        const conflictNames = conflicts
-          .map((c) => `${c.client_name} (${c.start_time.substring(0, 5)}-${c.end_time.substring(0, 5)})`)
-          .join(', ');
-        throw new Error(`Conflicto de horario con: ${conflictNames}`);
       }
     }
 
