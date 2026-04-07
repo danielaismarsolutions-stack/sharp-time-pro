@@ -29,6 +29,20 @@ export interface DbBusiness {
   stripe_subscription_id: string | null;
   subscription_status: string | null;
   current_period_end: string | null;
+  // Verifactu / fiscal data (added in add_verifactu_invoicing.sql)
+  tax_id: string | null;
+  legal_name: string | null;
+  fiscal_address: string | null;
+  fiscal_postal_code: string | null;
+  fiscal_city: string | null;
+  fiscal_province: string | null;
+  fiscal_country: string | null;
+  verifactu_enabled: boolean | null;
+  verifactu_provider: string | null;
+  verifactu_provider_org_id: string | null;
+  invoice_series_prefix: string | null;
+  simplified_invoice_series_prefix: string | null;
+  default_iva_rate: number | null;
   created_at: string | null;
   updated_at: string | null;
 }

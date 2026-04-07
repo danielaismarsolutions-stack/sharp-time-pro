@@ -73,6 +73,101 @@ export interface ApiClient {
   updated_at: string;
 }
 
+// ==================== Verifactu / Invoice Types ====================
+//
+// Types for Spanish tax compliance (Verifactu - RD 1007/2023).
+// These types model the `invoices`, `invoice_lines` and related tables
+// added in supabase/migrations/add_verifactu_invoicing.sql.
+// They are declared here so the upcoming invoice service, hooks and
+// Edge Functions can share a single source of truth.
+// =====================================================================
+
+export type ApiInvoiceType =
+  | 'F1'  // Factura completa
+  | 'F2'  // Factura simplificada (ticket)
+  | 'F3'  // Factura emitida en sustitución de simplificadas
+  | 'R1'  // Rectificativa por error fundado en derecho / art. 80 LIVA
+  | 'R2'  // Rectificativa por concurso
+  | 'R3'  // Rectificativa por créditos incobrables
+  | 'R4'  // Rectificativa otros
+  | 'R5'; // Rectificativa de facturas simplificadas
+
+export type ApiInvoiceStatus = 'draft' | 'issued' | 'cancelled' | 'corrected';
+
+export type ApiVerifactuStatus =
+  | 'pending'              // Created locally, not yet sent to AEAT
+  | 'submitted'            // Sent to AEAT, awaiting response
+  | 'accepted'             // AEAT accepted the registration
+  | 'accepted_with_errors' // AEAT accepted but with admissible warnings
+  | 'rejected'             // AEAT rejected (non-admissible errors)
+  | 'error';               // Submission failed (network, provider error, etc.)
+
+export interface ApiInvoiceLine {
+  id: string;
+  invoice_id: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  iva_rate: number;
+  line_total: number;
+  sort_order: number;
+  service_id: string | null;
+  booking_id: string | null;
+}
+
+export interface ApiInvoice {
+  id: string;
+  business_id: string;
+
+  // Identification
+  invoice_number: string;
+  invoice_series: string;
+  invoice_sequence: number;
+  invoice_date: string; // YYYY-MM-DD
+  invoice_type: ApiInvoiceType;
+
+  // Issuer (denormalized — Verifactu immutability)
+  issuer_tax_id: string;
+  issuer_name: string;
+
+  // Recipient (NULL for simplified F2 tickets)
+  client_id: string | null;
+  recipient_tax_id: string | null;
+  recipient_name: string | null;
+  recipient_address: string | null;
+
+  // Amounts
+  tax_base: number;
+  iva_rate: number;
+  iva_amount: number;
+  total_amount: number;
+
+  description: string | null;
+
+  // Hash chain (Verifactu)
+  hash: string | null;
+  previous_hash: string | null;
+  hash_timestamp: string | null; // ISO 8601
+
+  // AEAT submission state
+  verifactu_status: ApiVerifactuStatus;
+  verifactu_csv: string | null;
+  verifactu_error_code: string | null;
+  verifactu_error_message: string | null;
+  verifactu_submitted_at: string | null;
+  verifactu_provider_id: string | null;
+
+  qr_url: string | null;
+  booking_id: string | null;
+
+  status: ApiInvoiceStatus;
+  cancelled_at: string | null;
+  correction_invoice_id: string | null;
+
+  created_at: string;
+  updated_at: string;
+}
+
 // ==================== Service Types (Future) ====================
 
 export interface ApiService {
