@@ -164,17 +164,6 @@ html {
   touch-action: manipulation;
 }
 
-/* Visual feedback during long-press to activate drag on mobile */
-@keyframes drag-activating {
-  0% { box-shadow: 0 0 0 0 hsl(262 83% 58% / 0.0); }
-  50% { box-shadow: 0 0 0 4px hsl(262 83% 58% / 0.3); }
-  100% { box-shadow: 0 0 0 6px hsl(262 83% 58% / 0.5); }
-}
-
-.draggable-card:active {
-  animation: drag-activating 500ms ease-out forwards;
-}
-
 @layer utilities {
   /* Status badge utilities */
   .status-pending {
