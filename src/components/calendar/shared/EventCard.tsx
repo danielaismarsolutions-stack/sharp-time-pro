@@ -69,7 +69,7 @@ export function EventCard({
         'transition-[box-shadow,filter,transform] duration-200',
         isDragging && 'opacity-40 shadow-none z-0',
         isPendingMove && !isDragging && 'opacity-30',
-        isDragging && 'touch-none',
+        isDraggable && 'touch-none',
         isCompact ? 'px-1 py-0.5' : 'px-1.5 py-1'
       )}
       style={{
