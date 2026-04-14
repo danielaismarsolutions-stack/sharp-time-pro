@@ -279,9 +279,9 @@ export function useCalendarDragDropEnhanced({
     setActiveId(event.active.id as string);
     setDropPreview(null);
 
-    // Haptic feedback on mobile - stronger for drag start
+    // Haptic feedback on mobile - strong pattern to confirm drag mode activated after long-press
     if ('vibrate' in navigator) {
-      navigator.vibrate(15);
+      navigator.vibrate([40, 30, 40]);
     }
   }, []);
 
