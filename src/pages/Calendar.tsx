@@ -58,7 +58,7 @@ import { supabaseBookingsApi, supabaseEventBookingsApi } from '@/services/supaba
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { notifyAllAdmins, notifyBookingUsers } from '@/services/supabaseNotifications';
 import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
-import { useBookings, useClients, useServices, useBarbers, useBusinessHours, useInvalidateQuery } from '@/hooks/useQueryHooks';
+import { useBookings, useClients, useServices, useBarbers, useBusinessHours, useClosureDates, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
 import { supabase } from '@/lib/supabase';
@@ -163,6 +163,11 @@ export default function Calendar() {
   const { data: queryServices = [], isLoading: isLoadingServices } = useServices();
   const { data: queryBarbers = [], isLoading: isLoadingBarbers } = useBarbers(false);
   const { data: queryBusinessHours = {}, isLoading: isLoadingHours } = useBusinessHours();
+  const { data: queryClosureDates = [] } = useClosureDates();
+  const closureDateSet = useMemo(
+    () => new Set(queryClosureDates.filter((c) => c.isClosed).map((c) => c.date)),
+    [queryClosureDates]
+  );
   const { invalidateBookings, invalidateBarbers, invalidateClients, invalidateServices, invalidateBusinessHours } = useInvalidateQuery();
 
   const isLoading = isLoadingBookings || isLoadingClients || isLoadingServices || isLoadingBarbers || isLoadingHours;
@@ -854,6 +859,20 @@ export default function Calendar() {
 
   // Open choice dialog (booking vs event) for new creation
   const openCreateChoice = (date?: Date, time?: string, endTime?: string) => {
+    if (date) {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      if (closureDateSet.has(dateStr)) {
+        const closure = queryClosureDates.find((c) => c.date === dateStr);
+        toast({
+          title: 'Día cerrado',
+          description: closure?.name
+            ? `El negocio está cerrado este día (${closure.name}).`
+            : 'El negocio está cerrado este día.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
     setSelectedDate(date);
     setSelectedTime(time);
     setSelectedEndTime(endTime);

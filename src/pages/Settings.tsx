@@ -40,9 +40,10 @@ import {
   NotificationSettings,
 } from '@/types';
 import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
+import { supabaseHolidaysApi } from '@/services/supabaseHolidays';
 import { supabaseBusinessesApi } from '@/services/supabaseBusinesses';
 import { supabase } from '@/lib/supabase';
-import { useBusinessSettings as useBusinessSettingsQuery, useBusinessHours as useBusinessHoursQuery, useBookingSettingsQuery, useNotificationSettings as useNotificationSettingsQuery, useTimeTrackingSettings, useInvalidateQuery } from '@/hooks/useQueryHooks';
+import { useBusinessSettings as useBusinessSettingsQuery, useBusinessHours as useBusinessHoursQuery, useClosureDates, useBookingSettingsQuery, useNotificationSettings as useNotificationSettingsQuery, useTimeTrackingSettings, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
@@ -97,10 +98,11 @@ export default function Settings() {
   // ── React Query hooks for cached settings data ──
   const { data: queryBusiness, isLoading: isLoadingBusiness } = useBusinessSettingsQuery();
   const { data: queryHours, isLoading: isLoadingHours } = useBusinessHoursQuery();
+  const { data: queryClosures } = useClosureDates();
   const { data: queryBooking, isLoading: isLoadingBooking } = useBookingSettingsQuery();
   const { data: queryNotifications, isLoading: isLoadingNotifications } = useNotificationSettingsQuery();
   const { data: queryTimeTracking } = useTimeTrackingSettings();
-  const { invalidateSettings, invalidateBusinessHours: invalidateBH, invalidateTimeTrackingSettings } = useInvalidateQuery();
+  const { invalidateSettings, invalidateBusinessHours: invalidateBH, invalidateClosureDates, invalidateTimeTrackingSettings } = useInvalidateQuery();
 
   const isLoading = isLoadingBusiness || isLoadingHours || isLoadingBooking || isLoadingNotifications;
   const [isSaving, setIsSaving] = useState(false);
@@ -191,6 +193,117 @@ export default function Settings() {
       supabase.removeChannel(channel);
     };
   }, [user?.businessId, invalidateBH]);
+
+  // Real-time subscription for holidays (closure dates) table
+  useEffect(() => {
+    if (!user?.businessId) return;
+
+    const channel = supabase
+      .channel('holidays_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'holidays',
+          filter: `business_id=eq.${user.businessId}`,
+        },
+        () => {
+          invalidateClosureDates();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.businessId, invalidateClosureDates]);
+
+  // Closure dates (holidays) - local form state
+  const [newClosureDate, setNewClosureDate] = useState('');
+  const [newClosureName, setNewClosureName] = useState('');
+  const [isAddingClosure, setIsAddingClosure] = useState(false);
+  const [removingClosureId, setRemovingClosureId] = useState<string | null>(null);
+
+  const closureDates = queryClosures ?? [];
+
+  const addClosureDate = async () => {
+    const dateStr = newClosureDate.trim();
+    if (!dateStr) {
+      toast({ title: 'Selecciona una fecha', variant: 'destructive' });
+      return;
+    }
+    if (closureDates.some((c) => c.date === dateStr)) {
+      toast({ title: 'Esa fecha ya está marcada como cerrada', variant: 'destructive' });
+      return;
+    }
+
+    setIsAddingClosure(true);
+    try {
+      await supabaseHolidaysApi.add({
+        date: dateStr,
+        name: newClosureName.trim() || null,
+      });
+      try {
+        await notifyAllAdmins({
+          business_id: getBusinessId(),
+          type: 'business_hours_modified',
+          title: 'Fecha de cierre añadida',
+          message: `${user?.name || 'Usuario'} añadió una fecha de cierre (${dateStr})`,
+          metadata: { modified_by: user?.name, closure_date: dateStr },
+        });
+      } catch { /* ignored */ }
+      invalidateClosureDates();
+      setNewClosureDate('');
+      setNewClosureName('');
+      toast({ title: 'Fecha de cierre añadida' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Error al añadir la fecha';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    } finally {
+      setIsAddingClosure(false);
+    }
+  };
+
+  const removeClosureDate = async (id: string, dateLabel: string) => {
+    const confirmed = await confirm({
+      title: 'Eliminar fecha de cierre',
+      description: `¿Eliminar la fecha de cierre del ${dateLabel}?`,
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
+
+    setRemovingClosureId(id);
+    try {
+      await supabaseHolidaysApi.remove(id);
+      invalidateClosureDates();
+      toast({ title: 'Fecha de cierre eliminada' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Error al eliminar la fecha';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    } finally {
+      setRemovingClosureId(null);
+    }
+  };
+
+  const formatClosureDate = (iso: string): string => {
+    const [y, m, d] = iso.split('-').map(Number);
+    if (!y || !m || !d) return iso;
+    const date = new Date(Date.UTC(y, m - 1, d));
+    return date.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+  };
+
+  const todayIso = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }, []);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -685,6 +798,93 @@ export default function Settings() {
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                 Guardar Horario
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Closure Dates (Festivos / Días cerrados) */}
+          <Card className="border-border mt-4 md:mt-6">
+            <CardHeader>
+              <CardTitle>Días Cerrados (festivos y cierres puntuales)</CardTitle>
+              <CardDescription>
+                Marca fechas concretas en las que el negocio estará cerrado, como festivos o vacaciones.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-2 md:gap-3 items-end">
+                <div className="space-y-2">
+                  <Label htmlFor="closure-date">Fecha</Label>
+                  <Input
+                    id="closure-date"
+                    type="date"
+                    min={todayIso}
+                    value={newClosureDate}
+                    onChange={(e) => setNewClosureDate(e.target.value)}
+                    className="w-full md:w-44"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="closure-name">Motivo (opcional)</Label>
+                  <Input
+                    id="closure-name"
+                    type="text"
+                    placeholder="Ej: Navidad, vacaciones, festivo local"
+                    value={newClosureName}
+                    maxLength={120}
+                    onChange={(e) => setNewClosureName(e.target.value)}
+                  />
+                </div>
+                <Button
+                  onClick={addClosureDate}
+                  disabled={isAddingClosure || !newClosureDate}
+                  className="w-full md:w-auto"
+                >
+                  {isAddingClosure ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
+                  Añadir
+                </Button>
+              </div>
+
+              {closureDates.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No hay fechas de cierre registradas.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {closureDates.map((closure) => {
+                    const label = formatClosureDate(closure.date);
+                    return (
+                      <li
+                        key={closure.id}
+                        className="flex items-center justify-between gap-3 rounded-lg border p-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm capitalize truncate">{label}</p>
+                          {closure.name && (
+                            <p className="text-xs text-muted-foreground truncate">{closure.name}</p>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeClosureDate(closure.id, label)}
+                          disabled={removingClosureId === closure.id}
+                          className="h-8 w-8 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          aria-label={`Eliminar ${label}`}
+                        >
+                          {removingClosureId === closure.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </CardContent>
           </Card>
         </TabsContent>}
