@@ -4,11 +4,12 @@ import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { supabaseBookingsApi } from '@/services/supabaseBookings';
 import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
+import { supabaseHolidaysApi } from '@/services/supabaseHolidays';
 import { supabaseBusinessesApi } from '@/services/supabaseBusinesses';
 import { supabaseConsultationsApi } from '@/services/supabaseConsultations';
 import { supabaseTimeEntriesApi } from '@/services/supabaseTimeEntries';
 import { stripeBillingApi, type BillingInfo } from '@/services/stripeBilling';
-import type { Client, Service, BusinessHours } from '@/types';
+import type { Client, Service, BusinessHours, ClosureDate } from '@/types';
 import type { Barber } from '@/types/barber';
 import type { ApiBooking } from '@/types/api';
 import type { Consultation } from '@/types/consultation';
@@ -23,6 +24,7 @@ export const queryKeys = {
   barbers: (includeInactive?: boolean) => ['barbers', { includeInactive }] as const,
   bookings: (filters?: Record<string, string>) => ['bookings', filters ?? {}] as const,
   businessHours: ['businessHours'] as const,
+  closureDates: ['closureDates'] as const,
   businessSettings: ['businessSettings'] as const,
   bookingSettings: ['bookingSettings'] as const,
   notificationSettings: ['notificationSettings'] as const,
@@ -85,6 +87,16 @@ export function useBusinessHours() {
     queryKey: queryKeys.businessHours,
     queryFn: () => supabaseBusinessHoursApi.getAll(),
     staleTime: 1000 * 60 * 5, // 5 min — rarely changes
+  });
+}
+
+// ── Closure Dates (holidays) ────────────────────────────────────────────
+
+export function useClosureDates() {
+  return useQuery<ClosureDate[]>({
+    queryKey: queryKeys.closureDates,
+    queryFn: () => supabaseHolidaysApi.getAll(),
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -244,6 +256,7 @@ export function useInvalidateQuery() {
     invalidateBarbers: () => queryClient.invalidateQueries({ queryKey: ['barbers'] }),
     invalidateBookings: () => queryClient.invalidateQueries({ queryKey: ['bookings'] }),
     invalidateBusinessHours: () => queryClient.invalidateQueries({ queryKey: queryKeys.businessHours }),
+    invalidateClosureDates: () => queryClient.invalidateQueries({ queryKey: queryKeys.closureDates }),
     invalidateConsultations: () => queryClient.invalidateQueries({ queryKey: queryKeys.consultations }),
     invalidateSettings: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.businessSettings });

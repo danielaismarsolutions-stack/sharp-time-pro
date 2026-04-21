@@ -74,6 +74,19 @@ export interface BusinessHours {
   };
 }
 
+export interface ClosureDate {
+  id: string;
+  date: string; // YYYY-MM-DD
+  name: string | null;
+  isClosed: boolean;
+}
+
+export interface ClosureDateInput {
+  date: string; // YYYY-MM-DD
+  name?: string | null;
+  isClosed?: boolean;
+}
+
 export interface BookingSettings {
   minAdvanceBooking: number; // hours
   maxAdvanceBooking: number; // days
