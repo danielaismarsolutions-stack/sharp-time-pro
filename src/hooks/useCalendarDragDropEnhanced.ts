@@ -279,9 +279,10 @@ export function useCalendarDragDropEnhanced({
     setActiveId(event.active.id as string);
     setDropPreview(null);
 
-    // Haptic feedback on mobile - stronger for drag start
+    // Haptic "pickup" pattern: pulso-pausa-pulso. Confirma al usuario que el
+    // long-press se activó y la cita quedó "agarrada".
     if ('vibrate' in navigator) {
-      navigator.vibrate(15);
+      navigator.vibrate([10, 30, 10]);
     }
   }, []);
 
