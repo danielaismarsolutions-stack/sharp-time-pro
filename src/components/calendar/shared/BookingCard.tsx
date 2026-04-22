@@ -112,7 +112,7 @@ const CardButton = forwardRef<HTMLButtonElement, CardButtonProps>(
           // Smooth transitions for snap-to-grid animation
           'transition-[box-shadow,filter,transform] duration-200',
           // Dragging state - ghosted appearance at original position
-          isDragging && 'opacity-40 shadow-none z-0',
+          isDragging && 'opacity-40 shadow-none z-0 scale-100',
           // Pending move confirmation - attenuated
           isPendingMove && !isDragging && 'opacity-30',
           isDraggable && 'touch-none',

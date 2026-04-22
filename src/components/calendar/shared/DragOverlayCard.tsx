@@ -22,11 +22,11 @@ export function DragOverlayCard({
 
   return (
     <div
-      className="rounded-lg border border-border/40 border-l-4 border-l-primary/60 bg-primary/10 px-2 py-1.5 min-w-[120px] max-w-[200px] pointer-events-none"
+      className="rounded-lg border border-border/40 border-l-4 border-l-primary/60 bg-primary/10 px-2 py-1.5 min-w-[120px] max-w-[200px] pointer-events-none transition-transform duration-150 scale-105"
       style={{
-        opacity: 0.75,
+        opacity: 0.9,
         filter: hasError ? 'saturate(0.3)' : undefined,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.28)',
       }}
     >
       <p className="text-[10px] font-bold text-foreground/80">
