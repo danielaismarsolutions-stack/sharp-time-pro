@@ -432,8 +432,11 @@ export default function Calendar() {
     return undefined;
   }, [activeBooking, activeEvent]);
 
-  // Configure sensors for drag-drop with long-press on mobile
-  // Touch delay of 300ms prevents conflicts with scrolling on mobile
+  // Configure sensors for drag-drop.
+  // PointerSensor (mouse/pen): drag rápido por distancia.
+  // TouchSensor: long-press estilo Booksy/Google Calendar. Si el dedo se mueve
+  // >tolerance antes de cumplirse el delay, la activación se cancela y el gesto
+  // se trata como scroll — evita mover citas accidentalmente al desplazar la agenda.
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -442,8 +445,8 @@ export default function Calendar() {
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 300,
-        tolerance: 8,
+        delay: 450,
+        tolerance: 5,
       },
     })
   );
