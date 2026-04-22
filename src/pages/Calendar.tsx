@@ -445,7 +445,7 @@ export default function Calendar() {
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 450,
+        delay: 1000,
         tolerance: 5,
       },
     })
