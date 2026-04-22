@@ -22,7 +22,7 @@ import {
 import { es } from 'date-fns/locale';
 import {
   DndContext,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   useSensor,
   useSensors,
@@ -433,19 +433,21 @@ export default function Calendar() {
   }, [activeBooking, activeEvent]);
 
   // Configure sensors for drag-drop.
-  // PointerSensor (mouse/pen): drag rápido por distancia.
-  // TouchSensor: long-press estilo Booksy/Google Calendar. Si el dedo se mueve
-  // >tolerance antes de cumplirse el delay, la activación se cancela y el gesto
-  // se trata como scroll — evita mover citas accidentalmente al desplazar la agenda.
+  // MouseSensor: solo mouse en desktop (NO intercepta touch — crítico).
+  // TouchSensor: long-press 1.5s con tolerance baja para que CUALQUIER
+  // movimiento del dedo durante el delay cancele la activación. Así el drag
+  // solo se dispara si el dedo está quieto (scroll en pausa) 1500ms completos.
+  // Nota: usamos MouseSensor en vez de PointerSensor porque PointerSensor
+  // también captura touch events y su distance:8 se dispara antes del delay.
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
         distance: 8,
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 1000,
+        delay: 1500,
         tolerance: 5,
       },
     })
