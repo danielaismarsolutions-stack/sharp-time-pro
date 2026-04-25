@@ -1743,7 +1743,7 @@ export default function Calendar() {
               notes: clientData.notes || '',
               tags: clientData.tags || [],
             });
-            setClients(prev => [...prev, newClient]);
+            setClients([...clients, newClient]);
             return newClient;
           }}
           onSave={async (data) => {
