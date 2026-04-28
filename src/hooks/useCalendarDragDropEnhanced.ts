@@ -275,6 +275,26 @@ export function useCalendarDragDropEnhanced({
     return differenceInMinutes(end, start);
   }, []);
 
+  // Compute the 15-min-snapped start time (HH:MM) from the live drag event.
+  // Shared between handleDragMove (preview) and handleDragEnd (commit) so the
+  // two paths can never disagree.
+  const computeSnappedStartTime = useCallback(
+    (
+      e: DragMoveEvent | DragEndEvent,
+      baseHour: number,
+      overRect: { top: number },
+    ): string => {
+      const activatorClientY = (e.activatorEvent as PointerEvent)?.clientY ?? 0;
+      const dragY = e.delta.y + activatorClientY;
+      const relativeY = Math.max(0, Math.min(hourHeight, dragY - overRect.top));
+      const snapped = snapToQuarterHour((relativeY / hourHeight) * 60);
+      const minutes = snapped >= 60 ? 0 : snapped;
+      const hours = snapped >= 60 ? Math.min(baseHour + 1, businessCloseHour) : baseHour;
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    },
+    [hourHeight, businessCloseHour],
+  );
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(event.active.id as string);
     setDropPreview(null);
@@ -297,24 +317,7 @@ export function useCalendarDragDropEnhanced({
 
     if (!dropData?.date || dropData.hour === undefined) return;
 
-    // Get the hour slot the user is hovering over
-    const baseHour = dropData.hour;
-
-    // Get the droppable element's rect to calculate relative position
-    const overRect = over.rect;
-    const dragY = event.delta.y + (event.activatorEvent as PointerEvent)?.clientY || 0;
-
-    // Calculate relative position within the hour slot
-    const relativeY = Math.max(0, Math.min(hourHeight, dragY - overRect.top));
-    const minutesInSlot = (relativeY / hourHeight) * 60;
-    const snappedMinutesInSlot = snapToQuarterHour(minutesInSlot);
-
-    // Calculate final time
-    const hours = baseHour;
-    const minutes = snappedMinutesInSlot >= 60 ? 0 : snappedMinutesInSlot;
-    const finalHours = snappedMinutesInSlot >= 60 ? Math.min(baseHour + 1, 20) : hours;
-
-    const newStartTime = `${finalHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    const newStartTime = computeSnappedStartTime(event, dropData.hour, over.rect);
 
     if (isDraggingEvent) {
       // Event drag move - simpler validation (no booking conflicts or barber schedule)
@@ -391,7 +394,7 @@ export function useCalendarDragDropEnhanced({
     if ('vibrate' in navigator && dropPreview?.time !== newStartTime) {
       navigator.vibrate(5);
     }
-  }, [activeId, isDraggingEvent, activeEvent, bookings, barbers, getBookingDuration, getEventDuration, hourHeight, dropPreview?.time, businessOpenHour, businessCloseHour]);
+  }, [activeId, isDraggingEvent, activeEvent, bookings, barbers, getBookingDuration, getEventDuration, computeSnappedStartTime, dropPreview?.time, businessOpenHour, businessCloseHour]);
 
   const handleDragCancel = useCallback(() => {
     setActiveId(null);
@@ -436,15 +439,23 @@ export function useCalendarDragDropEnhanced({
 
     if (!dropData?.date || dropData.hour === undefined) return;
 
-    // Use the saved preview time if available, otherwise calculate
+    // Always recompute the 15-min-snapped time from the live drop event so the
+    // fallback path can never collapse to ":00". Prefer the preview only when
+    // it matches the cell the user actually released over.
+    const computedStartTime = computeSnappedStartTime(event, dropData.hour, over.rect);
+
     let newStartTime: string;
     let newDate: string;
 
-    if (savedDropPreview?.time && savedDropPreview?.date) {
+    if (
+      savedDropPreview?.time &&
+      savedDropPreview?.date &&
+      savedDropPreview.date === dropData.date
+    ) {
       newStartTime = `${savedDropPreview.time}:00`;
       newDate = savedDropPreview.date;
     } else {
-      newStartTime = `${dropData.hour.toString().padStart(2, '0')}:00:00`;
+      newStartTime = `${computedStartTime}:00`;
       newDate = dropData.date;
     }
 
@@ -582,7 +593,7 @@ export function useCalendarDragDropEnhanced({
         navigator.vibrate([10, 50, 10]);
       }
     }
-  }, [bookings, events, barbers, toast, getBookingDuration, getEventDuration, dropPreview, businessOpenHour, businessCloseHour]);
+  }, [bookings, events, barbers, toast, getBookingDuration, getEventDuration, computeSnappedStartTime, dropPreview, businessOpenHour, businessCloseHour]);
 
   // Confirm booking move
   const confirmMove = useCallback(async () => {
