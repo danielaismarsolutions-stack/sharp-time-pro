@@ -358,8 +358,8 @@ export default function Calendar() {
     };
   }, [invalidateBarbers]);
 
-  // Current hour height based on view mode
-  const currentHourHeight = viewMode === 'day' ? HOUR_HEIGHT_DAY : HOUR_HEIGHT_WEEK;
+  // Current hour height based on view mode (3day shares the day-view cell size)
+  const currentHourHeight = viewMode === 'day' || viewMode === '3day' ? HOUR_HEIGHT_DAY : HOUR_HEIGHT_WEEK;
 
   // Enhanced drag and drop setup with 15-min snapping
   const {
