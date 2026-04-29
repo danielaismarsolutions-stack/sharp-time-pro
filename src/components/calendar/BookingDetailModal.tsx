@@ -91,7 +91,7 @@ export function BookingDetailModal({
   };
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:w-full sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Detalles de la Cita</DialogTitle>
         </DialogHeader>
