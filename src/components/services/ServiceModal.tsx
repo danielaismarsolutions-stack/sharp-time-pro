@@ -24,6 +24,7 @@ import { Service } from '@/types';
 import { Barber } from '@/types/barber';
 import { useToast } from '@/hooks/use-toast';
 import ServicePhotoUpload from '@/components/services/ServicePhotoUpload';
+import { SERVICE_CATEGORIES } from '@/constants/serviceCategories';
 
 interface ServiceModalProps {
   open: boolean;
@@ -84,6 +85,7 @@ export default function ServiceModal({
     bufferBefore: 0,
     bufferAfter: 5,
     isConsultation: false,
+    category: '' as string,
   });
 
   useEffect(() => {
@@ -103,6 +105,7 @@ export default function ServiceModal({
           bufferBefore: service.bufferBefore || 0,
           bufferAfter: service.bufferAfter || 5,
           isConsultation: service.isConsultation ?? false,
+          category: service.category ?? '',
         });
         setPriceInput(service.price ? String(service.price) : '');
         setSelectedBarberIds(service.barberIds ?? barbers.map(b => b.id));
@@ -117,6 +120,7 @@ export default function ServiceModal({
           bufferBefore: 0,
           bufferAfter: 5,
           isConsultation: false,
+          category: '',
         });
         setPriceInput('');
         setSelectedBarberIds(barbers.map(b => b.id));
@@ -176,6 +180,7 @@ export default function ServiceModal({
         bufferAfter: formData.isConsultation ? 0 : formData.bufferAfter,
         isConsultation: formData.isConsultation,
         barberIds: selectedBarberIds,
+        category: formData.category ? formData.category : null,
       }, pendingPhotoFile);
     } catch (error) {
       // Error handled by parent
