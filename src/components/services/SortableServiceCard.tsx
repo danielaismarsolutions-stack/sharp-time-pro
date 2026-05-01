@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Service } from '@/types';
+import { getCategoryLabel } from '@/constants/serviceCategories';
 
 interface SortableServiceCardProps {
   service: Service;
@@ -67,7 +68,22 @@ export function SortableServiceCard({
                 <GripVertical className="h-5 w-5" />
               </button>
               <div className="min-w-0 flex-1">
-                <CardTitle className="text-base md:text-lg truncate">{service.name}</CardTitle>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <CardTitle className="text-base md:text-lg truncate">{service.name}</CardTitle>
+                  {service.category ? (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      {getCategoryLabel(service.category)}
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] px-1.5 py-0 border-amber-500 text-amber-600 dark:text-amber-400"
+                      title="Este servicio no aparece en reservas online"
+                    >
+                      Sin categoría web
+                    </Badge>
+                  )}
+                </div>
                 {service.description && (
                   <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{service.description}</p>
                 )}

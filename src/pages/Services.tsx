@@ -345,7 +345,7 @@ export default function Services() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">Servicios</h1>
           <p className="text-sm md:text-base text-muted-foreground">
-            Gestiona los servicios de tu barbería. Arrastra para reordenar.
+            Gestiona los servicios de tu salón. Arrastra para reordenar.
           </p>
         </div>
         <div className="flex items-center gap-2">
