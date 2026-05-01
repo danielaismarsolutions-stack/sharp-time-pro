@@ -72,7 +72,7 @@ export default function LoginPage() {
           <div>
             <CardTitle className="text-2xl font-bold">Bienvenido de nuevo</CardTitle>
             <CardDescription className="mt-2">
-              Inicia sesión para gestionar tu barbería
+              Inicia sesión para gestionar tu salón
             </CardDescription>
           </div>
         </CardHeader>

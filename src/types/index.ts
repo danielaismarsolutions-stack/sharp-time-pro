@@ -51,6 +51,7 @@ export interface Service {
   servicePhoto?: string | null;
   isConsultation: boolean;
   barberIds?: string[];
+  category?: string | null;
 }
 
 export interface BusinessSettings {
