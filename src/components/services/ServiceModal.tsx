@@ -312,6 +312,29 @@ export default function ServiceModal({
           </div>
 
           <div className="space-y-1">
+            <Label className="text-xs">Categoría web</Label>
+            <Select
+              value={formData.category || 'none'}
+              onValueChange={(value) => setFormData({ ...formData, category: value === 'none' ? '' : value })}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— Sin categoría —</SelectItem>
+                {SERVICE_CATEGORIES.map((cat) => (
+                  <SelectItem key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground">
+              Agrupa el servicio en la web pública. Sin categoría, el servicio no aparece en reservas online.
+            </p>
+          </div>
+
+          <div className="space-y-1">
             <Label className="text-xs">Descripción</Label>
             <Textarea
               value={formData.description}
