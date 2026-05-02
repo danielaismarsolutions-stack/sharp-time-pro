@@ -453,7 +453,7 @@ export default function ServiceModal({
           {/* Barber Assignment */}
           {barbers.length > 0 && (
             <div className="space-y-1">
-              <Label className="text-xs">Barberos asignados</Label>
+              <Label className="text-xs">Estilistas asignados</Label>
               <div className="border rounded-lg p-2 max-h-32 overflow-y-auto space-y-1.5">
                 <div className="flex items-center justify-between pb-1 border-b">
                   <span className="text-[10px] text-muted-foreground">
