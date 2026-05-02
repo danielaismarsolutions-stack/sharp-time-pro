@@ -40,6 +40,23 @@ interface SortableCategoryRowProps {
   onDelete: (c: ServiceCategory) => void;
 }
 
+function CategoryThumb({ category }: { category: ServiceCategory }) {
+  if (category.photoUrl) {
+    return (
+      <img
+        src={category.photoUrl}
+        alt={category.label}
+        className="h-10 w-10 rounded-lg object-cover shrink-0 border border-border"
+      />
+    );
+  }
+  return (
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+      <Tag className="h-5 w-5" />
+    </div>
+  );
+}
+
 function SortableCategoryRow({ category, serviceCount, onEdit, onDelete }: SortableCategoryRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: category.id,
@@ -65,9 +82,7 @@ function SortableCategoryRow({ category, serviceCount, onEdit, onDelete }: Sorta
               <GripVertical className="h-5 w-5" />
             </button>
 
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Tag className="h-5 w-5" />
-            </div>
+            <CategoryThumb category={category} />
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -78,6 +93,9 @@ function SortableCategoryRow({ category, serviceCount, onEdit, onDelete }: Sorta
                   </Badge>
                 )}
               </div>
+              {category.subtitle && (
+                <p className="text-[11px] sm:text-xs text-foreground/80 truncate mt-0.5">{category.subtitle}</p>
+              )}
               <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
                 <code className="font-mono">{category.slug}</code> · {serviceCount} servicio{serviceCount !== 1 ? 's' : ''}
               </p>
@@ -160,7 +178,7 @@ export default function ServiceCategories() {
     }
   };
 
-  const handleSave = async (data: { label: string; isActive: boolean }) => {
+  const handleSave = async (data: { label: string; subtitle: string | null; isActive: boolean }) => {
     try {
       if (editingCategory) {
         const confirmed = await confirm({
@@ -173,7 +191,7 @@ export default function ServiceCategories() {
         await supabaseServiceCategoriesApi.update(editingCategory.id, data);
         toast({ title: 'Categoría actualizada' });
       } else {
-        await supabaseServiceCategoriesApi.create({ label: data.label });
+        await supabaseServiceCategoriesApi.create({ label: data.label, subtitle: data.subtitle });
         toast({ title: 'Categoría creada' });
       }
       invalidateServiceCategories();
@@ -298,7 +316,7 @@ export default function ServiceCategories() {
           <Card className="p-3 md:p-4">
             <div className="text-center">
               <p className="text-xl md:text-2xl font-bold text-amber-500">
-                {services.filter((s) => !s.category).length}
+                {services.filter((s) => s.isActive && !s.category).length}
               </p>
               <p className="text-xs md:text-sm text-muted-foreground">Sin categoría</p>
             </div>
@@ -357,6 +375,10 @@ export default function ServiceCategories() {
         }}
         category={editingCategory}
         onSave={handleSave}
+        onPhotoChanged={() => {
+          invalidateServiceCategories();
+          setLocalCategories(null);
+        }}
       />
 
       <ConfirmActionDialog {...confirmDialogProps} />
