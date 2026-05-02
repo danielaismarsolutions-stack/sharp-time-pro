@@ -83,7 +83,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
         } catch (uploadError: unknown) {
           toast({
             title: 'Error',
-            description: 'No se pudo subir la foto, pero el barbero se guardará sin ella',
+            description: 'No se pudo subir la foto, pero el estilista se guardará sin ella',
             variant: 'destructive',
           });
         } finally {
@@ -118,7 +118,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{barber ? 'Editar Barbero' : 'Nuevo Barbero'}</DialogTitle>
+          <DialogTitle>{barber ? 'Editar Estilista' : 'Nuevo Estilista'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1">
@@ -127,7 +127,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Nombre del barbero"
+              placeholder="Nombre del estilista"
               required
               className="h-8 text-xs"
             />
@@ -181,7 +181,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="barber">Barbero</SelectItem>
+                  <SelectItem value="barber">Estilista</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
                 </SelectContent>
               </Select>
@@ -205,7 +205,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
               id="bio"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              placeholder="Descripción breve del barbero..."
+              placeholder="Descripción breve del estilista..."
               rows={2}
               className="text-xs"
             />

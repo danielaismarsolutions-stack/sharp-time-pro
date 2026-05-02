@@ -412,14 +412,14 @@ export function ConsultationBookingModal({
             <div className="space-y-1">
               <Label className="flex items-center gap-1.5 text-xs">
                 <User className="h-3 w-3" />
-                Barbero
+                Estilista
               </Label>
               <Select
                 value={formData.barberId || 'none'}
                 onValueChange={(value) => setFormData({ ...formData, barberId: value === 'none' ? '' : value })}
               >
                 <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Selecciona un barbero (opcional)" />
+                  <SelectValue placeholder="Selecciona un estilista (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Sin asignar</SelectItem>
@@ -544,7 +544,7 @@ export function ConsultationBookingModal({
                 </div>
                 {selectedBarber && (
                   <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>Barbero</span>
+                    <span>Estilista</span>
                     <span>{selectedBarber.name}</span>
                   </div>
                 )}

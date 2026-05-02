@@ -248,7 +248,7 @@ function DayBookingCard({ booking, style, overlapInfo, onClick }: DayBookingCard
               <p className="font-semibold">{booking.client_name}</p>
               <p className="text-sm opacity-80">{booking.service_name}</p>
               {booking.barber && (
-                <p className="text-sm opacity-70">Barbero: {booking.barber}</p>
+                <p className="text-sm opacity-70">Estilista: {booking.barber}</p>
               )}
               <p className="text-sm font-semibold">€{booking.service_price}</p>
             </div>

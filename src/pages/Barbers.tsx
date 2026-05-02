@@ -105,8 +105,8 @@ export default function Barbers() {
   const handleSaveBarber = async (data: CreateBarberData, avatarFile?: File | null) => {
     if (selectedBarber) {
       const confirmed = await confirm({
-        title: 'Actualizar barbero',
-        description: `¿Confirmar los cambios en el barbero "${data.name}"?`,
+        title: 'Actualizar estilista',
+        description: `¿Confirmar los cambios en el estilista "${data.name}"?`,
         confirmLabel: 'Actualizar',
       });
       if (!confirmed) return;
@@ -122,7 +122,7 @@ export default function Barbers() {
           await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'barber_modified',
-            title: 'Barbero modificado',
+            title: 'Estilista modificado',
             message: `${user?.name || 'Usuario'} actualizó el perfil de ${data.name}`,
             metadata: {
               barber_id: selectedBarber.id,
@@ -132,7 +132,7 @@ export default function Barbers() {
           });
         } catch { /* ignored */ }
 
-        toast({ title: 'Barbero actualizado' });
+        toast({ title: 'Estilista actualizado' });
       } else {
         // Creating new barber
         const newBarber = await supabaseBarbersApi.create(data);
@@ -150,7 +150,7 @@ export default function Barbers() {
           } catch (uploadError) {
             toast({
               title: 'Advertencia',
-              description: 'Barbero creado, pero no se pudo subir la foto',
+              description: 'Estilista creado, pero no se pudo subir la foto',
             });
           }
         }
@@ -160,8 +160,8 @@ export default function Barbers() {
           await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'barber_created',
-            title: 'Nuevo barbero',
-            message: `${user?.name || 'Usuario'} creó el barbero "${data.name}"`,
+            title: 'Nuevo estilista',
+            message: `${user?.name || 'Usuario'} creó el estilista "${data.name}"`,
             metadata: {
               barber_id: newBarber.id,
               barber_name: data.name,
@@ -170,13 +170,13 @@ export default function Barbers() {
           });
         } catch { /* ignored */ }
 
-        toast({ title: 'Barbero creado' });
+        toast({ title: 'Estilista creado' });
       }
       await loadBarbers();
     } catch (error) {
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'No se pudo guardar el barbero',
+        description: error instanceof Error ? error.message : 'No se pudo guardar el estilista',
         variant: 'destructive',
       });
       throw error;
@@ -313,7 +313,7 @@ export default function Barbers() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
             <Users className="h-5 w-5 sm:h-6 sm:w-6" />
-            Barberos
+            Estilistas
           </h1>
           <p className="text-sm text-muted-foreground">
             Gestiona tu equipo y sus horarios
@@ -324,7 +324,7 @@ export default function Barbers() {
           className="w-full sm:w-auto h-11 sm:h-10 text-base sm:text-sm font-medium"
         >
           <Plus className="h-5 w-5 sm:h-4 sm:w-4 mr-2" />
-          Nuevo Barbero
+          Nuevo Estilista
         </Button>
       </div>
 
@@ -337,7 +337,7 @@ export default function Barbers() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar barbero..."
+                  placeholder="Buscar estilista..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9 h-11 sm:h-10 text-base sm:text-sm"
@@ -383,7 +383,7 @@ export default function Barbers() {
       {/* Results count on mobile */}
       {isMobile && filteredBarbers.length > 0 && (
         <p className="text-sm text-muted-foreground px-1">
-          {filteredBarbers.length} barbero{filteredBarbers.length !== 1 ? 's' : ''}
+          {filteredBarbers.length} estilista{filteredBarbers.length !== 1 ? 's' : ''}
         </p>
       )}
 
@@ -392,16 +392,16 @@ export default function Barbers() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 px-6 text-center">
             <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium mb-1">No hay barberos</h3>
+            <h3 className="text-lg font-medium mb-1">No hay estilistas</h3>
             <p className="text-muted-foreground text-sm mb-4">
               {searchQuery
                 ? 'No se encontraron resultados para tu búsqueda'
-                : 'Añade tu primer barbero para empezar'}
+                : 'Añade tu primer estilista para empezar'}
             </p>
             {!searchQuery && (
               <Button onClick={openNewModal} className="h-11">
                 <Plus className="h-4 w-4 mr-2" />
-                Añadir Barbero
+                Añadir Estilista
               </Button>
             )}
           </CardContent>

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseClientsApi, ClientWithBookings } from '@/services/supabaseClients';
 import { supabaseServicesApi } from '@/services/supabaseServices';
+import { supabaseServiceCategoriesApi, type ServiceCategory } from '@/services/supabaseServiceCategories';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
 import { supabaseBookingsApi } from '@/services/supabaseBookings';
 import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
@@ -21,6 +22,7 @@ export const queryKeys = {
   clients: ['clients'] as const,
   clientDetail: (id: string) => ['clients', id] as const,
   services: (includeInactive?: boolean) => ['services', { includeInactive }] as const,
+  serviceCategories: (includeInactive?: boolean) => ['serviceCategories', { includeInactive }] as const,
   barbers: (includeInactive?: boolean) => ['barbers', { includeInactive }] as const,
   bookings: (filters?: Record<string, string>) => ['bookings', filters ?? {}] as const,
   businessHours: ['businessHours'] as const,
@@ -59,6 +61,14 @@ export function useServices(includeInactive = true) {
   return useQuery<Service[]>({
     queryKey: queryKeys.services(includeInactive),
     queryFn: () => supabaseServicesApi.getAll(includeInactive),
+  });
+}
+
+export function useServiceCategories(includeInactive = true) {
+  return useQuery<ServiceCategory[]>({
+    queryKey: queryKeys.serviceCategories(includeInactive),
+    queryFn: () => supabaseServiceCategoriesApi.getAll(includeInactive),
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -253,6 +263,7 @@ export function useInvalidateQuery() {
   return {
     invalidateClients: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
     invalidateServices: () => queryClient.invalidateQueries({ queryKey: ['services'] }),
+    invalidateServiceCategories: () => queryClient.invalidateQueries({ queryKey: ['serviceCategories'] }),
     invalidateBarbers: () => queryClient.invalidateQueries({ queryKey: ['barbers'] }),
     invalidateBookings: () => queryClient.invalidateQueries({ queryKey: ['bookings'] }),
     invalidateBusinessHours: () => queryClient.invalidateQueries({ queryKey: queryKeys.businessHours }),

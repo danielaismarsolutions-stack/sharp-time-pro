@@ -81,11 +81,11 @@ export default function BarberPerformance({ barberMetrics }: BarberPerformancePr
     return (
       <Card className="border-border">
         <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg">Rendimiento por Barbero</CardTitle>
+          <CardTitle className="text-base md:text-lg">Rendimiento por Estilista</CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
           <div className="flex items-center justify-center h-[120px] text-muted-foreground text-sm">
-            Sin datos de barberos para este periodo
+            Sin datos de estilistas para este periodo
           </div>
         </CardContent>
       </Card>
@@ -94,7 +94,7 @@ export default function BarberPerformance({ barberMetrics }: BarberPerformancePr
 
   return (
     <div>
-      <h2 className="text-base md:text-lg font-bold mb-3 md:mb-4">Rendimiento por Barbero</h2>
+      <h2 className="text-base md:text-lg font-bold mb-3 md:mb-4">Rendimiento por Estilista</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
         {barberMetrics.map(metric => (
           <BarberCard key={metric.barberName} metric={metric} />

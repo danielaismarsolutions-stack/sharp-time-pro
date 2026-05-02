@@ -24,7 +24,7 @@ import { Service } from '@/types';
 import { Barber } from '@/types/barber';
 import { useToast } from '@/hooks/use-toast';
 import ServicePhotoUpload from '@/components/services/ServicePhotoUpload';
-import { SERVICE_CATEGORIES } from '@/constants/serviceCategories';
+import { useServiceCategories } from '@/hooks/useQueryHooks';
 
 interface ServiceModalProps {
   open: boolean;
@@ -69,6 +69,7 @@ export default function ServiceModal({
   barbers = [],
 }: ServiceModalProps) {
   const { toast } = useToast();
+  const { data: serviceCategories = [] } = useServiceCategories(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
@@ -322,8 +323,8 @@ export default function ServiceModal({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">— Sin categoría —</SelectItem>
-                {SERVICE_CATEGORIES.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
+                {serviceCategories.map((cat) => (
+                  <SelectItem key={cat.slug} value={cat.slug}>
                     {cat.label}
                   </SelectItem>
                 ))}
@@ -452,7 +453,7 @@ export default function ServiceModal({
           {/* Barber Assignment */}
           {barbers.length > 0 && (
             <div className="space-y-1">
-              <Label className="text-xs">Barberos asignados</Label>
+              <Label className="text-xs">Estilistas asignados</Label>
               <div className="border rounded-lg p-2 max-h-32 overflow-y-auto space-y-1.5">
                 <div className="flex items-center justify-between pb-1 border-b">
                   <span className="text-[10px] text-muted-foreground">

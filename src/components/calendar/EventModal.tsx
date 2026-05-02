@@ -379,7 +379,7 @@ export function EventModal({
           {/* Barber */}
           <div className="space-y-1">
             <Label className="text-xs font-medium">
-              Barbero{' '}
+              Estilista{' '}
               <span className="text-muted-foreground font-normal">
                 (opcional)
               </span>

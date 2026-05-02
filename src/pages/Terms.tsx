@@ -21,7 +21,7 @@ export default function Terms() {
         <h2 className="text-xl font-semibold">2. Objeto y ámbito de aplicación</h2>
         <p>
           Estos Términos y Condiciones regulan el acceso y uso de la Plataforma, una herramienta de
-          gestión de citas, agenda y administración para negocios de barbería y peluquería. Al
+          gestión de citas, agenda y administración para negocios de peluquería y peluquería. Al
           acceder o utilizar la Plataforma, el usuario acepta íntegramente estos Términos. Si no
           está de acuerdo, debe abstenerse de utilizar la Plataforma.
         </p>

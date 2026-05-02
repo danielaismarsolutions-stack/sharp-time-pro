@@ -55,7 +55,7 @@ export function BarberLegend({ barberNames, floating = false }: BarberLegendProp
   return (
     <div className="px-2 md:px-4 py-3 border-t border-border bg-card rounded-b-lg">
       <p className="text-xs font-medium text-muted-foreground mb-2">
-        Colores por barbero
+        Colores por estilista
       </p>
       <div className="flex flex-wrap gap-1.5 sm:gap-2">
         {barberColors.map(({ name, colors }) => (

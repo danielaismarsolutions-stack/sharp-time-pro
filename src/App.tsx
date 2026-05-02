@@ -21,6 +21,7 @@ const Clients = lazy(() => import("./pages/Clients"));
 const ClientDetail = lazy(() => import("./pages/ClientDetail"));
 const Barbers = lazy(() => import("./pages/Barbers"));
 const Services = lazy(() => import("./pages/Services"));
+const ServiceCategories = lazy(() => import("./pages/ServiceCategories"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Settings = lazy(() => import("./pages/Settings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -78,6 +79,7 @@ const App = () => (
                   <Route path="/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
                   <Route path="/barbers" element={<AdminRoute><Barbers /></AdminRoute>} />
                   <Route path="/services" element={<AdminRoute><Services /></AdminRoute>} />
+                  <Route path="/service-categories" element={<AdminRoute><ServiceCategories /></AdminRoute>} />
                   <Route path="/reports" element={<AdminRoute><Reports /></AdminRoute>} />
                   <Route path="/billing" element={<AdminRoute><Billing /></AdminRoute>} />
                   <Route path="/settings" element={<Settings />} />

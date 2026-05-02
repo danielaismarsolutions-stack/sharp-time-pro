@@ -20,7 +20,7 @@ export default function Privacy() {
         <h2 className="text-xl font-semibold">2. Datos que recopilamos</h2>
         <p>En función de su interacción con la Plataforma, podemos recopilar:</p>
 
-        <h3 className="text-lg font-medium mt-4">2.1. Datos de usuarios del sistema (barberos y administradores)</h3>
+        <h3 className="text-lg font-medium mt-4">2.1. Datos de usuarios del sistema (estilistas y administradores)</h3>
         <ul className="list-disc pl-6 space-y-1">
           <li>Nombre completo, dirección de correo electrónico, número de teléfono.</li>
           <li>Fotografía de perfil (avatar) si se proporciona voluntariamente.</li>
