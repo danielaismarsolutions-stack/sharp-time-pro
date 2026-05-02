@@ -24,7 +24,7 @@ import { Service } from '@/types';
 import { Barber } from '@/types/barber';
 import { useToast } from '@/hooks/use-toast';
 import ServicePhotoUpload from '@/components/services/ServicePhotoUpload';
-import { SERVICE_CATEGORIES } from '@/constants/serviceCategories';
+import { useServiceCategories } from '@/hooks/useQueryHooks';
 
 interface ServiceModalProps {
   open: boolean;
@@ -69,6 +69,7 @@ export default function ServiceModal({
   barbers = [],
 }: ServiceModalProps) {
   const { toast } = useToast();
+  const { data: serviceCategories = [] } = useServiceCategories(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
@@ -322,8 +323,8 @@ export default function ServiceModal({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">— Sin categoría —</SelectItem>
-                {SERVICE_CATEGORIES.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
+                {serviceCategories.map((cat) => (
+                  <SelectItem key={cat.slug} value={cat.slug}>
                     {cat.label}
                   </SelectItem>
                 ))}
