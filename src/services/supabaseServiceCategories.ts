@@ -2,13 +2,15 @@
 // CRUD for editable service categories per business
 
 import { SUPABASE_CONFIG } from '@/config/api';
-import { getAuthHeaders } from '@/lib/supabase';
+import { getAuthHeaders, supabase } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
 
 export interface ServiceCategory {
   id: string;
   slug: string;
   label: string;
+  subtitle: string | null;
+  photoUrl: string | null;
   displayOrder: number;
   isActive: boolean;
 }
@@ -18,6 +20,8 @@ interface DbCategory {
   business_id: string;
   slug: string;
   label: string;
+  subtitle: string | null;
+  photo_url: string | null;
   display_order: number;
   is_active: boolean;
   created_at: string;
@@ -29,6 +33,8 @@ function mapDb(c: DbCategory): ServiceCategory {
     id: c.id,
     slug: c.slug,
     label: c.label,
+    subtitle: c.subtitle ?? null,
+    photoUrl: c.photo_url ?? null,
     displayOrder: c.display_order,
     isActive: c.is_active,
   };
@@ -74,7 +80,7 @@ export const supabaseServiceCategoriesApi = {
     return data.map(mapDb);
   },
 
-  create: async (input: { label: string; slug?: string; displayOrder?: number }): Promise<ServiceCategory> => {
+  create: async (input: { label: string; slug?: string; subtitle?: string | null; displayOrder?: number }): Promise<ServiceCategory> => {
     const slug = (input.slug && input.slug.trim()) ? slugify(input.slug) : slugify(input.label);
     if (!slug) throw new Error('No se pudo generar el identificador de la categoría');
 
@@ -82,6 +88,7 @@ export const supabaseServiceCategoriesApi = {
       business_id: getBusinessId(),
       slug,
       label: input.label.trim(),
+      subtitle: input.subtitle?.trim() || null,
       display_order: input.displayOrder ?? 999,
       is_active: true,
     };
@@ -92,9 +99,14 @@ export const supabaseServiceCategoriesApi = {
     return mapDb(data[0]);
   },
 
-  update: async (id: string, updates: Partial<Pick<ServiceCategory, 'label' | 'isActive' | 'displayOrder'>>): Promise<ServiceCategory> => {
+  update: async (
+    id: string,
+    updates: Partial<Pick<ServiceCategory, 'label' | 'subtitle' | 'photoUrl' | 'isActive' | 'displayOrder'>>,
+  ): Promise<ServiceCategory> => {
     const body: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (updates.label !== undefined) body.label = updates.label.trim();
+    if (updates.subtitle !== undefined) body.subtitle = updates.subtitle?.trim() || null;
+    if (updates.photoUrl !== undefined) body.photo_url = updates.photoUrl;
     if (updates.isActive !== undefined) body.is_active = updates.isActive;
     if (updates.displayOrder !== undefined) body.display_order = updates.displayOrder;
 
@@ -120,6 +132,31 @@ export const supabaseServiceCategoriesApi = {
       })
     );
     await Promise.all(updates);
+  },
+
+  /**
+   * Upload a cover photo to Supabase Storage and update photo_url.
+   * Bucket: services_photos, path: {businessId}/categories/{slug}.{ext}
+   */
+  uploadPhoto: async (categoryId: string, slug: string, file: File): Promise<string> => {
+    const businessId = getBusinessId();
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const filePath = `${businessId}/categories/${slug}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('services_photos')
+      .upload(filePath, file, { cacheControl: '3600', upsert: true, contentType: file.type });
+    if (uploadError) throw new Error(`Error al subir foto: ${uploadError.message}`);
+
+    const { data: { publicUrl } } = supabase.storage.from('services_photos').getPublicUrl(filePath);
+    const url = `${publicUrl}?t=${Date.now()}`;
+
+    await supabaseServiceCategoriesApi.update(categoryId, { photoUrl: url });
+    return url;
+  },
+
+  removePhoto: async (categoryId: string): Promise<void> => {
+    await supabaseServiceCategoriesApi.update(categoryId, { photoUrl: null });
   },
 };
 
