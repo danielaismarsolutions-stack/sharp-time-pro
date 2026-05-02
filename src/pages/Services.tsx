@@ -23,7 +23,9 @@ import {
   List,
   RefreshCw,
   Loader2,
+  Tag,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -45,6 +47,7 @@ import { uploadServicePhoto } from '@/utils/uploadServicePhoto';
 
 export default function Services() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const { user } = useAuth();
   const { data: queryServices = [], isLoading: isQueryLoading, refetch: refetchServices } = useServicesQuery(true);
@@ -373,6 +376,15 @@ export default function Services() {
             className="min-h-[44px] min-w-[44px]"
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/service-categories')}
+            className="min-h-[44px]"
+          >
+            <Tag className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Categorías</span>
+            <span className="sm:hidden">Cat.</span>
           </Button>
           <Button onClick={() => setIsModalOpen(true)} className="min-h-[44px]">
             <Plus className="h-4 w-4 mr-2" />
