@@ -255,7 +255,7 @@ function MonthBookingCard({ booking, colorClasses, isMobile, onClick }: MonthBoo
             <p className="font-semibold">{booking.client_name}</p>
             <p className="text-sm opacity-80">{booking.service_name}</p>
             {booking.barber && (
-              <p className="text-sm opacity-70">Barbero: {booking.barber}</p>
+              <p className="text-sm opacity-70">Estilista: {booking.barber}</p>
             )}
           </div>
         </TooltipContent>
@@ -319,7 +319,7 @@ function MonthEventCard({ event, isMobile, onClick }: MonthEventCardProps) {
               <p className="text-sm opacity-80">{event.location}</p>
             )}
             {event.barber && (
-              <p className="text-sm opacity-70">Barbero: {event.barber}</p>
+              <p className="text-sm opacity-70">Estilista: {event.barber}</p>
             )}
           </div>
         </TooltipContent>

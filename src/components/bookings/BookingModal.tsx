@@ -515,13 +515,13 @@ export default function BookingModal({
 
           {/* Barber Selection */}
           <div className="space-y-1">
-            <Label className="text-xs font-medium">Barbero</Label>
+            <Label className="text-xs font-medium">Estilista</Label>
             <Select
               value={formData.barberId || 'none'}
               onValueChange={(value) => setFormData({ ...formData, barberId: value === 'none' ? '' : value })}
             >
               <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="Selecciona un barbero (opcional)" />
+                <SelectValue placeholder="Selecciona un estilista (opcional)" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Sin asignar</SelectItem>
@@ -552,7 +552,7 @@ export default function BookingModal({
                     <CalendarIcon className="mr-1.5 h-3 w-3 shrink-0" />
                     <span className="truncate">
                       {!isSlotCreation && !formData.barberId
-                        ? 'Barbero primero'
+                        ? 'Estilista primero'
                         : date
                           ? format(date, "d 'de' MMM yyyy", { locale: es })
                           : 'Selecciona fecha'}
@@ -585,7 +585,7 @@ export default function BookingModal({
                 )}>
                   <SelectValue placeholder={
                     !isSlotCreation && !formData.barberId
-                      ? 'Barbero'
+                      ? 'Estilista'
                       : !date
                         ? 'Fecha'
                         : availableTimeSlots.length === 0

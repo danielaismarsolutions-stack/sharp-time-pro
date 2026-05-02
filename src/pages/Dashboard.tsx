@@ -415,7 +415,7 @@ export default function Dashboard() {
                 isMobile ? "text-sm" : "text-lg"
               )}>
                 <Scissors className={cn(isMobile ? "h-4 w-4" : "h-5 w-5")} />
-                Por Barbero
+                Por Estilista
               </CardTitle>
             </CardHeader>
             <CardContent className={cn(isMobile ? "px-4 pb-3 pt-0" : "p-6 pt-0")}>
@@ -556,7 +556,7 @@ export default function Dashboard() {
                     {/* Barber Filter */}
                     <Select value={barberFilter} onValueChange={setBarberFilter}>
                       <SelectTrigger className="flex-1 h-10 text-sm">
-                        <SelectValue placeholder="Barbero" />
+                        <SelectValue placeholder="Estilista" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border shadow-lg z-50">
                         <SelectItem value="all">Todos</SelectItem>
@@ -614,10 +614,10 @@ export default function Dashboard() {
                 {/* Barber Filter */}
                 <Select value={barberFilter} onValueChange={setBarberFilter}>
                   <SelectTrigger className="w-full sm:w-[160px] h-10">
-                    <SelectValue placeholder="Barbero" />
+                    <SelectValue placeholder="Estilista" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border shadow-lg z-50">
-                    <SelectItem value="all">Todos los barberos</SelectItem>
+                    <SelectItem value="all">Todos los estilistas</SelectItem>
                     {uniqueBarbers.map((barber) => (
                       <SelectItem key={barber} value={barber}>{barber}</SelectItem>
                     ))}
@@ -681,7 +681,7 @@ export default function Dashboard() {
                         onClick={() => handleSort('barber')}
                       >
                         <div className="flex items-center gap-1">
-                          Barbero
+                          Estilista
                           <ArrowUpDown className={cn("h-3 w-3", sortField === 'barber' && "text-primary")} />
                         </div>
                       </TableHead>

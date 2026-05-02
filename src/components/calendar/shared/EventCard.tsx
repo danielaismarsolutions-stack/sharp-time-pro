@@ -137,7 +137,7 @@ export function EventCard({
                 <p className="text-sm opacity-80">{event.location}</p>
               )}
               {event.barber && (
-                <p className="text-sm opacity-70">Barbero: {event.barber}</p>
+                <p className="text-sm opacity-70">Estilista: {event.barber}</p>
               )}
               {event.repeat !== 'none' && (
                 <p className="text-sm opacity-70">

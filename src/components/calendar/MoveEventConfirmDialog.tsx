@@ -94,7 +94,7 @@ export function MoveEventConfirmDialog({
             <div className="min-w-0">
               <p className="font-semibold text-sm truncate">{event.name}</p>
               <p className="text-xs text-muted-foreground truncate">
-                {event.barber ? `Barbero: ${event.barber}` : 'Evento'}
+                {event.barber ? `Estilista: ${event.barber}` : 'Evento'}
                 {event.location && ` - ${event.location}`}
               </p>
             </div>

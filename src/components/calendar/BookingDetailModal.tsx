@@ -203,7 +203,7 @@ export function BookingDetailModal({
                   </div>
                   <div>
                     <p className="text-xs font-medium">{currentBooking.barber}</p>
-                    <p className="text-[10px] text-muted-foreground">Barbero</p>
+                    <p className="text-[10px] text-muted-foreground">Estilista</p>
                   </div>
                 </div>
               )}
