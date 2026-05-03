@@ -20,6 +20,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { CurrentTimeIndicator } from './CurrentTimeIndicator';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 
 interface WeekViewProps {
   currentDate: Date;
@@ -284,6 +285,7 @@ const getInitials = (name: string): string => {
 };
 
 function WeekBookingCard({ booking, style, colorClasses, overlapInfo, onClick }: WeekBookingCardProps) {
+  const staffTerms = useStaffTerms();
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
   const adaptiveStyles = getAdaptiveStyles(style.height, overlapInfo.total);
@@ -359,7 +361,7 @@ function WeekBookingCard({ booking, style, colorClasses, overlapInfo, onClick }:
               <p className="font-semibold">{booking.client_name}</p>
               <p className="text-sm opacity-80">{booking.service_name}</p>
               {booking.barber && (
-                <p className="text-sm opacity-70">Estilista: {booking.barber}</p>
+                <p className="text-sm opacity-70">{staffTerms.singularCap}: {booking.barber}</p>
               )}
               <p className="text-sm font-semibold">€{booking.service_price}</p>
             </div>

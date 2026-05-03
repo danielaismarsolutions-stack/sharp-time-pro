@@ -39,6 +39,7 @@ import { Booking, Client, Service } from '@/types';
 import { ApiBooking } from '@/types/api';
 import { Barber, BarberSchedule } from '@/types/barber';
 import { useToast } from '@/hooks/use-toast';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 import ClientModal from '@/components/clients/ClientModal';
 import { supabaseBookingsApi } from '@/services/supabaseBookings';
 
@@ -100,6 +101,7 @@ export default function BookingModal({
   preselectedBarberName,
 }: BookingModalProps) {
   const { toast } = useToast();
+  const staffTerms = useStaffTerms();
   const [isLoading, setIsLoading] = useState(false);
   const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
@@ -515,13 +517,13 @@ export default function BookingModal({
 
           {/* Barber Selection */}
           <div className="space-y-1">
-            <Label className="text-xs font-medium">Estilista</Label>
+            <Label className="text-xs font-medium">{staffTerms.singularCap}</Label>
             <Select
               value={formData.barberId || 'none'}
               onValueChange={(value) => setFormData({ ...formData, barberId: value === 'none' ? '' : value })}
             >
               <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="Selecciona un estilista (opcional)" />
+                <SelectValue placeholder={`Selecciona un ${staffTerms.singular} (opcional)`} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Sin asignar</SelectItem>
@@ -552,7 +554,7 @@ export default function BookingModal({
                     <CalendarIcon className="mr-1.5 h-3 w-3 shrink-0" />
                     <span className="truncate">
                       {!isSlotCreation && !formData.barberId
-                        ? 'Estilista primero'
+                        ? `${staffTerms.singularCap} primero`
                         : date
                           ? format(date, "d 'de' MMM yyyy", { locale: es })
                           : 'Selecciona fecha'}
@@ -585,7 +587,7 @@ export default function BookingModal({
                 )}>
                   <SelectValue placeholder={
                     !isSlotCreation && !formData.barberId
-                      ? 'Estilista'
+                      ? staffTerms.singularCap
                       : !date
                         ? 'Fecha'
                         : availableTimeSlots.length === 0

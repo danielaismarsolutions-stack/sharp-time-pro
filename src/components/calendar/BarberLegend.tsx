@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { pastelColors } from './shared/colorUtils';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 
 interface BarberLegendProps {
   barberNames: string[];
@@ -15,6 +16,7 @@ const getBarberColor = (barberName: string, allBarbers: string[]) => {
 };
 
 export function BarberLegend({ barberNames, floating = false }: BarberLegendProps) {
+  const staffTerms = useStaffTerms();
   const barberColors = useMemo(() => {
     const sortedBarbers = [...barberNames].sort();
     return sortedBarbers.map((name) => ({
@@ -55,7 +57,7 @@ export function BarberLegend({ barberNames, floating = false }: BarberLegendProp
   return (
     <div className="px-2 md:px-4 py-3 border-t border-border bg-card rounded-b-lg">
       <p className="text-xs font-medium text-muted-foreground mb-2">
-        Colores por estilista
+        Colores por {staffTerms.singular}
       </p>
       <div className="flex flex-wrap gap-1.5 sm:gap-2">
         {barberColors.map(({ name, colors }) => (

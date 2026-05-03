@@ -9,6 +9,7 @@ import {
   CalendarDays,
 } from 'lucide-react';
 import { ApiCalendarEvent } from '@/types/api';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -62,6 +63,7 @@ export function MoveEventConfirmDialog({
   onCancel,
   isLoading = false,
 }: MoveEventConfirmDialogProps) {
+  const staffTerms = useStaffTerms();
   if (!details) return null;
 
   const { event, oldDate, oldStartTime, oldEndTime, newDate, newStartTime, newEndTime } = details;
@@ -94,7 +96,7 @@ export function MoveEventConfirmDialog({
             <div className="min-w-0">
               <p className="font-semibold text-sm truncate">{event.name}</p>
               <p className="text-xs text-muted-foreground truncate">
-                {event.barber ? `Estilista: ${event.barber}` : 'Evento'}
+                {event.barber ? `${staffTerms.singularCap}: ${event.barber}` : 'Evento'}
                 {event.location && ` - ${event.location}`}
               </p>
             </div>

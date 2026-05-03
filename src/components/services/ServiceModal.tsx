@@ -23,6 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Service } from '@/types';
 import { Barber } from '@/types/barber';
 import { useToast } from '@/hooks/use-toast';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 import ServicePhotoUpload from '@/components/services/ServicePhotoUpload';
 import { useServiceCategories } from '@/hooks/useQueryHooks';
 
@@ -69,6 +70,7 @@ export default function ServiceModal({
   barbers = [],
 }: ServiceModalProps) {
   const { toast } = useToast();
+  const staffTerms = useStaffTerms();
   const { data: serviceCategories = [] } = useServiceCategories(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -453,7 +455,7 @@ export default function ServiceModal({
           {/* Barber Assignment */}
           {barbers.length > 0 && (
             <div className="space-y-1">
-              <Label className="text-xs">Estilistas asignados</Label>
+              <Label className="text-xs">{staffTerms.pluralCap} asignados</Label>
               <div className="border rounded-lg p-2 max-h-32 overflow-y-auto space-y-1.5">
                 <div className="flex items-center justify-between pb-1 border-b">
                   <span className="text-[10px] text-muted-foreground">

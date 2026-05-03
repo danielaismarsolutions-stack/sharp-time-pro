@@ -11,6 +11,7 @@ import { Loader2 } from 'lucide-react';
 import AvatarUpload from './AvatarUpload';
 import { supabaseStorageApi } from '@/services/supabaseStorage';
 import { useToast } from '@/hooks/use-toast';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 
 interface BarberModalProps {
   open: boolean;
@@ -32,6 +33,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
   const [deleteAvatar, setDeleteAvatar] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const { toast } = useToast();
+  const staffTerms = useStaffTerms();
 
   const isCreating = !barber;
 
@@ -83,7 +85,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
         } catch (uploadError: unknown) {
           toast({
             title: 'Error',
-            description: 'No se pudo subir la foto, pero el estilista se guardará sin ella',
+            description: `No se pudo subir la foto, pero el ${staffTerms.singular} se guardará sin ella`,
             variant: 'destructive',
           });
         } finally {
@@ -118,7 +120,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{barber ? 'Editar Estilista' : 'Nuevo Estilista'}</DialogTitle>
+          <DialogTitle>{barber ? `Editar ${staffTerms.singularCap}` : `Nuevo ${staffTerms.singularCap}`}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1">
@@ -127,7 +129,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Nombre del estilista"
+              placeholder={`Nombre del ${staffTerms.singular}`}
               required
               className="h-8 text-xs"
             />
@@ -181,7 +183,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="barber">Estilista</SelectItem>
+                  <SelectItem value="barber">{staffTerms.singularCap}</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
                 </SelectContent>
               </Select>
@@ -205,7 +207,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
               id="bio"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              placeholder="Descripción breve del estilista..."
+              placeholder={`Descripción breve del ${staffTerms.singular}...`}
               rows={2}
               className="text-xs"
             />

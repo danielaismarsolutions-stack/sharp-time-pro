@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBusinessBrand } from '@/contexts/BusinessBrandContext';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 import { useTimeTrackingSettings } from '@/hooks/useQueryHooks';
 import { cn } from '@/lib/utils';
 
@@ -69,13 +70,16 @@ export function MobileDrawerMenu({
   const location = useLocation();
   const { logout, user, isAdmin } = useAuth();
   const { brand } = useBusinessBrand();
+  const staffTerms = useStaffTerms();
   const { data: timeTrackingSettings } = useTimeTrackingSettings();
 
-  const navItems = allNavItems.filter(item => {
-    if (item.adminOnly && !isAdmin) return false;
-    if (item.requiresTimeTracking && !timeTrackingSettings?.timeTrackingEnabled) return false;
-    return true;
-  });
+  const navItems = allNavItems
+    .map(item => (item.path === '/barbers' ? { ...item, label: staffTerms.pluralCap } : item))
+    .filter(item => {
+      if (item.adminOnly && !isAdmin) return false;
+      if (item.requiresTimeTracking && !timeTrackingSettings?.timeTrackingEnabled) return false;
+      return true;
+    });
 
   const handleNavClick = () => {
     onOpenChange(false);

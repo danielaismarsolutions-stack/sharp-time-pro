@@ -6,6 +6,7 @@ import { Clock, User, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ApiBooking } from '@/types/api';
 import { ColorClasses, OverlapInfo } from './types';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 import {
   Tooltip,
   TooltipContent,
@@ -174,6 +175,7 @@ export function BookingCard({
   isMobile = false,
   isPendingMove = false,
 }: BookingCardProps) {
+  const staffTerms = useStaffTerms();
   const { total, index } = overlapInfo;
 
   // Drag and drop setup
@@ -233,7 +235,7 @@ export function BookingCard({
               <p className="font-semibold">{booking.client_name}</p>
               <p className="text-sm opacity-80">{booking.service_name}</p>
               {booking.barber && (
-                <p className="text-sm opacity-70">Estilista: {booking.barber}</p>
+                <p className="text-sm opacity-70">{staffTerms.singularCap}: {booking.barber}</p>
               )}
             </div>
           </TooltipContent>

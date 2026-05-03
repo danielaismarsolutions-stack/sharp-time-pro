@@ -3,6 +3,7 @@ import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, isT
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 import {
   Select,
   SelectContent,
@@ -32,6 +33,7 @@ export function CalendarNav({
   selectedBarber,
   onBarberChange,
 }: CalendarNavProps) {
+  const staffTerms = useStaffTerms();
   const goToPrevious = () => {
     let newDate: Date;
     if (view === 'month') newDate = subMonths(currentDate, 1);
@@ -125,7 +127,7 @@ export function CalendarNav({
           >
             <SelectTrigger className="w-[140px] sm:w-[180px]">
               <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Estilista" />
+              <SelectValue placeholder={staffTerms.singularCap} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
