@@ -95,6 +95,7 @@ export default function ServiceModal({
       setPendingPhotoFile(null);
       if (localPhotoUrl) URL.revokeObjectURL(localPhotoUrl);
       setLocalPhotoUrl(null);
+      const singleCategorySlug = serviceCategories.length === 1 ? serviceCategories[0].slug : '';
       if (service) {
         setFormData({
           name: service.name,
@@ -106,7 +107,7 @@ export default function ServiceModal({
           bufferBefore: service.bufferBefore || 0,
           bufferAfter: service.bufferAfter || 5,
           isConsultation: service.isConsultation ?? false,
-          category: service.category ?? '',
+          category: serviceCategories.length <= 1 ? singleCategorySlug : (service.category ?? ''),
         });
         setPriceInput(service.price ? String(service.price) : '');
         setSelectedBarberIds(service.barberIds ?? barbers.map(b => b.id));
@@ -121,13 +122,13 @@ export default function ServiceModal({
           bufferBefore: 0,
           bufferAfter: 5,
           isConsultation: false,
-          category: '',
+          category: singleCategorySlug,
         });
         setPriceInput('');
         setSelectedBarberIds(barbers.map(b => b.id));
       }
     }
-  }, [service, open]);
+  }, [service, open, serviceCategories]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -312,28 +313,30 @@ export default function ServiceModal({
             )}
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs">Categoría web</Label>
-            <Select
-              value={formData.category || 'none'}
-              onValueChange={(value) => setFormData({ ...formData, category: value === 'none' ? '' : value })}
-            >
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">— Sin categoría —</SelectItem>
-                {serviceCategories.map((cat) => (
-                  <SelectItem key={cat.slug} value={cat.slug}>
-                    {cat.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-[10px] text-muted-foreground">
-              Agrupa el servicio en la web pública. Sin categoría, el servicio no aparece en reservas online.
-            </p>
-          </div>
+          {serviceCategories.length > 1 && (
+            <div className="space-y-1">
+              <Label className="text-xs">Categoría web</Label>
+              <Select
+                value={formData.category || 'none'}
+                onValueChange={(value) => setFormData({ ...formData, category: value === 'none' ? '' : value })}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Sin categoría —</SelectItem>
+                  {serviceCategories.map((cat) => (
+                    <SelectItem key={cat.slug} value={cat.slug}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                Agrupa el servicio en la web pública. Sin categoría, el servicio no aparece en reservas online.
+              </p>
+            </div>
+          )}
 
           <div className="space-y-1">
             <Label className="text-xs">Descripción</Label>
