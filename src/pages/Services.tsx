@@ -223,7 +223,7 @@ export default function Services() {
     // Optimistic update
     setTogglingId(service.id);
     setServices((prev) =>
-      prev.map((s) => s.id === service.id ? { ...s, isActive: newStatus } : s)
+      (prev ?? queryServices).map((s) => s.id === service.id ? { ...s, isActive: newStatus } : s)
     );
 
     try {
@@ -275,7 +275,7 @@ export default function Services() {
     if (!confirmed) return;
 
     // Optimistic update
-    setServices((prev) => prev.map((s) => s.id === id ? { ...s, isActive: false } : s));
+    setServices((prev) => (prev ?? queryServices).map((s) => s.id === id ? { ...s, isActive: false } : s));
 
     try {
       await supabaseServicesApi.delete(id);
@@ -529,7 +529,7 @@ export default function Services() {
         barbers={barbers}
         onPhotoChange={(serviceId, photoUrl) => {
           setServices((prev) =>
-            prev.map((s) => s.id === serviceId ? { ...s, servicePhoto: photoUrl } : s)
+            (prev ?? queryServices).map((s) => s.id === serviceId ? { ...s, servicePhoto: photoUrl } : s)
           );
           if (editingService?.id === serviceId) {
             setEditingService((prev) => prev ? { ...prev, servicePhoto: photoUrl } : prev);
