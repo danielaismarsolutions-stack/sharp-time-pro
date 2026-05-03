@@ -4,9 +4,12 @@ import { getAuthHeaders } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
+export type StaffTerminology = 'barberos' | 'estilistas';
+
 interface BusinessBrand {
   businessName: string;
   logoUrl: string | null;
+  staffTerminology: StaffTerminology;
 }
 
 interface BusinessBrandContextType {
@@ -16,9 +19,16 @@ interface BusinessBrandContextType {
   updateBusinessName: (name: string) => void;
 }
 
+const DEFAULT_STAFF_TERMINOLOGY: StaffTerminology = 'barberos';
+
+function normalizeStaffTerminology(value: unknown): StaffTerminology {
+  return value === 'estilistas' ? 'estilistas' : DEFAULT_STAFF_TERMINOLOGY;
+}
+
 const defaultBrand: BusinessBrand = {
   businessName: '',
   logoUrl: null,
+  staffTerminology: DEFAULT_STAFF_TERMINOLOGY,
 };
 
 const BusinessBrandContext = createContext<BusinessBrandContextType | undefined>(undefined);
@@ -37,7 +47,7 @@ export function BusinessBrandProvider({ children }: { children: ReactNode }) {
 
     try {
       const headers = await getAuthHeaders();
-      const url = `${SUPABASE_CONFIG.url}/rest/v1/businesses?id=eq.${user.businessId}&select=business_name,logo_url`;
+      const url = `${SUPABASE_CONFIG.url}/rest/v1/businesses?id=eq.${user.businessId}&select=business_name,logo_url,staff_terminology`;
       const res = await fetch(url, { headers });
 
       if (res.ok) {
@@ -46,6 +56,7 @@ export function BusinessBrandProvider({ children }: { children: ReactNode }) {
           setBrand({
             businessName: rows[0].business_name ?? '',
             logoUrl: rows[0].logo_url ?? null,
+            staffTerminology: normalizeStaffTerminology(rows[0].staff_terminology),
           });
         }
       }
@@ -79,6 +90,7 @@ export function BusinessBrandProvider({ children }: { children: ReactNode }) {
           setBrand({
             businessName: (row.business_name as string) ?? '',
             logoUrl: (row.logo_url as string) ?? null,
+            staffTerminology: normalizeStaffTerminology(row.staff_terminology),
           });
         }
       )

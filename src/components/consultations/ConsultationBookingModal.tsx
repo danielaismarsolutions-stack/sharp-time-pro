@@ -30,6 +30,7 @@ import { Consultation } from '@/types/consultation';
 import { Service } from '@/types';
 import { Barber } from '@/types/barber';
 import { useToast } from '@/hooks/use-toast';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 import { supabaseBookingsApi, CreateBookingData } from '@/services/supabaseBookings';
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
@@ -62,6 +63,7 @@ export function ConsultationBookingModal({
 }: ConsultationBookingModalProps) {
   const { toast } = useToast();
   const { user } = useAuth();
+  const staffTerms = useStaffTerms();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
@@ -412,14 +414,14 @@ export function ConsultationBookingModal({
             <div className="space-y-1">
               <Label className="flex items-center gap-1.5 text-xs">
                 <User className="h-3 w-3" />
-                Estilista
+                {staffTerms.singularCap}
               </Label>
               <Select
                 value={formData.barberId || 'none'}
                 onValueChange={(value) => setFormData({ ...formData, barberId: value === 'none' ? '' : value })}
               >
                 <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Selecciona un estilista (opcional)" />
+                  <SelectValue placeholder={`Selecciona un ${staffTerms.singular} (opcional)`} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Sin asignar</SelectItem>
@@ -544,7 +546,7 @@ export function ConsultationBookingModal({
                 </div>
                 {selectedBarber && (
                   <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>Estilista</span>
+                    <span>{staffTerms.singularCap}</span>
                     <span>{selectedBarber.name}</span>
                   </div>
                 )}

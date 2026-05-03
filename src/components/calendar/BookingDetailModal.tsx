@@ -30,6 +30,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { StatusBadge, BookingStatus } from './StatusBadge';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 import { ApiBooking, ApiPaymentMethod } from '@/types/api';
 import { cn } from '@/lib/utils';
 import {
@@ -65,6 +66,7 @@ export function BookingDetailModal({
   onDelete,
 }: BookingDetailModalProps) {
   const navigate = useNavigate();
+  const staffTerms = useStaffTerms();
 
   // Preserve last valid booking for smooth close animation.
   // Without this, setting booking to null unmounts DialogContent
@@ -203,7 +205,7 @@ export function BookingDetailModal({
                   </div>
                   <div>
                     <p className="text-xs font-medium">{currentBooking.barber}</p>
-                    <p className="text-[10px] text-muted-foreground">Estilista</p>
+                    <p className="text-[10px] text-muted-foreground">{staffTerms.singularCap}</p>
                   </div>
                 </div>
               )}

@@ -15,6 +15,7 @@ import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { pastelColors } from './shared/colorUtils';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 import {
   Tooltip,
   TooltipContent,
@@ -210,6 +211,7 @@ const getInitials = (name: string): string => {
 };
 
 function MonthBookingCard({ booking, colorClasses, isMobile, onClick }: MonthBookingCardProps) {
+  const staffTerms = useStaffTerms();
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
 
@@ -255,7 +257,7 @@ function MonthBookingCard({ booking, colorClasses, isMobile, onClick }: MonthBoo
             <p className="font-semibold">{booking.client_name}</p>
             <p className="text-sm opacity-80">{booking.service_name}</p>
             {booking.barber && (
-              <p className="text-sm opacity-70">Estilista: {booking.barber}</p>
+              <p className="text-sm opacity-70">{staffTerms.singularCap}: {booking.barber}</p>
             )}
           </div>
         </TooltipContent>
@@ -271,6 +273,7 @@ interface MonthEventCardProps {
 }
 
 function MonthEventCard({ event, isMobile, onClick }: MonthEventCardProps) {
+  const staffTerms = useStaffTerms();
   const startTime = event.start_time.substring(0, 5);
   const endTime = event.end_time.substring(0, 5);
 
@@ -319,7 +322,7 @@ function MonthEventCard({ event, isMobile, onClick }: MonthEventCardProps) {
               <p className="text-sm opacity-80">{event.location}</p>
             )}
             {event.barber && (
-              <p className="text-sm opacity-70">Estilista: {event.barber}</p>
+              <p className="text-sm opacity-70">{staffTerms.singularCap}: {event.barber}</p>
             )}
           </div>
         </TooltipContent>

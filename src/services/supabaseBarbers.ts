@@ -275,7 +275,7 @@ export const supabaseBarbersApi = {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'No se pudo crear el estilista');
+      throw new Error(errorData.error || 'No se pudo crear el usuario');
     }
 
     const { user: newBarber } = await response.json();

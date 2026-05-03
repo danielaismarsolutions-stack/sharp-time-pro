@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { ApiBooking } from '@/types/api';
 import { useBookings, useInvalidateQuery } from '@/hooks/useQueryHooks';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 import { cn } from '@/lib/utils';
 import { AnimatedCard } from '@/components/ui/animated-card';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -25,6 +26,7 @@ type StatusFilter = 'all' | 'confirmed' | 'pending' | 'completed' | 'cancelled' 
 export default function Dashboard() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const staffTerms = useStaffTerms();
   // Scope to last 3 months + 1 month ahead instead of fetching all-time bookings
   const dashboardDateRange = useMemo(() => {
     const now = new Date();
@@ -415,7 +417,7 @@ export default function Dashboard() {
                 isMobile ? "text-sm" : "text-lg"
               )}>
                 <Scissors className={cn(isMobile ? "h-4 w-4" : "h-5 w-5")} />
-                Por Estilista
+                Por {staffTerms.singularCap}
               </CardTitle>
             </CardHeader>
             <CardContent className={cn(isMobile ? "px-4 pb-3 pt-0" : "p-6 pt-0")}>
@@ -556,7 +558,7 @@ export default function Dashboard() {
                     {/* Barber Filter */}
                     <Select value={barberFilter} onValueChange={setBarberFilter}>
                       <SelectTrigger className="flex-1 h-10 text-sm">
-                        <SelectValue placeholder="Estilista" />
+                        <SelectValue placeholder={staffTerms.singularCap} />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border shadow-lg z-50">
                         <SelectItem value="all">Todos</SelectItem>
@@ -614,10 +616,10 @@ export default function Dashboard() {
                 {/* Barber Filter */}
                 <Select value={barberFilter} onValueChange={setBarberFilter}>
                   <SelectTrigger className="w-full sm:w-[160px] h-10">
-                    <SelectValue placeholder="Estilista" />
+                    <SelectValue placeholder={staffTerms.singularCap} />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border shadow-lg z-50">
-                    <SelectItem value="all">Todos los estilistas</SelectItem>
+                    <SelectItem value="all">Todos los {staffTerms.plural}</SelectItem>
                     {uniqueBarbers.map((barber) => (
                       <SelectItem key={barber} value={barber}>{barber}</SelectItem>
                     ))}
@@ -681,7 +683,7 @@ export default function Dashboard() {
                         onClick={() => handleSort('barber')}
                       >
                         <div className="flex items-center gap-1">
-                          Estilista
+                          {staffTerms.singularCap}
                           <ArrowUpDown className={cn("h-3 w-3", sortField === 'barber' && "text-primary")} />
                         </div>
                       </TableHead>

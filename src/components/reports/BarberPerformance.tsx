@@ -1,6 +1,7 @@
 import { Users, Scissors, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { BarberMetric } from '@/hooks/useReportsData';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 
 interface BarberPerformanceProps {
   barberMetrics: BarberMetric[];
@@ -77,15 +78,16 @@ function BarberCard({ metric }: { metric: BarberMetric }) {
 }
 
 export default function BarberPerformance({ barberMetrics }: BarberPerformanceProps) {
+  const staffTerms = useStaffTerms();
   if (barberMetrics.length === 0) {
     return (
       <Card className="border-border">
         <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg">Rendimiento por Estilista</CardTitle>
+          <CardTitle className="text-base md:text-lg">Rendimiento por {staffTerms.singularCap}</CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
           <div className="flex items-center justify-center h-[120px] text-muted-foreground text-sm">
-            Sin datos de estilistas para este periodo
+            Sin datos de {staffTerms.plural} para este periodo
           </div>
         </CardContent>
       </Card>
@@ -94,7 +96,7 @@ export default function BarberPerformance({ barberMetrics }: BarberPerformancePr
 
   return (
     <div>
-      <h2 className="text-base md:text-lg font-bold mb-3 md:mb-4">Rendimiento por Estilista</h2>
+      <h2 className="text-base md:text-lg font-bold mb-3 md:mb-4">Rendimiento por {staffTerms.singularCap}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
         {barberMetrics.map(metric => (
           <BarberCard key={metric.barberName} metric={metric} />

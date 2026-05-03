@@ -5,6 +5,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { CalendarDays, MapPin, Repeat, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ApiCalendarEvent } from '@/types/api';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 import {
   Tooltip,
   TooltipContent,
@@ -40,6 +41,7 @@ export function EventCard({
   isMobile = false,
   isPendingMove = false,
 }: EventCardProps) {
+  const staffTerms = useStaffTerms();
   const startTime = event.start_time.substring(0, 5);
   const endTime = event.end_time.substring(0, 5);
   const colorStyle = hexToStyle(event.color || '#d1d5db');
@@ -137,7 +139,7 @@ export function EventCard({
                 <p className="text-sm opacity-80">{event.location}</p>
               )}
               {event.barber && (
-                <p className="text-sm opacity-70">Estilista: {event.barber}</p>
+                <p className="text-sm opacity-70">{staffTerms.singularCap}: {event.barber}</p>
               )}
               {event.repeat !== 'none' && (
                 <p className="text-sm opacity-70">

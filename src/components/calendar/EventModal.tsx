@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { Barber } from '@/types/barber';
 import { ApiCalendarEvent, ApiEventRepeat } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
+import { useStaffTerms } from '@/hooks/useStaffTerms';
 
 // ==================== Constants ====================
 
@@ -99,6 +100,7 @@ export function EventModal({
   defaultBarberId,
 }: EventModalProps) {
   const { toast } = useToast();
+  const staffTerms = useStaffTerms();
   const [isLoading, setIsLoading] = useState(false);
   const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
   const [formData, setFormData] = useState({
@@ -379,7 +381,7 @@ export function EventModal({
           {/* Barber */}
           <div className="space-y-1">
             <Label className="text-xs font-medium">
-              Estilista{' '}
+              {staffTerms.singularCap}{' '}
               <span className="text-muted-foreground font-normal">
                 (opcional)
               </span>
