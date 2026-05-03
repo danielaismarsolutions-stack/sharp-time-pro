@@ -39,6 +39,7 @@ interface ServiceModalProps {
 
 // Duration options based on barbershop needs
 const durationOptions = [15, 20, 25, 30, 40, 45, 60, 90];
+const CUSTOM_DURATION_VALUE = 'custom';
 
 const colorOptions = [
   '#3b82f6', // blue
@@ -78,6 +79,8 @@ export default function ServiceModal({
   const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null);
   const [priceInput, setPriceInput] = useState('');
   const [selectedBarberIds, setSelectedBarberIds] = useState<string[]>([]);
+  const [customDurationMode, setCustomDurationMode] = useState(false);
+  const [customDurationInput, setCustomDurationInput] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -113,6 +116,9 @@ export default function ServiceModal({
         });
         setPriceInput(service.price ? String(service.price) : '');
         setSelectedBarberIds(service.barberIds ?? barbers.map(b => b.id));
+        const isCustom = !durationOptions.includes(service.duration);
+        setCustomDurationMode(isCustom);
+        setCustomDurationInput(isCustom ? String(service.duration) : '');
       } else {
         setFormData({
           name: '',
@@ -128,6 +134,8 @@ export default function ServiceModal({
         });
         setPriceInput('');
         setSelectedBarberIds(barbers.map(b => b.id));
+        setCustomDurationMode(false);
+        setCustomDurationInput('');
       }
     }
   }, [service, open, serviceCategories]);
@@ -150,8 +158,8 @@ export default function ServiceModal({
         newErrors.price = 'El precio debe ser mayor o igual a 0';
       }
 
-      if (!durationOptions.includes(formData.duration)) {
-        newErrors.duration = 'Selecciona una duración válida';
+      if (!Number.isInteger(formData.duration) || formData.duration < 1) {
+        newErrors.duration = 'La duración debe ser un número entero mayor que 0';
       }
     }
     
@@ -359,24 +367,72 @@ export default function ServiceModal({
                   <Clock className="h-3 w-3" />
                   Duración *
                 </Label>
-                <Select
-                  value={formData.duration.toString()}
-                  onValueChange={(value) => {
-                    setFormData({ ...formData, duration: parseInt(value) });
-                    if (errors.duration) setErrors({ ...errors, duration: undefined });
-                  }}
-                >
-                  <SelectTrigger className={cn("h-8 text-xs", errors.duration && 'border-destructive')}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {durationOptions.map((d) => (
-                      <SelectItem key={d} value={d.toString()}>
-                        {d} min
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {customDurationMode ? (
+                  <div className="flex gap-1.5">
+                    <div className="relative flex-1">
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        step={1}
+                        placeholder="Minutos"
+                        value={customDurationInput}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          setCustomDurationInput(raw);
+                          const parsed = parseInt(raw, 10);
+                          if (Number.isFinite(parsed) && parsed > 0) {
+                            setFormData({ ...formData, duration: parsed });
+                            if (errors.duration) setErrors({ ...errors, duration: undefined });
+                          }
+                        }}
+                        className={cn("h-8 text-xs pr-9", errors.duration && 'border-destructive')}
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">
+                        min
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-[10px] px-2"
+                      onClick={() => {
+                        setCustomDurationMode(false);
+                        setCustomDurationInput('');
+                        setFormData({ ...formData, duration: 30 });
+                        if (errors.duration) setErrors({ ...errors, duration: undefined });
+                      }}
+                    >
+                      Presets
+                    </Button>
+                  </div>
+                ) : (
+                  <Select
+                    value={formData.duration.toString()}
+                    onValueChange={(value) => {
+                      if (value === CUSTOM_DURATION_VALUE) {
+                        setCustomDurationMode(true);
+                        setCustomDurationInput(formData.duration ? String(formData.duration) : '');
+                        return;
+                      }
+                      setFormData({ ...formData, duration: parseInt(value) });
+                      if (errors.duration) setErrors({ ...errors, duration: undefined });
+                    }}
+                  >
+                    <SelectTrigger className={cn("h-8 text-xs", errors.duration && 'border-destructive')}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {durationOptions.map((d) => (
+                        <SelectItem key={d} value={d.toString()}>
+                          {d} min
+                        </SelectItem>
+                      ))}
+                      <SelectItem value={CUSTOM_DURATION_VALUE}>Personalizada…</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
                 {errors.duration && (
                   <p className="text-[10px] text-destructive">{errors.duration}</p>
                 )}
