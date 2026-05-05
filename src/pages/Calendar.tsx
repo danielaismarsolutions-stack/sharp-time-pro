@@ -137,11 +137,6 @@ export default function Calendar() {
 
   // Auto-scroll to current time
   const currentHourHeightForScroll = viewMode === 'day' || viewMode === '3day' ? HOUR_HEIGHT_DAY : HOUR_HEIGHT_WEEK;
-  const scrollContainerRef = useAutoScrollToNow(
-    START_HOUR,
-    currentHourHeightForScroll,
-    [viewMode, scrollTrigger]
-  );
   
   // Main container needs to be a fixed height with overflow hidden, header fixed, content scrolls
   // ── React Query data fetching (cached across navigations) ──
@@ -171,6 +166,14 @@ export default function Calendar() {
   const { invalidateBookings, invalidateBarbers, invalidateClients, invalidateServices, invalidateBusinessHours } = useInvalidateQuery();
 
   const isLoading = isLoadingBookings || isLoadingClients || isLoadingServices || isLoadingBarbers || isLoadingHours;
+
+  // Auto-scroll to current time. `isLoading` is in deps so the scroll
+  // re-runs once the calendar mounts after the initial loading spinner.
+  const scrollContainerRef = useAutoScrollToNow(
+    START_HOUR,
+    currentHourHeightForScroll,
+    [viewMode, scrollTrigger, isLoading]
+  );
 
   // Local state for optimistic updates — seeded from query data
   const [localBookings, setLocalBookings] = useState<ApiBooking[] | null>(null);
