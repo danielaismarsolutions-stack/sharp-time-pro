@@ -1141,8 +1141,9 @@ export default function Calendar() {
 
     return (
       <div className="flex flex-1 flex-col relative" {...(isMobile ? swipeHandlers : {})}>
-        {/* Sticky barber header row — stays visible while scrolling vertically */}
-        <div className="flex sticky top-0 z-30 bg-card">
+        {/* Sticky barber header row — stays visible while scrolling vertically.
+            z-40 keeps it above the current-time indicator (z-35). */}
+        <div className="flex sticky top-0 z-40 bg-card">
           <div className="w-16 md:w-20 shrink-0 border-r border-b border-border h-20" />
           <div className="flex-1 flex">
             {!hasBarbers && (
@@ -1193,10 +1194,11 @@ export default function Calendar() {
 
           {/* Barber columns */}
           <div className="flex-1 flex overflow-x-auto">
-            {visibleBarbers.map((barber) => {
+            {visibleBarbers.map((barber, barberIdx) => {
               const barberBookings = dayBookings.filter((b) => b.barber === barber.name);
               const barberEvents = dayEvents.filter((e) => !e.barber || e.barber === barber.name);
               const allItems = [...barberBookings, ...barberEvents];
+              const isFirstColumn = barberIdx === 0;
 
               return (
                 <div
@@ -1286,7 +1288,9 @@ export default function Calendar() {
                     );
                   })}
 
-                  {/* Current time indicator on every column */}
+                  {/* Current time indicator on every column. The time pill
+                      is only rendered on the first column so it appears once
+                      on the left edge of the grid. */}
                   {isToday(currentDate) && (
                     <div className={cn(
                       "transition-opacity duration-200 ease-in-out",
@@ -1297,7 +1301,7 @@ export default function Calendar() {
                         startHour={START_HOUR}
                         endHour={23}
                         hourHeight={HOUR_HEIGHT_DAY}
-                        showTimeLabel={false}
+                        showTimeLabel={isFirstColumn}
                       />
                     </div>
                   )}
