@@ -8,6 +8,8 @@ import StatusAndHoursCharts from '@/components/reports/StatusAndHoursCharts';
 import TopClients from '@/components/reports/TopClients';
 import PaymentMethodChart from '@/components/reports/PaymentMethodChart';
 import BarberPerformance from '@/components/reports/BarberPerformance';
+import PendingRevenueCard from '@/components/reports/PendingRevenueCard';
+import CollectedVsEarnedChart from '@/components/reports/CollectedVsEarnedChart';
 
 export default function Reports() {
   const [period, setPeriod] = useState<Period>('month');
@@ -21,13 +23,19 @@ export default function Reports() {
     );
   }
 
+  const isPaidAtMode = analytics.recognitionMode === 'paid_at';
+
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl md:text-2xl font-bold">Informes</h1>
-          <p className="text-muted-foreground text-sm">Resumen del rendimiento del negocio</p>
+          <p className="text-muted-foreground text-sm">
+            {isPaidAtMode
+              ? 'Facturación basada en la fecha en la que se registra el pago'
+              : 'Resumen del rendimiento del negocio'}
+          </p>
         </div>
         <Tabs value={period} onValueChange={(v) => setPeriod(v as Period)}>
           <TabsList className="h-10">
@@ -41,6 +49,19 @@ export default function Reports() {
 
       {/* KPI Cards */}
       <KpiCards kpis={analytics.kpis} />
+
+      {/* paid_at-only extras: pending balance + collected/earned trend */}
+      {isPaidAtMode && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+          <PendingRevenueCard
+            amount={analytics.pendingRevenue.amount}
+            count={analytics.pendingRevenue.count}
+          />
+          <div className="lg:col-span-2">
+            <CollectedVsEarnedChart data={analytics.collectedVsEarnedTrend} />
+          </div>
+        </div>
+      )}
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">

@@ -5,11 +5,13 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
 export type StaffTerminology = 'barberos' | 'estilistas';
+export type RevenueRecognitionMode = 'booking_date' | 'paid_at';
 
 interface BusinessBrand {
   businessName: string;
   logoUrl: string | null;
   staffTerminology: StaffTerminology;
+  revenueRecognitionMode: RevenueRecognitionMode;
 }
 
 interface BusinessBrandContextType {
@@ -20,15 +22,21 @@ interface BusinessBrandContextType {
 }
 
 const DEFAULT_STAFF_TERMINOLOGY: StaffTerminology = 'barberos';
+const DEFAULT_REVENUE_RECOGNITION_MODE: RevenueRecognitionMode = 'booking_date';
 
 function normalizeStaffTerminology(value: unknown): StaffTerminology {
   return value === 'estilistas' ? 'estilistas' : DEFAULT_STAFF_TERMINOLOGY;
+}
+
+function normalizeRecognitionMode(value: unknown): RevenueRecognitionMode {
+  return value === 'paid_at' ? 'paid_at' : DEFAULT_REVENUE_RECOGNITION_MODE;
 }
 
 const defaultBrand: BusinessBrand = {
   businessName: '',
   logoUrl: null,
   staffTerminology: DEFAULT_STAFF_TERMINOLOGY,
+  revenueRecognitionMode: DEFAULT_REVENUE_RECOGNITION_MODE,
 };
 
 const BusinessBrandContext = createContext<BusinessBrandContextType | undefined>(undefined);
@@ -47,7 +55,7 @@ export function BusinessBrandProvider({ children }: { children: ReactNode }) {
 
     try {
       const headers = await getAuthHeaders();
-      const url = `${SUPABASE_CONFIG.url}/rest/v1/businesses?id=eq.${user.businessId}&select=business_name,logo_url,staff_terminology`;
+      const url = `${SUPABASE_CONFIG.url}/rest/v1/businesses?id=eq.${user.businessId}&select=business_name,logo_url,staff_terminology,revenue_recognition_mode`;
       const res = await fetch(url, { headers });
 
       if (res.ok) {
@@ -57,6 +65,7 @@ export function BusinessBrandProvider({ children }: { children: ReactNode }) {
             businessName: rows[0].business_name ?? '',
             logoUrl: rows[0].logo_url ?? null,
             staffTerminology: normalizeStaffTerminology(rows[0].staff_terminology),
+            revenueRecognitionMode: normalizeRecognitionMode(rows[0].revenue_recognition_mode),
           });
         }
       }
@@ -91,6 +100,7 @@ export function BusinessBrandProvider({ children }: { children: ReactNode }) {
             businessName: (row.business_name as string) ?? '',
             logoUrl: (row.logo_url as string) ?? null,
             staffTerminology: normalizeStaffTerminology(row.staff_terminology),
+            revenueRecognitionMode: normalizeRecognitionMode(row.revenue_recognition_mode),
           });
         }
       )

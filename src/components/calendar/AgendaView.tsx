@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import { format, addDays } from 'date-fns';
+import { format, addDays, parseISO, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Eye } from 'lucide-react';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 import { cn } from '@/lib/utils';
 import { pastelColors } from './shared/colorUtils';
+import { useBusinessBrand } from '@/contexts/BusinessBrandContext';
 
 interface AgendaViewProps {
   currentDate: Date;
@@ -46,6 +47,8 @@ export function AgendaView({
   getEventsForDay,
   onEventClick,
 }: AgendaViewProps) {
+  const { brand } = useBusinessBrand();
+  const recognitionMode = brand.revenueRecognitionMode;
   const sortedBarbers = useMemo(() => [...barberNames].sort(), [barberNames]);
   // Group bookings by day starting from the selected day (7 days total)
   const dayGroups = useMemo<DayGroup[]>(() => {
@@ -68,19 +71,31 @@ export function AgendaView({
     return days;
   }, [currentDate, bookings]);
 
-  // Calculate income for the 7-day window starting from selected day
+  // Calculate income for the 7-day window starting from selected day.
+  // For paid_at businesses we count payments dated within the window so the
+  // figure reflects what the shop actually collected; for booking_date
+  // businesses we keep the legacy completed/confirmed-by-date logic.
   const weeklyIncome = useMemo(() => {
+    if (recognitionMode === 'paid_at') {
+      const windowDates = Array.from({ length: 7 }, (_, i) => addDays(currentDate, i));
+      return bookings.reduce((sum, b) => {
+        if (b.payment_status !== 'paid' || !b.paid_at) return sum;
+        const paidDate = parseISO(b.paid_at);
+        const matches = windowDates.some((d) => isSameDay(d, paidDate));
+        return matches ? sum + (b.service_price || 0) : sum;
+      }, 0);
+    }
+
     const weekDates = Array.from({ length: 7 }, (_, i) =>
       format(addDays(currentDate, i), 'yyyy-MM-dd')
     );
-
     return bookings
       .filter((b) =>
         weekDates.includes(b.booking_date) &&
         (b.status === 'completed' || b.status === 'confirmed')
       )
       .reduce((sum, b) => sum + (b.service_price || 0), 0);
-  }, [currentDate, bookings]);
+  }, [currentDate, bookings, recognitionMode]);
 
   return (
     <div className="flex flex-col h-full min-h-0">

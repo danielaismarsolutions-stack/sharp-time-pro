@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { ApiBooking } from '@/types/api';
 import { useBookings, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { useBusinessBrand } from '@/contexts/BusinessBrandContext';
 import { cn } from '@/lib/utils';
 import { AnimatedCard } from '@/components/ui/animated-card';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -27,6 +28,8 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const staffTerms = useStaffTerms();
+  const { brand } = useBusinessBrand();
+  const recognitionMode = brand.revenueRecognitionMode;
   // Scope to last 3 months + 1 month ahead instead of fetching all-time bookings
   const dashboardDateRange = useMemo(() => {
     const now = new Date();
@@ -163,15 +166,30 @@ export default function Dashboard() {
 
   const hasActiveFilters = searchQuery || statusFilter !== 'all' || barberFilter !== 'all';
 
-  // Calculate stats with today vs yesterday comparison
+  // Calculate stats with today vs yesterday comparison.
+  // For 'paid_at' businesses revenue is recognised when payment is recorded,
+  // so we sum paid bookings by the date their `paid_at` lands on. Otherwise
+  // we keep the legacy behaviour (sum service_price by booking_date).
   const today = new Date();
   const yesterday = subDays(today, 1);
-  
+
   const todayBookings = actualBookings.filter(b => isSameDay(parseISO(b.booking_date), today));
   const yesterdayBookings = actualBookings.filter(b => isSameDay(parseISO(b.booking_date), yesterday));
-  
-  const todayRevenue = todayBookings.reduce((sum, b) => sum + b.service_price, 0);
-  const yesterdayRevenue = yesterdayBookings.reduce((sum, b) => sum + b.service_price, 0);
+
+  const sumRevenueOn = (target: Date): number => {
+    if (recognitionMode === 'paid_at') {
+      return actualBookings.reduce((sum, b) => {
+        if (b.payment_status !== 'paid' || !b.paid_at) return sum;
+        const paidDate = parseISO(b.paid_at);
+        return isSameDay(paidDate, target) ? sum + b.service_price : sum;
+      }, 0);
+    }
+    const sourceList = isSameDay(target, today) ? todayBookings : yesterdayBookings;
+    return sourceList.reduce((sum, b) => sum + b.service_price, 0);
+  };
+
+  const todayRevenue = sumRevenueOn(today);
+  const yesterdayRevenue = sumRevenueOn(yesterday);
   
   const stats = {
     totalBookings: actualBookings.length,
@@ -183,14 +201,20 @@ export default function Dashboard() {
       : 0,
   };
 
-  // Calculate stats per barber
+  // Calculate stats per barber. For paid_at businesses, only paid bookings
+  // contribute to totalRevenue so the dashboard matches the recognition rule.
   const barberStats = actualBookings.reduce((acc, booking) => {
     const barberName = booking.barber || 'Sin asignar';
     if (!acc[barberName]) {
       acc[barberName] = { totalBookings: 0, totalRevenue: 0 };
     }
     acc[barberName].totalBookings += 1;
-    acc[barberName].totalRevenue += booking.service_price;
+    const counts = recognitionMode === 'paid_at'
+      ? booking.payment_status === 'paid'
+      : true;
+    if (counts) {
+      acc[barberName].totalRevenue += booking.service_price;
+    }
     return acc;
   }, {} as Record<string, { totalBookings: number; totalRevenue: number }>);
 

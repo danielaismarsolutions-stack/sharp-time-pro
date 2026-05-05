@@ -22,6 +22,7 @@ import { es } from 'date-fns/locale';
 import { supabase } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
 import { useBarbers } from '@/hooks/useQueryHooks';
+import { useBusinessBrand, type RevenueRecognitionMode } from '@/contexts/BusinessBrandContext';
 
 // ── Public types (consumed by Reports.tsx, KpiCards, BarberPerformance) ──
 
@@ -56,12 +57,17 @@ export interface ReportsAnalytics {
     avgPerBooking: KpiData & { uniqueClients: number };
   };
   revenueTrend: Array<{ label: string; revenue: number; bookings: number }>;
+  /** Cobrado vs Generado — only meaningful for 'paid_at' businesses. */
+  collectedVsEarnedTrend: Array<{ label: string; collected: number; earned: number }>;
   serviceBreakdown: Array<{ name: string; revenue: number }>;
   statusDistribution: Array<{ name: string; value: number; color: string }>;
   busiestHours: Array<{ hour: string; bookings: number }>;
   topClients: Array<{ name: string; revenue: number; visits: number }>;
   barberMetrics: BarberMetric[];
   paymentMethods: Array<{ method: string; label: string; count: number; revenue: number; color: string }>;
+  /** Total amount of completed bookings still awaiting payment (all-time). */
+  pendingRevenue: { amount: number; count: number };
+  recognitionMode: RevenueRecognitionMode;
 }
 
 // ── Internal types for the RPC response ─────────────────────────────
@@ -100,6 +106,9 @@ interface RpcResult {
     top_service: string | null;
   }>;
   daily_trend: RpcDailyTrend[];
+  earned_trend?: RpcDailyTrend[];
+  pending_revenue?: { amount: number; count: number };
+  recognition_mode?: RevenueRecognitionMode;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -171,16 +180,30 @@ async function fetchPaymentMethodDistribution(
   businessId: string,
   startDate: string,
   endDate: string,
+  mode: RevenueRecognitionMode,
 ): Promise<Array<{ method: string; count: number; revenue: number }>> {
-  const { data, error } = await supabase
+  // For 'paid_at' businesses, restrict to actually-paid bookings whose payment
+  // landed inside the period. The 'unpaid' bucket is therefore omitted in this
+  // mode — pending revenue is surfaced separately via pending_revenue.
+  let query = supabase
     .from('bookings')
-    .select('payment_status, payment_method, service_price')
+    .select('payment_status, payment_method, service_price, paid_at')
     .eq('business_id', businessId)
-    .gte('booking_date', startDate)
-    .lte('booking_date', endDate)
-    .in('status', ['completed', 'confirmed', 'pending'])
     .eq('booking_type', 'booking');
 
+  if (mode === 'paid_at') {
+    query = query
+      .eq('payment_status', 'paid')
+      .gte('paid_at', `${startDate}T00:00:00`)
+      .lt('paid_at', `${endDate}T23:59:59.999`);
+  } else {
+    query = query
+      .gte('booking_date', startDate)
+      .lte('booking_date', endDate)
+      .in('status', ['completed', 'confirmed', 'pending']);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
 
   const grouped = new Map<string, { count: number; revenue: number }>();
@@ -283,12 +306,15 @@ const EMPTY_ANALYTICS: ReportsAnalytics = {
     avgPerBooking: { value: 0, uniqueClients: 0, change: 0, direction: 'neutral' },
   },
   revenueTrend: [],
+  collectedVsEarnedTrend: [],
   serviceBreakdown: [],
   statusDistribution: [],
   busiestHours: [],
   topClients: [],
   barberMetrics: [],
   paymentMethods: [],
+  pendingRevenue: { amount: 0, count: 0 },
+  recognitionMode: 'booking_date',
 };
 
 // ── Hook ────────────────────────────────────────────────────────────
@@ -297,6 +323,8 @@ export function useReportsData(period: Period) {
   const queryClient = useQueryClient();
   const { current, previous, currentStartDate, currentEndDate } = useMemo(() => getDateRanges(period), [period]);
   const businessId = getBusinessId();
+  const { brand } = useBusinessBrand();
+  const recognitionMode: RevenueRecognitionMode = brand.revenueRecognitionMode;
 
   // Server-side aggregations — returns ~2-3KB instead of MBs of raw bookings
   const { data: currentAgg, isLoading: isLoadingCurrent } = useQuery({
@@ -311,10 +339,11 @@ export function useReportsData(period: Period) {
     staleTime: 1000 * 60 * 2,
   });
 
-  // Payment method distribution (lightweight client-side aggregation)
+  // Payment method distribution (lightweight client-side aggregation).
+  // Mode is part of the key so caches don't collide if the mode flips.
   const { data: paymentMethodsRaw } = useQuery({
-    queryKey: ['reports', 'payment-methods', current.start, current.end],
-    queryFn: () => fetchPaymentMethodDistribution(businessId, current.start, current.end),
+    queryKey: ['reports', 'payment-methods', current.start, current.end, recognitionMode],
+    queryFn: () => fetchPaymentMethodDistribution(businessId, current.start, current.end, recognitionMode),
     staleTime: 1000 * 60 * 2,
   });
 
@@ -434,13 +463,27 @@ export function useReportsData(period: Period) {
       };
     });
 
-    // Revenue trend
+    // Revenue trend (uses the recognition date by mode, computed server-side).
     const revenueTrend = buildRevenueTrend(
       currentAgg?.daily_trend ?? [],
       period,
       currentStartDate,
       currentEndDate,
     );
+
+    // Collected vs earned trend (paid_at mode only — for booking_date the two
+    // series are identical so the chart adds no information).
+    const earnedTrendBuilt = buildRevenueTrend(
+      currentAgg?.earned_trend ?? [],
+      period,
+      currentStartDate,
+      currentEndDate,
+    );
+    const collectedVsEarnedTrend = revenueTrend.map((row, idx) => ({
+      label: row.label,
+      collected: row.revenue,
+      earned: earnedTrendBuilt[idx]?.revenue ?? 0,
+    }));
 
     // Payment methods
     const paymentMethods = (paymentMethodsRaw ?? [])
@@ -450,6 +493,10 @@ export function useReportsData(period: Period) {
       })
       .filter((d): d is NonNullable<typeof d> => d !== null)
       .sort((a, b) => b.count - a.count);
+
+    const pendingRevenue = currentAgg?.pending_revenue ?? { amount: 0, count: 0 };
+    const responseMode: RevenueRecognitionMode =
+      currentAgg?.recognition_mode ?? recognitionMode;
 
     return {
       kpis: {
@@ -464,14 +511,20 @@ export function useReportsData(period: Period) {
         avgPerBooking: { value: avgPerBooking, uniqueClients: cur.unique_clients, ...avgChg },
       },
       revenueTrend,
+      collectedVsEarnedTrend,
       serviceBreakdown,
       statusDistribution,
       busiestHours,
       topClients,
       barberMetrics,
       paymentMethods,
+      pendingRevenue: {
+        amount: Number(pendingRevenue.amount ?? 0),
+        count: Number(pendingRevenue.count ?? 0),
+      },
+      recognitionMode: responseMode,
     };
-  }, [currentAgg, previousAgg, barbers, period, currentStartDate, currentEndDate, paymentMethodsRaw]);
+  }, [currentAgg, previousAgg, barbers, period, currentStartDate, currentEndDate, paymentMethodsRaw, recognitionMode]);
 
   return {
     analytics,
