@@ -1141,11 +1141,45 @@ export default function Calendar() {
 
     return (
       <div className="flex flex-1 flex-col relative" {...(isMobile ? swipeHandlers : {})}>
+        {/* Sticky barber header row — stays visible while scrolling vertically */}
+        <div className="flex sticky top-0 z-30 bg-card">
+          <div className="w-16 md:w-20 shrink-0 border-r border-b border-border h-20" />
+          <div className="flex-1 flex">
+            {!hasBarbers && (
+              <div className="flex-1 h-20 border-b border-border flex items-center justify-center text-muted-foreground text-sm">
+                No hay {staffTerms.plural} disponibles
+              </div>
+            )}
+            {visibleBarbers.map((barber) => {
+              const initials = barber.name
+                .split(' ')
+                .map((p) => p.charAt(0))
+                .slice(0, 2)
+                .join('')
+                .toUpperCase();
+
+              return (
+                <div
+                  key={`${barber.id}-header`}
+                  className="flex-1 min-w-[160px] md:min-w-[180px] border-r border-b border-border last:border-r-0 h-20 flex flex-col items-center justify-center gap-1 px-2"
+                >
+                  <Avatar className="h-9 w-9 md:h-10 md:w-10">
+                    <AvatarImage src={barber.avatar_url || undefined} alt={barber.name} />
+                    <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                  </Avatar>
+                  <p className="text-xs md:text-sm font-medium text-center truncate w-full leading-tight">
+                    {barber.name}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Time grid */}
         <div className="flex flex-1">
           {/* Time column */}
           <div className="w-16 md:w-20 shrink-0 border-r border-border bg-card">
-            {/* Spacer matching the barber header height */}
-            <div className="h-20 border-b border-border" />
             {HOURS.map((hour) => (
               <div
                 key={hour}
@@ -1159,141 +1193,114 @@ export default function Calendar() {
 
           {/* Barber columns */}
           <div className="flex-1 flex overflow-x-auto">
-            {!hasBarbers && (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground p-8">
-                No hay {staffTerms.plural} disponibles
-              </div>
-            )}
             {visibleBarbers.map((barber) => {
               const barberBookings = dayBookings.filter((b) => b.barber === barber.name);
               const barberEvents = dayEvents.filter((e) => !e.barber || e.barber === barber.name);
               const allItems = [...barberBookings, ...barberEvents];
-              const initials = barber.name
-                .split(' ')
-                .map((p) => p.charAt(0))
-                .slice(0, 2)
-                .join('')
-                .toUpperCase();
 
               return (
                 <div
                   key={barber.id}
-                  className="flex-1 min-w-[160px] md:min-w-[180px] border-r border-border last:border-r-0 flex flex-col"
+                  className="flex-1 min-w-[160px] md:min-w-[180px] border-r border-border last:border-r-0 relative"
+                  onClick={(e) => daySlotSelection.handleSlotClick(currentDate, e)}
+                  onMouseDown={(e) => daySlotSelection.handleMouseDown(currentDate, e)}
+                  onMouseMove={daySlotSelection.handleMouseMove}
+                  onMouseUp={daySlotSelection.handleMouseUp}
+                  onTouchStart={(e) => daySlotSelection.handleTouchStart(currentDate, e)}
+                  onTouchMove={daySlotSelection.handleTouchMove}
+                  onTouchEnd={daySlotSelection.handleTouchEnd}
                 >
-                  {/* Sticky barber header */}
-                  <div className="h-20 border-b border-border bg-card sticky top-0 z-20 flex flex-col items-center justify-center gap-1 px-2">
-                    <Avatar className="h-9 w-9 md:h-10 md:w-10">
-                      <AvatarImage src={barber.avatar_url || undefined} alt={barber.name} />
-                      <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-                    </Avatar>
-                    <p className="text-xs md:text-sm font-medium text-center truncate w-full leading-tight">
-                      {barber.name}
-                    </p>
-                  </div>
+                  {HOURS.map((hour) => (
+                    <DroppableTimeSlotEnhanced
+                      key={hour}
+                      id={`day-${dateStr}-${hour}-${barber.id}`}
+                      hour={hour}
+                      date={dateStr}
+                      hourHeight={HOUR_HEIGHT_DAY}
+                      isDropTarget={dropPreview?.date === dateStr && dropPreview?.time?.startsWith(hour.toString().padStart(2, '0'))}
+                      previewTime={dropPreview?.date === dateStr ? dropPreview?.time : null}
+                      hasConflict={dropPreview?.hasConflict}
+                      scheduleError={dropPreview?.scheduleError}
+                      isOutsideBusinessHours={!isWithinBusinessHours(hour, BUSINESS_OPEN_HOUR, BUSINESS_CLOSE_HOUR)}
+                      isClosed={isHourClosed(hour, currentDate)}
+                      isDragging={!!activeId}
+                      draggedBookingDuration={activeBookingDuration}
+                      draggedBookingClientName={activeBookingClientName}
+                      draggedBookingServiceName={activeBookingServiceName}
+                      draggedBookingColorClasses={activeBookingColorClasses}
+                      closedMinuteRanges={getClosedMinuteRanges(hour, currentDate)}
+                      className={cn(!isHourClosed(hour, currentDate) && 'hover:bg-muted/30', 'cursor-pointer')}
+                    />
+                  ))}
 
-                  {/* Hours grid for this barber */}
-                  <div
-                    className="relative flex-1"
-                    onClick={(e) => daySlotSelection.handleSlotClick(currentDate, e)}
-                    onMouseDown={(e) => daySlotSelection.handleMouseDown(currentDate, e)}
-                    onMouseMove={daySlotSelection.handleMouseMove}
-                    onMouseUp={daySlotSelection.handleMouseUp}
-                    onTouchStart={(e) => daySlotSelection.handleTouchStart(currentDate, e)}
-                    onTouchMove={daySlotSelection.handleTouchMove}
-                    onTouchEnd={daySlotSelection.handleTouchEnd}
-                  >
-                    {HOURS.map((hour) => (
-                      <DroppableTimeSlotEnhanced
-                        key={hour}
-                        id={`day-${dateStr}-${hour}-${barber.id}`}
-                        hour={hour}
-                        date={dateStr}
-                        hourHeight={HOUR_HEIGHT_DAY}
-                        isDropTarget={dropPreview?.date === dateStr && dropPreview?.time?.startsWith(hour.toString().padStart(2, '0'))}
-                        previewTime={dropPreview?.date === dateStr ? dropPreview?.time : null}
-                        hasConflict={dropPreview?.hasConflict}
-                        scheduleError={dropPreview?.scheduleError}
-                        isOutsideBusinessHours={!isWithinBusinessHours(hour, BUSINESS_OPEN_HOUR, BUSINESS_CLOSE_HOUR)}
-                        isClosed={isHourClosed(hour, currentDate)}
-                        isDragging={!!activeId}
-                        draggedBookingDuration={activeBookingDuration}
-                        draggedBookingClientName={activeBookingClientName}
-                        draggedBookingServiceName={activeBookingServiceName}
-                        draggedBookingColorClasses={activeBookingColorClasses}
-                        closedMinuteRanges={getClosedMinuteRanges(hour, currentDate)}
-                        className={cn(!isHourClosed(hour, currentDate) && 'hover:bg-muted/30', 'cursor-pointer')}
+                  {/* Bookings + Events for this barber */}
+                  {barberBookings.map((booking) => {
+                    const style = getBookingPosition(booking, HOUR_HEIGHT_DAY, START_HOUR);
+                    const overlapInfo = getUnifiedOverlapInfo(allItems, booking);
+                    const colorClasses = getServicePastelColor(booking, services);
+                    const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 2px)`;
+                    const widthCalc = `calc(${100 / overlapInfo.total}% - 4px)`;
+
+                    return (
+                      <BookingCard
+                        key={booking.id}
+                        booking={booking}
+                        style={{
+                          top: style.top,
+                          height: style.height,
+                          left: leftCalc,
+                          width: widthCalc,
+                        }}
+                        colorClasses={colorClasses}
+                        overlapInfo={overlapInfo}
+                        onClick={() => openBookingDetail(booking)}
+                        isDraggable={true}
+                        viewMode="day"
+                        isMobile={isMobile}
+                        isPendingMove={pendingMove?.booking.id === booking.id}
                       />
-                    ))}
+                    );
+                  })}
+                  {barberEvents.map((event) => {
+                    const evtStyle = getEventPosition(event, HOUR_HEIGHT_DAY, START_HOUR);
+                    const overlapInfo = getUnifiedOverlapInfo(allItems, event);
+                    const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 2px)`;
+                    const widthCalc = `calc(${100 / overlapInfo.total}% - 4px)`;
 
-                    {/* Bookings + Events for this barber */}
-                    {barberBookings.map((booking) => {
-                      const style = getBookingPosition(booking, HOUR_HEIGHT_DAY, START_HOUR);
-                      const overlapInfo = getUnifiedOverlapInfo(allItems, booking);
-                      const colorClasses = getServicePastelColor(booking, services);
-                      const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 2px)`;
-                      const widthCalc = `calc(${100 / overlapInfo.total}% - 4px)`;
+                    return (
+                      <EventCard
+                        key={`${event.id}-${barber.id}`}
+                        event={event}
+                        style={{
+                          top: evtStyle.top,
+                          height: evtStyle.height,
+                          left: leftCalc,
+                          width: widthCalc,
+                        }}
+                        onClick={() => openEventDetail(event)}
+                        isDraggable={true}
+                        viewMode="day"
+                        isMobile={isMobile}
+                        isPendingMove={pendingEventMove?.event.id === event.id}
+                      />
+                    );
+                  })}
 
-                      return (
-                        <BookingCard
-                          key={booking.id}
-                          booking={booking}
-                          style={{
-                            top: style.top,
-                            height: style.height,
-                            left: leftCalc,
-                            width: widthCalc,
-                          }}
-                          colorClasses={colorClasses}
-                          overlapInfo={overlapInfo}
-                          onClick={() => openBookingDetail(booking)}
-                          isDraggable={true}
-                          viewMode="day"
-                          isMobile={isMobile}
-                          isPendingMove={pendingMove?.booking.id === booking.id}
-                        />
-                      );
-                    })}
-                    {barberEvents.map((event) => {
-                      const evtStyle = getEventPosition(event, HOUR_HEIGHT_DAY, START_HOUR);
-                      const overlapInfo = getUnifiedOverlapInfo(allItems, event);
-                      const leftCalc = `calc(${(overlapInfo.index / overlapInfo.total) * 100}% + 2px)`;
-                      const widthCalc = `calc(${100 / overlapInfo.total}% - 4px)`;
-
-                      return (
-                        <EventCard
-                          key={`${event.id}-${barber.id}`}
-                          event={event}
-                          style={{
-                            top: evtStyle.top,
-                            height: evtStyle.height,
-                            left: leftCalc,
-                            width: widthCalc,
-                          }}
-                          onClick={() => openEventDetail(event)}
-                          isDraggable={true}
-                          viewMode="day"
-                          isMobile={isMobile}
-                          isPendingMove={pendingEventMove?.event.id === event.id}
-                        />
-                      );
-                    })}
-
-                    {/* Current time indicator on every column */}
-                    {isToday(currentDate) && (
-                      <div className={cn(
-                        "transition-opacity duration-200 ease-in-out",
-                        isMonthPickerOpen ? "opacity-0" : "opacity-100"
-                      )}>
-                        <CurrentTimeIndicator
-                          currentDate={currentDate}
-                          startHour={START_HOUR}
-                          endHour={23}
-                          hourHeight={HOUR_HEIGHT_DAY}
-                          showTimeLabel={false}
-                        />
-                      </div>
-                    )}
-                  </div>
+                  {/* Current time indicator on every column */}
+                  {isToday(currentDate) && (
+                    <div className={cn(
+                      "transition-opacity duration-200 ease-in-out",
+                      isMonthPickerOpen ? "opacity-0" : "opacity-100"
+                    )}>
+                      <CurrentTimeIndicator
+                        currentDate={currentDate}
+                        startHour={START_HOUR}
+                        endHour={23}
+                        hourHeight={HOUR_HEIGHT_DAY}
+                        showTimeLabel={false}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
