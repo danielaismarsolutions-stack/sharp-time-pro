@@ -1140,11 +1140,15 @@ export default function Calendar() {
     const isEmpty = dayBookings.length === 0 && dayEvents.length === 0;
 
     return (
-      <div className="flex flex-1 flex-col relative" {...(isMobile ? swipeHandlers : {})}>
-        {/* Sticky barber header row — stays visible while scrolling vertically.
+      <div className="flex flex-col relative w-max min-w-full">
+        {/* Sticky barber header row — stays fixed vertically while scrolling
+            down, and slides horizontally with its column on lateral scroll.
             z-40 keeps it above the current-time indicator (z-35). */}
         <div className="flex sticky top-0 z-40 bg-card">
-          <div className="w-16 md:w-20 shrink-0 border-r border-b border-border h-20" />
+          {/* Top-left corner: sticky on both axes so it covers the
+              intersection of the sticky header row and the sticky time column.
+              z-50 keeps it above the rest. */}
+          <div className="w-16 md:w-20 shrink-0 border-r border-b border-border h-20 sticky left-0 z-50 bg-card" />
           <div className="flex-1 flex">
             {!hasBarbers && (
               <div className="flex-1 h-20 border-b border-border flex items-center justify-center text-muted-foreground text-sm">
@@ -1179,8 +1183,9 @@ export default function Calendar() {
 
         {/* Time grid */}
         <div className="flex flex-1">
-          {/* Time column */}
-          <div className="w-16 md:w-20 shrink-0 border-r border-border bg-card">
+          {/* Time column — sticky on the left so hours stay visible during
+              horizontal scroll. z-30 keeps labels above column backgrounds. */}
+          <div className="w-16 md:w-20 shrink-0 border-r border-border bg-card sticky left-0 z-30">
             {HOURS.map((hour) => (
               <div
                 key={hour}
@@ -1192,8 +1197,9 @@ export default function Calendar() {
             ))}
           </div>
 
-          {/* Barber columns */}
-          <div className="flex-1 flex overflow-x-auto">
+          {/* Barber columns — horizontal scrolling is handled by the outer
+              scrollContainerRef so header and body scroll together. */}
+          <div className="flex-1 flex">
             {visibleBarbers.map((barber, barberIdx) => {
               const barberBookings = dayBookings.filter((b) => b.barber === barber.name);
               const barberEvents = dayEvents.filter((e) => !e.barber || e.barber === barber.name);
@@ -1613,7 +1619,12 @@ export default function Calendar() {
 
         {/* Calendar Content - This area scrolls */}
         <Card className="flex-1 m-2 md:m-4 mt-0 overflow-hidden border-border flex flex-col min-h-0 relative">
-          <div ref={scrollContainerRef} className={cn("flex-1", viewMode === 'agenda' ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden')}>
+          <div ref={scrollContainerRef} className={cn(
+            "flex-1",
+            viewMode === 'agenda' && 'overflow-hidden',
+            viewMode === 'day' && 'overflow-auto',
+            viewMode !== 'agenda' && viewMode !== 'day' && 'overflow-y-auto overflow-x-hidden',
+          )}>
             {viewMode === 'day' && renderDayView()}
             {viewMode === '3day' && (
               <ThreeDayView
