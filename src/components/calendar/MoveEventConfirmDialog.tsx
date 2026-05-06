@@ -69,9 +69,8 @@ export function MoveEventConfirmDialog({
 
   const { event, oldDate, oldStartTime, oldEndTime, newDate, newStartTime, newEndTime } = details;
   const dateChanged = !isSameDate(oldDate, newDate);
-  const eventHex = event.barber
-    ? getBarberHexColor(event.barber)
-    : event.color || DEFAULT_EVENT_HEX;
+  const eventHex = event.color
+    || (event.barber ? getBarberHexColor(event.barber) : DEFAULT_EVENT_HEX);
 
   return (
     <AlertDialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onCancel(); }}>

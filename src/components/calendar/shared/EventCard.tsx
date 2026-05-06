@@ -45,11 +45,10 @@ export function EventCard({
   const staffTerms = useStaffTerms();
   const startTime = event.start_time.substring(0, 5);
   const endTime = event.end_time.substring(0, 5);
-  // Events with an assigned barber inherit that barber's color so they match
-  // the barber's appointments across all calendar views.
-  const eventHex = event.barber
-    ? getBarberHexColor(event.barber)
-    : event.color || DEFAULT_EVENT_HEX;
+  // Prefer the stored color (manual override). Fall back to the assigned
+  // barber's color so events match the barber's appointments by default.
+  const eventHex = event.color
+    || (event.barber ? getBarberHexColor(event.barber) : DEFAULT_EVENT_HEX);
   const colorStyle = hexToStyle(eventHex);
 
   const isCompact = style.height < 40;
