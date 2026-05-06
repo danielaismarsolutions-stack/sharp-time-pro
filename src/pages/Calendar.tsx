@@ -200,7 +200,7 @@ export default function Calendar() {
           location: b.location || null,
           notes: b.notes || null,
           barber: b.barber || null,
-          color: b.color || '#d1d5db',
+          color: b.color || '',
           created_at: b.created_at,
           updated_at: b.updated_at,
         });
@@ -987,7 +987,9 @@ export default function Calendar() {
     location: b.location || null,
     notes: b.notes || null,
     barber: b.barber || null,
-    color: b.color || '#d1d5db',
+    // Empty string = "auto" (rendering falls back to the barber's color);
+    // a hex means the user picked a manual override.
+    color: b.color || '',
     created_at: b.created_at,
     updated_at: b.updated_at,
   }), []);
@@ -1019,7 +1021,7 @@ export default function Calendar() {
           user_id: data.barberId || null,
           location: data.location || null,
           notes: data.notes || null,
-          color: data.color,
+          color: data.color || null,
           is_recurring: data.repeat !== 'none',
           recurrence_rule: buildRecurrenceRule(data.repeat),
         });
@@ -1057,7 +1059,7 @@ export default function Calendar() {
           user_id: data.barberId || null,
           location: data.location || null,
           notes: data.notes || null,
-          color: data.color,
+          color: data.color || null,
           is_recurring: data.repeat !== 'none',
           recurrence_rule: buildRecurrenceRule(data.repeat),
         });
