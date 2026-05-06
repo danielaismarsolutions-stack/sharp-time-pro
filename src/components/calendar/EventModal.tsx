@@ -123,11 +123,10 @@ export function EventModal({
       // Edit mode: pre-populate all fields from the existing event
       setDate(new Date(event.event_date + 'T00:00:00'));
       const barberObj = barbers.find((b) => b.name === event.barber);
-      // If a barber is assigned, derive color from the barber so it always
-      // matches the barber's appointments.
-      const resolvedColor = event.barber
-        ? getBarberHexColor(event.barber)
-        : event.color || DEFAULT_EVENT_HEX;
+      // Prefer the stored color (which may be a manual override). Fall back to
+      // the assigned barber's color, then to the default.
+      const resolvedColor = event.color
+        || (event.barber ? getBarberHexColor(event.barber) : DEFAULT_EVENT_HEX);
       setFormData({
         name: event.name,
         startTime: event.start_time.substring(0, 5),
@@ -449,40 +448,44 @@ export function EventModal({
           {/* Color Picker */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">Color</Label>
-            {selectedBarber ? (
-              <div className="flex items-center gap-2">
-                <span
-                  className="h-7 w-7 rounded-full border-2 border-foreground/20 shrink-0"
-                  style={{ backgroundColor: formData.color }}
-                />
-                <span className="text-xs text-muted-foreground">
-                  Color asignado automáticamente según {staffTerms.singular}
-                </span>
-              </div>
-            ) : (
-              <div className="flex gap-2 flex-wrap">
-                {EVENT_COLORS.map((c) => (
-                  <button
-                    key={c.value}
-                    type="button"
-                    onClick={() =>
-                      setFormData({ ...formData, color: c.value })
-                    }
-                    className={cn(
-                      'h-7 w-7 rounded-full border-2 transition-all flex items-center justify-center',
-                      formData.color === c.value
-                        ? 'border-foreground scale-110'
-                        : 'border-transparent hover:scale-105'
-                    )}
-                    style={{ backgroundColor: c.value }}
-                    title={c.label}
+            <div className="flex gap-2 flex-wrap">
+              {EVENT_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() =>
+                    setFormData({ ...formData, color: c.value })
+                  }
+                  className={cn(
+                    'h-7 w-7 rounded-full border-2 transition-all flex items-center justify-center',
+                    formData.color === c.value
+                      ? 'border-foreground scale-110'
+                      : 'border-transparent hover:scale-105'
+                  )}
+                  style={{ backgroundColor: c.value }}
+                  title={c.label}
+                >
+                  {formData.color === c.value && (
+                    <Check className="h-3.5 w-3.5 text-foreground/80" />
+                  )}
+                </button>
+              ))}
+              {selectedBarber &&
+                !EVENT_COLORS.some((c) => c.value === formData.color) && (
+                  <span
+                    className="h-7 w-7 rounded-full border-2 border-foreground shrink-0 flex items-center justify-center"
+                    style={{ backgroundColor: formData.color }}
+                    title={`Color de ${staffTerms.singular}`}
                   >
-                    {formData.color === c.value && (
-                      <Check className="h-3.5 w-3.5 text-foreground/80" />
-                    )}
-                  </button>
-                ))}
-              </div>
+                    <Check className="h-3.5 w-3.5 text-foreground/80" />
+                  </span>
+                )}
+            </div>
+            {selectedBarber && (
+              <p className="text-[10px] text-muted-foreground">
+                Por defecto se usa el color de {staffTerms.singular}. Puedes
+                elegir otro si lo prefieres.
+              </p>
             )}
           </div>
 

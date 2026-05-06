@@ -82,7 +82,7 @@ import { MoveEventConfirmDialog } from '@/components/calendar/MoveEventConfirmDi
 import { CreateChoiceDialog } from '@/components/calendar/CreateChoiceDialog';
 import { EventModal, type EventFormData } from '@/components/calendar/EventModal';
 import { EventDetailModal } from '@/components/calendar/EventDetailModal';
-import { setBarberList, getBarberHexColor } from '@/components/calendar/shared/colorUtils';
+import { setBarberList } from '@/components/calendar/shared/colorUtils';
 import { CurrentTimeIndicator } from '@/components/calendar/CurrentTimeIndicator';
 import { SetmoreHeader } from '@/components/calendar/SetmoreHeader';
 import { ThreeDayView } from '@/components/calendar/ThreeDayView';
@@ -1007,10 +1007,6 @@ export default function Calendar() {
       if (!confirmed) return;
     }
 
-    // If a barber is assigned, persist the barber-derived color so the DB
-    // value stays in sync with the visual rendering rule.
-    const persistedColor = data.barber ? getBarberHexColor(data.barber) : data.color;
-
     try {
       if (selectedEvent) {
         // Update existing event
@@ -1023,7 +1019,7 @@ export default function Calendar() {
           user_id: data.barberId || null,
           location: data.location || null,
           notes: data.notes || null,
-          color: persistedColor,
+          color: data.color,
           is_recurring: data.repeat !== 'none',
           recurrence_rule: buildRecurrenceRule(data.repeat),
         });
@@ -1061,7 +1057,7 @@ export default function Calendar() {
           user_id: data.barberId || null,
           location: data.location || null,
           notes: data.notes || null,
-          color: persistedColor,
+          color: data.color,
           is_recurring: data.repeat !== 'none',
           recurrence_rule: buildRecurrenceRule(data.repeat),
         });

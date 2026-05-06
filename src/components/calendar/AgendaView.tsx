@@ -190,9 +190,8 @@ interface AgendaEventCardProps {
 
 function AgendaEventCard({ event, onClick }: AgendaEventCardProps) {
   const timeRange = `${formatTime12h(event.start_time)} - ${formatTime12h(event.end_time)}`;
-  const eventHex = event.barber
-    ? getBarberHexColor(event.barber)
-    : event.color || DEFAULT_EVENT_HEX;
+  const eventHex = event.color
+    || (event.barber ? getBarberHexColor(event.barber) : DEFAULT_EVENT_HEX);
 
   return (
     <button

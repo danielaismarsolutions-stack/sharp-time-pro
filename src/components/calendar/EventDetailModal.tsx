@@ -48,9 +48,8 @@ export function EventDetailModal({
 
   const startTime = event.start_time.substring(0, 5);
   const endTime = event.end_time.substring(0, 5);
-  const eventHex = event.barber
-    ? getBarberHexColor(event.barber)
-    : event.color || DEFAULT_EVENT_HEX;
+  const eventHex = event.color
+    || (event.barber ? getBarberHexColor(event.barber) : DEFAULT_EVENT_HEX);
   const dateFormatted = format(
     new Date(event.event_date + 'T00:00:00'),
     "EEEE d 'de' MMMM yyyy",

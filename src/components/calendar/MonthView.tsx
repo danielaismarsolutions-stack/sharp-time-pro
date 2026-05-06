@@ -276,9 +276,8 @@ function MonthEventCard({ event, isMobile, onClick }: MonthEventCardProps) {
   const staffTerms = useStaffTerms();
   const startTime = event.start_time.substring(0, 5);
   const endTime = event.end_time.substring(0, 5);
-  const eventHex = event.barber
-    ? getBarberHexColor(event.barber)
-    : event.color || DEFAULT_EVENT_HEX;
+  const eventHex = event.color
+    || (event.barber ? getBarberHexColor(event.barber) : DEFAULT_EVENT_HEX);
 
   return (
     <TooltipProvider delayDuration={200}>
