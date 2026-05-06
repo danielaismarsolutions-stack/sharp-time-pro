@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { ApiCalendarEvent } from '@/types/api';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { getBarberHexColor, DEFAULT_EVENT_HEX } from '@/components/calendar/shared/colorUtils';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -68,6 +69,9 @@ export function MoveEventConfirmDialog({
 
   const { event, oldDate, oldStartTime, oldEndTime, newDate, newStartTime, newEndTime } = details;
   const dateChanged = !isSameDate(oldDate, newDate);
+  const eventHex = event.barber
+    ? getBarberHexColor(event.barber)
+    : event.color || DEFAULT_EVENT_HEX;
 
   return (
     <AlertDialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onCancel(); }}>
@@ -89,9 +93,9 @@ export function MoveEventConfirmDialog({
           <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-              style={{ backgroundColor: (event.color || '#d1d5db') + '33' }}
+              style={{ backgroundColor: eventHex + '33' }}
             >
-              <CalendarDays className="w-4 h-4" style={{ color: event.color || '#d1d5db' }} />
+              <CalendarDays className="w-4 h-4" style={{ color: eventHex }} />
             </div>
             <div className="min-w-0">
               <p className="font-semibold text-sm truncate">{event.name}</p>

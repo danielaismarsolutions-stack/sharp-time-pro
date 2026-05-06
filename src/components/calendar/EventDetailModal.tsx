@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { getBarberHexColor, DEFAULT_EVENT_HEX } from '@/components/calendar/shared/colorUtils';
 
 interface EventDetailModalProps {
   event: ApiCalendarEvent | null;
@@ -47,6 +48,9 @@ export function EventDetailModal({
 
   const startTime = event.start_time.substring(0, 5);
   const endTime = event.end_time.substring(0, 5);
+  const eventHex = event.barber
+    ? getBarberHexColor(event.barber)
+    : event.color || DEFAULT_EVENT_HEX;
   const dateFormatted = format(
     new Date(event.event_date + 'T00:00:00'),
     "EEEE d 'de' MMMM yyyy",
@@ -60,7 +64,7 @@ export function EventDetailModal({
           <DialogTitle className="flex items-center gap-1.5">
             <div
               className="h-3 w-3 rounded-full shrink-0"
-              style={{ backgroundColor: event.color || '#d1d5db' }}
+              style={{ backgroundColor: eventHex }}
             />
             <span className="truncate">{event.name}</span>
           </DialogTitle>
