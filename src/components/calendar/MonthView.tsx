@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { pastelColors } from './shared/colorUtils';
+import { pastelColors, getBarberHexColor, DEFAULT_EVENT_HEX } from './shared/colorUtils';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
 import {
   Tooltip,
@@ -276,6 +276,9 @@ function MonthEventCard({ event, isMobile, onClick }: MonthEventCardProps) {
   const staffTerms = useStaffTerms();
   const startTime = event.start_time.substring(0, 5);
   const endTime = event.end_time.substring(0, 5);
+  const eventHex = event.barber
+    ? getBarberHexColor(event.barber)
+    : event.color || DEFAULT_EVENT_HEX;
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -290,8 +293,8 @@ function MonthEventCard({ event, isMobile, onClick }: MonthEventCardProps) {
             )}
             style={{
               height: isMobile ? '12px' : '16px',
-              backgroundColor: event.color ? `${event.color}40` : '#d1d5db40',
-              borderLeftColor: event.color || '#d1d5db',
+              backgroundColor: `${eventHex}40`,
+              borderLeftColor: eventHex,
             }}
           >
             <div className="flex items-center gap-0.5 whitespace-nowrap overflow-hidden">
@@ -299,7 +302,7 @@ function MonthEventCard({ event, isMobile, onClick }: MonthEventCardProps) {
                 'font-bold leading-none truncate',
                 isMobile ? 'text-[6px]' : 'text-[8px]'
               )}
-              style={{ color: event.color ? darkenColor(event.color) : '#374151' }}
+              style={{ color: darkenColor(eventHex) }}
               >
                 {startTime}
               </span>
@@ -307,7 +310,7 @@ function MonthEventCard({ event, isMobile, onClick }: MonthEventCardProps) {
                 'font-medium leading-none truncate',
                 isMobile ? 'text-[6px]' : 'text-[8px]'
               )}
-              style={{ color: event.color ? darkenColor(event.color) : '#374151' }}
+              style={{ color: darkenColor(eventHex) }}
               >
                 {event.name.length > 6 ? event.name.substring(0, 6) + '…' : event.name}
               </span>

@@ -6,6 +6,7 @@ import { CalendarDays, MapPin, Repeat, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ApiCalendarEvent } from '@/types/api';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { getBarberHexColor, DEFAULT_EVENT_HEX } from '@/components/calendar/shared/colorUtils';
 import {
   Tooltip,
   TooltipContent,
@@ -44,7 +45,12 @@ export function EventCard({
   const staffTerms = useStaffTerms();
   const startTime = event.start_time.substring(0, 5);
   const endTime = event.end_time.substring(0, 5);
-  const colorStyle = hexToStyle(event.color || '#d1d5db');
+  // Events with an assigned barber inherit that barber's color so they match
+  // the barber's appointments across all calendar views.
+  const eventHex = event.barber
+    ? getBarberHexColor(event.barber)
+    : event.color || DEFAULT_EVENT_HEX;
+  const colorStyle = hexToStyle(eventHex);
 
   const isCompact = style.height < 40;
   const isNarrow = viewMode === 'week';

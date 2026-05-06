@@ -5,7 +5,7 @@ import { Eye } from 'lucide-react';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 import { cn } from '@/lib/utils';
-import { pastelColors } from './shared/colorUtils';
+import { pastelColors, getBarberHexColor, DEFAULT_EVENT_HEX } from './shared/colorUtils';
 
 interface AgendaViewProps {
   currentDate: Date;
@@ -190,6 +190,9 @@ interface AgendaEventCardProps {
 
 function AgendaEventCard({ event, onClick }: AgendaEventCardProps) {
   const timeRange = `${formatTime12h(event.start_time)} - ${formatTime12h(event.end_time)}`;
+  const eventHex = event.barber
+    ? getBarberHexColor(event.barber)
+    : event.color || DEFAULT_EVENT_HEX;
 
   return (
     <button
@@ -202,8 +205,8 @@ function AgendaEventCard({ event, onClick }: AgendaEventCardProps) {
       )}
       style={{
         borderRadius: '8px',
-        borderLeftColor: event.color || '#d1d5db',
-        backgroundColor: (event.color || '#d1d5db') + '33',
+        borderLeftColor: eventHex,
+        backgroundColor: eventHex + '33',
       }}
     >
       <p className="text-sm text-gray-800">

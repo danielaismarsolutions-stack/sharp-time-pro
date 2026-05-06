@@ -15,6 +15,22 @@ export const pastelColors: ColorClasses[] = [
   { bg: 'bg-lime-100', hover: 'hover:bg-lime-200', text: 'text-lime-900', border: 'border-l-lime-500' },
 ];
 
+// Hex equivalents (Tailwind ${color}-500) aligned with pastelColors above.
+// Used by calendar events (which store hex) so they match appointment colors per barber.
+export const pastelHexColors: string[] = [
+  '#3b82f6', // blue-500
+  '#10b981', // emerald-500
+  '#f59e0b', // amber-500
+  '#f43f5e', // rose-500
+  '#8b5cf6', // violet-500
+  '#ec4899', // pink-500
+  '#06b6d4', // cyan-500
+  '#84cc16', // lime-500
+];
+
+// Default hex color for entities without an assigned barber
+export const DEFAULT_EVENT_HEX = '#d1d5db';
+
 // Map service colors to pastel classes (kept for backwards compatibility)
 export const serviceColorMap: Record<string, ColorClasses> = {
   '#3b82f6': { bg: 'bg-blue-100', hover: 'hover:bg-blue-200', text: 'text-blue-900', border: 'border-l-blue-500' },
@@ -61,4 +77,20 @@ export const getBarberPastelColor = (booking: ApiBooking): ColorClasses => {
 // Legacy function - now redirects to barber-based coloring
 export const getServicePastelColor = (booking: ApiBooking, services: Service[]): ColorClasses => {
   return getBarberPastelColor(booking);
+};
+
+// Get the hex color for a barber, mirroring the index used by getBarberPastelColor
+// so that calendar events (hex-stored) render with the same color as the
+// appointments of the same barber. Returns the default hex if no barber.
+export const getBarberHexColor = (barberName: string | null | undefined): string => {
+  if (!barberName) return DEFAULT_EVENT_HEX;
+
+  const index = sortedBarberList.indexOf(barberName);
+  if (index >= 0) {
+    return pastelHexColors[index % pastelHexColors.length];
+  }
+
+  // Fallback: hash-based color if barber not in list
+  const hash = barberName.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+  return pastelHexColors[hash % pastelHexColors.length];
 };
