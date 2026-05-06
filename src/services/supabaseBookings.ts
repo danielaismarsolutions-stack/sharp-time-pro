@@ -356,7 +356,7 @@ export interface CreateEventBookingData {
   barber?: string | null;    // barber display name
   location?: string | null;
   notes?: string | null;
-  color?: string;
+  color?: string | null;
   is_recurring?: boolean;
   recurrence_rule?: Record<string, unknown> | null;
 }
@@ -370,7 +370,7 @@ export interface UpdateEventBookingData {
   barber?: string | null;
   location?: string | null;
   notes?: string | null;
-  color?: string;
+  color?: string | null;
   is_recurring?: boolean;
   recurrence_rule?: Record<string, unknown> | null;
 }
@@ -455,7 +455,7 @@ export const supabaseEventBookingsApi = {
       barber: data.barber || null,
       location: data.location || null,
       notes: data.notes || null,
-      color: data.color || '#d1d5db',
+      color: data.color || null,
       is_recurring: data.is_recurring ?? false,
       recurrence_rule: data.recurrence_rule || null,
     };

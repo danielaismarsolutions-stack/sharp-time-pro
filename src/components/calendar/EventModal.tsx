@@ -104,6 +104,8 @@ export function EventModal({
   const staffTerms = useStaffTerms();
   const [isLoading, setIsLoading] = useState(false);
   const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
+  // Empty `color` = "auto" (renders with the assigned barber's color); a hex
+  // means the user picked a manual override.
   const [formData, setFormData] = useState({
     name: '',
     startTime: '',
@@ -112,7 +114,7 @@ export function EventModal({
     location: '',
     notes: '',
     barberId: '',
-    color: DEFAULT_EVENT_HEX,
+    color: '',
   });
 
   // Populate form when the modal opens
@@ -120,13 +122,11 @@ export function EventModal({
     if (!open) return;
 
     if (event) {
-      // Edit mode: pre-populate all fields from the existing event
+      // Edit mode: pre-populate all fields from the existing event. Keep
+      // `color` empty when the event is in auto mode so it follows the
+      // assigned barber's color.
       setDate(new Date(event.event_date + 'T00:00:00'));
       const barberObj = barbers.find((b) => b.name === event.barber);
-      // Prefer the stored color (which may be a manual override). Fall back to
-      // the assigned barber's color, then to the default.
-      const resolvedColor = event.color
-        || (event.barber ? getBarberHexColor(event.barber) : DEFAULT_EVENT_HEX);
       setFormData({
         name: event.name,
         startTime: event.start_time.substring(0, 5),
@@ -135,7 +135,7 @@ export function EventModal({
         location: event.location || '',
         notes: event.notes || '',
         barberId: barberObj?.id || '',
-        color: resolvedColor,
+        color: event.color || '',
       });
     } else {
       // Create mode: use slot time or current time
@@ -160,8 +160,6 @@ export function EventModal({
       const resolvedBarberId = defaultBarberId && barbers.some((b) => b.id === defaultBarberId)
         ? defaultBarberId
         : '';
-      const resolvedBarberName =
-        barbers.find((b) => b.id === resolvedBarberId)?.name || null;
 
       setDate(selectedDate || new Date());
       setFormData({
@@ -172,9 +170,7 @@ export function EventModal({
         location: '',
         notes: '',
         barberId: resolvedBarberId,
-        color: resolvedBarberName
-          ? getBarberHexColor(resolvedBarberName)
-          : DEFAULT_EVENT_HEX,
+        color: '',
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -187,6 +183,11 @@ export function EventModal({
   }, [formData.startTime]);
 
   const selectedBarber = barbers.find((b) => b.id === formData.barberId);
+  // Color the "Auto" chip displays — matches what the event will render as
+  // when no manual override is set.
+  const autoColor = selectedBarber
+    ? getBarberHexColor(selectedBarber.name)
+    : DEFAULT_EVENT_HEX;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -398,17 +399,9 @@ export function EventModal({
             <Select
               value={formData.barberId || 'none'}
               onValueChange={(value) => {
-                const newBarberId = value === 'none' ? '' : value;
-                const newBarberName =
-                  barbers.find((b) => b.id === newBarberId)?.name || null;
                 setFormData({
                   ...formData,
-                  barberId: newBarberId,
-                  // Keep the event color in sync with the barber's color so it
-                  // matches their appointments across all views.
-                  color: newBarberName
-                    ? getBarberHexColor(newBarberName)
-                    : DEFAULT_EVENT_HEX,
+                  barberId: value === 'none' ? '' : value,
                 });
               }}
             >
@@ -448,7 +441,28 @@ export function EventModal({
           {/* Color Picker */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">Color</Label>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap items-center">
+              {/* Auto chip — follows the assigned barber's color */}
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, color: '' })}
+                className={cn(
+                  'h-7 w-7 rounded-full border-2 transition-all flex items-center justify-center',
+                  formData.color === ''
+                    ? 'border-foreground scale-110'
+                    : 'border-dashed border-foreground/40 hover:scale-105'
+                )}
+                style={{ backgroundColor: autoColor }}
+                title={
+                  selectedBarber
+                    ? `Automático (color de ${staffTerms.singular})`
+                    : 'Automático'
+                }
+              >
+                {formData.color === '' && (
+                  <Check className="h-3.5 w-3.5 text-foreground/80" />
+                )}
+              </button>
               {EVENT_COLORS.map((c) => (
                 <button
                   key={c.value}
@@ -470,23 +484,12 @@ export function EventModal({
                   )}
                 </button>
               ))}
-              {selectedBarber &&
-                !EVENT_COLORS.some((c) => c.value === formData.color) && (
-                  <span
-                    className="h-7 w-7 rounded-full border-2 border-foreground shrink-0 flex items-center justify-center"
-                    style={{ backgroundColor: formData.color }}
-                    title={`Color de ${staffTerms.singular}`}
-                  >
-                    <Check className="h-3.5 w-3.5 text-foreground/80" />
-                  </span>
-                )}
             </div>
-            {selectedBarber && (
-              <p className="text-[10px] text-muted-foreground">
-                Por defecto se usa el color de {staffTerms.singular}. Puedes
-                elegir otro si lo prefieres.
-              </p>
-            )}
+            <p className="text-[10px] text-muted-foreground">
+              {selectedBarber
+                ? `Por defecto sigue el color de ${staffTerms.singular}. Elige un color para fijarlo.`
+                : 'Sin color fijo. Elige un color para fijarlo.'}
+            </p>
           </div>
 
           {/* Actions */}
