@@ -668,7 +668,7 @@ export function ThreeDayView({
               <div
                 key={day.toISOString()}
                 className={cn(
-                  'py-1.5 flex items-center justify-center gap-1.5 shrink-0',
+                  'py-1.5 flex items-center justify-center gap-1.5 shrink-0 bg-white',
                   !isMobile && 'flex-1',
                   isMobileSnap && 'snap-start'
                 )}
