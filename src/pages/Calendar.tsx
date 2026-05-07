@@ -1662,9 +1662,7 @@ export default function Calendar() {
             "flex-1",
             viewMode === 'agenda' && 'overflow-hidden',
             viewMode === 'day' && 'overflow-auto',
-            viewMode === '3day' && isMobile && 'overflow-auto',
-            viewMode === '3day' && !isMobile && 'overflow-y-auto overflow-x-hidden',
-            viewMode !== 'agenda' && viewMode !== 'day' && viewMode !== '3day' && 'overflow-y-auto overflow-x-hidden',
+            viewMode !== 'agenda' && viewMode !== 'day' && 'overflow-y-auto overflow-x-hidden',
           )}>
             {viewMode === 'day' && renderDayView()}
             {viewMode === '3day' && (
@@ -1696,7 +1694,6 @@ export default function Calendar() {
                 onEventClick={openEventDetail}
                 scrollContainerRef={scrollContainerRef}
                 isMonthPickerOpen={isMonthPickerOpen}
-                isMobile={isMobile}
               />
             )}
             {viewMode === 'week' && renderWeekView()}
