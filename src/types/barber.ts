@@ -41,6 +41,7 @@ export interface Barber {
   is_active: boolean;
   booking_buffer_minutes?: number;  // Buffer time between appointments
   timezone?: string;                 // Barber's timezone
+  appointment_color: string | null;  // Hex (#RRGGBB) used as default color on calendar cards
   created_at: string;
   updated_at: string;
 }
@@ -53,6 +54,7 @@ export interface CreateBarberData {
   bio?: string | null;
   schedule?: BarberSchedule;
   is_active?: boolean;
+  appointment_color?: string | null;
   password?: string;                    // Only for creation (sent to edge function, never stored)
   role?: 'barber' | 'admin';           // Defaults to 'barber'
 }
@@ -66,6 +68,7 @@ export interface UpdateBarberData {
   schedule?: BarberSchedule;
   time_off?: TimeOff[];
   is_active?: boolean;
+  appointment_color?: string | null;
 }
 
 export const DEFAULT_SCHEDULE: BarberSchedule = {

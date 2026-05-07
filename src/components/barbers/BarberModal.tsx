@@ -12,6 +12,9 @@ import AvatarUpload from './AvatarUpload';
 import { supabaseStorageApi } from '@/services/supabaseStorage';
 import { useToast } from '@/hooks/use-toast';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { BARBER_COLOR_PALETTE } from '@/components/calendar/shared/colorUtils';
+import { Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface BarberModalProps {
   open: boolean;
@@ -28,6 +31,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'barber' | 'admin'>('barber');
   const [isActive, setIsActive] = useState(true);
+  const [appointmentColor, setAppointmentColor] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [deleteAvatar, setDeleteAvatar] = useState(false);
@@ -44,6 +48,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
       setPhone(barber.phone || '');
       setBio(barber.bio || '');
       setIsActive(barber.is_active);
+      setAppointmentColor(barber.appointment_color ?? null);
     } else {
       setName('');
       setEmail('');
@@ -52,6 +57,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
       setPassword('');
       setRole('barber');
       setIsActive(true);
+      setAppointmentColor(null);
     }
     setAvatarFile(null);
     setDeleteAvatar(false);
@@ -93,6 +99,12 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
         }
       }
 
+      // Validate color: must be one of the palette hexes or null. Anything
+      // else gets coerced to null so we can never violate the DB CHECK
+      // constraint or store malformed values.
+      const validHex = BARBER_COLOR_PALETTE.some((p) => p.hex === appointmentColor);
+      const safeColor = validHex ? appointmentColor : null;
+
       const barberData: CreateBarberData = {
         name: name.trim(),
         email: email.trim() || null,
@@ -101,6 +113,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
         avatar_url: avatarUrl,
         schedule: barber?.schedule || DEFAULT_SCHEDULE,
         is_active: isActive,
+        appointment_color: safeColor,
         ...(isCreating ? { password, role } : {}),
       };
 
@@ -211,6 +224,49 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
               rows={2}
               className="text-xs"
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Color de citas y eventos</Label>
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              Color por defecto de las tarjetas de este {staffTerms.singular} en el calendario.
+            </p>
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <button
+                type="button"
+                onClick={() => setAppointmentColor(null)}
+                className={cn(
+                  'h-7 px-2 rounded-md border text-[10px] transition-colors',
+                  appointmentColor === null
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-background hover:bg-muted'
+                )}
+                aria-pressed={appointmentColor === null}
+                aria-label="Color automático"
+              >
+                Automático
+              </button>
+              {BARBER_COLOR_PALETTE.map((opt) => {
+                const selected = appointmentColor === opt.hex;
+                return (
+                  <button
+                    key={opt.hex}
+                    type="button"
+                    onClick={() => setAppointmentColor(opt.hex)}
+                    className={cn(
+                      'h-7 w-7 rounded-md border flex items-center justify-center transition-transform',
+                      selected ? 'border-foreground ring-2 ring-foreground/20' : 'border-border hover:scale-110'
+                    )}
+                    style={{ backgroundColor: opt.hex }}
+                    aria-pressed={selected}
+                    aria-label={opt.label}
+                    title={opt.label}
+                  >
+                    {selected && <Check className="w-3.5 h-3.5 text-white drop-shadow" />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30">

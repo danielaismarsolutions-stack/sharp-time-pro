@@ -82,7 +82,7 @@ import { MoveEventConfirmDialog } from '@/components/calendar/MoveEventConfirmDi
 import { CreateChoiceDialog } from '@/components/calendar/CreateChoiceDialog';
 import { EventModal, type EventFormData } from '@/components/calendar/EventModal';
 import { EventDetailModal } from '@/components/calendar/EventDetailModal';
-import { setBarberList } from '@/components/calendar/shared/colorUtils';
+import { setBarberList, setBarberColorOverrides } from '@/components/calendar/shared/colorUtils';
 import { CurrentTimeIndicator } from '@/components/calendar/CurrentTimeIndicator';
 import { SetmoreHeader } from '@/components/calendar/SetmoreHeader';
 import { ThreeDayView } from '@/components/calendar/ThreeDayView';
@@ -516,6 +516,17 @@ export default function Calendar() {
   useEffect(() => {
     setBarberList(allBarberNames);
   }, [allBarberNames]);
+
+  // Build per-barber color overrides from the loaded barbers (already
+  // scoped to the current business by the API). Rebuilt on every change so
+  // it can never leak between businesses or sessions.
+  useEffect(() => {
+    const overrides: Record<string, string | null> = {};
+    barbers.forEach((b) => {
+      if (b.name && b.appointment_color) overrides[b.name] = b.appointment_color;
+    });
+    setBarberColorOverrides(overrides);
+  }, [barbers]);
 
   // Filter bookings by barber and exclude cancelled
   const filteredBookings = useMemo(() => {
