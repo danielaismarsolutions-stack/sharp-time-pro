@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { isToday } from 'date-fns';
 
 interface CurrentTimeIndicatorProps {
   currentDate: Date;
@@ -9,6 +8,10 @@ interface CurrentTimeIndicatorProps {
   hourHeight: number;
   /** When true, the time label pill is shown on the line (used when there's no separate time column label) */
   showTimeLabel?: boolean;
+  /** "line" renders dot+line+optional inline pill. "pill" renders only the
+   *  HH:mm pill — meant to live inside a sticky time column so the number
+   *  stays anchored during horizontal scroll. */
+  variant?: 'line' | 'pill';
 }
 
 // Get current time in Madrid timezone
@@ -19,11 +22,11 @@ const getMadridTime = () => {
 };
 
 export function CurrentTimeIndicator({
-  currentDate,
   startHour = 0,
   endHour = 23,
   hourHeight,
   showTimeLabel = true,
+  variant = 'line',
 }: CurrentTimeIndicatorProps) {
   const [time, setTime] = useState(getMadridTime);
 
@@ -35,8 +38,6 @@ export function CurrentTimeIndicator({
     return () => clearInterval(interval);
   }, []);
 
-  if (!isToday(currentDate)) return null;
-
   const hours = time.getHours();
   const minutes = time.getMinutes();
   const totalMinutes = hours * 60 + minutes;
@@ -47,11 +48,35 @@ export function CurrentTimeIndicator({
 
   const top = ((totalMinutes - startMinutes) / 60) * hourHeight;
 
+  if (variant === 'pill') {
+    return (
+      <div
+        className="absolute left-0 right-0 flex items-center justify-end pointer-events-none"
+        style={{
+          top,
+          transform: 'translateY(-50%)',
+          paddingRight: '4px',
+        }}
+      >
+        <span
+          className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm whitespace-nowrap"
+          style={{
+            backgroundColor: '#000000',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            lineHeight: 1,
+          }}
+        >
+          {format(time, 'H:mm')}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div
       data-current-time-indicator
       className="absolute left-0 right-0 flex items-center pointer-events-none"
-      style={{ top, zIndex: 35 }}
+      style={{ top, zIndex: 25 }}
     >
       {/* Dot */}
       <div
