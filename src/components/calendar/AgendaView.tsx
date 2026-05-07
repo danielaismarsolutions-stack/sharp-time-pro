@@ -5,7 +5,7 @@ import { Eye } from 'lucide-react';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 import { cn } from '@/lib/utils';
-import { pastelColors, getBarberHexColor, DEFAULT_EVENT_HEX } from './shared/colorUtils';
+import { getBarberPastelColorByName, getBarberHexColor, DEFAULT_EVENT_HEX, useBarberColorVersion } from './shared/colorUtils';
 
 interface AgendaViewProps {
   currentDate: Date;
@@ -46,7 +46,9 @@ export function AgendaView({
   getEventsForDay,
   onEventClick,
 }: AgendaViewProps) {
-  const sortedBarbers = useMemo(() => [...barberNames].sort(), [barberNames]);
+  // Subscribe to per-barber color overrides so the cards re-render when
+  // an admin changes a barber's color.
+  useBarberColorVersion();
   // Group bookings by day starting from the selected day (7 days total)
   const dayGroups = useMemo<DayGroup[]>(() => {
     const days: DayGroup[] = [];
@@ -104,7 +106,6 @@ export function AgendaView({
                   <AgendaAppointmentCard
                     key={booking.id}
                     booking={booking}
-                    sortedBarbers={sortedBarbers}
                     onClick={() => onBookingClick(booking)}
                   />
                 ))}
@@ -142,18 +143,14 @@ export function AgendaView({
 
 interface AgendaAppointmentCardProps {
   booking: ApiBooking;
-  sortedBarbers: string[];
   onClick: () => void;
 }
 
-function AgendaAppointmentCard({ booking, sortedBarbers, onClick }: AgendaAppointmentCardProps) {
+function AgendaAppointmentCard({ booking, onClick }: AgendaAppointmentCardProps) {
   const timeRange = `${formatTime12h(booking.start_time)} - ${formatTime12h(booking.end_time)}`;
 
   const barberName = booking.barber || '';
-  const index = sortedBarbers.indexOf(barberName);
-  const colors = index >= 0
-    ? pastelColors[index % pastelColors.length]
-    : pastelColors[barberName.split('').reduce((a, b) => a + b.charCodeAt(0), 0) % pastelColors.length];
+  const colors = getBarberPastelColorByName(barberName);
 
   return (
     <button

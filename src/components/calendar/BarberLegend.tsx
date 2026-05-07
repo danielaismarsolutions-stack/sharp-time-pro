@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { pastelColors } from './shared/colorUtils';
+import { getBarberPastelColorByName, useBarberColorVersion } from './shared/colorUtils';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
 
 interface BarberLegendProps {
@@ -9,21 +9,18 @@ interface BarberLegendProps {
   floating?: boolean;
 }
 
-// Get color for a barber based on consistent indexing
-const getBarberColor = (barberName: string, allBarbers: string[]) => {
-  const index = allBarbers.indexOf(barberName);
-  return pastelColors[index % pastelColors.length];
-};
-
 export function BarberLegend({ barberNames, floating = false }: BarberLegendProps) {
   const staffTerms = useStaffTerms();
+  const colorVersion = useBarberColorVersion();
   const barberColors = useMemo(() => {
-    const sortedBarbers = [...barberNames].sort();
-    return sortedBarbers.map((name) => ({
+    return [...barberNames].sort().map((name) => ({
       name,
-      colors: getBarberColor(name, sortedBarbers),
+      colors: getBarberPastelColorByName(name),
     }));
-  }, [barberNames]);
+    // colorVersion intentionally included so the memo refreshes when an
+    // admin changes a barber's color in the edit-barber modal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [barberNames, colorVersion]);
 
   if (barberNames.length === 0) return null;
 

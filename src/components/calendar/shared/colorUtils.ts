@@ -1,4 +1,5 @@
 // Shared color utilities for calendar components
+import { useSyncExternalStore } from 'react';
 import { ApiBooking } from '@/types/api';
 import { Service } from '@/types';
 import { ColorClasses } from './types';
@@ -61,8 +62,44 @@ let sortedBarberList: string[] = [];
 // can never leak across businesses.
 let barberColorOverrides: Record<string, string> = {};
 
+// Subscription mechanism so React components that derive memos from the
+// barber color state (legends, headers, etc.) can re-render when overrides
+// or the sorted list change. Both setters notify; consumers read the version
+// via useBarberColorVersion() and put it in their useMemo deps.
+let colorStateVersion = 0;
+const colorStateListeners = new Set<() => void>();
+
+const notifyColorState = () => {
+  colorStateVersion++;
+  colorStateListeners.forEach((l) => l());
+};
+
+const subscribeColorState = (listener: () => void) => {
+  colorStateListeners.add(listener);
+  return () => {
+    colorStateListeners.delete(listener);
+  };
+};
+
+const getColorStateVersion = () => colorStateVersion;
+
+/**
+ * React hook that returns a number which changes whenever the barber color
+ * state changes (sorted list or overrides). Add it to a useMemo dep list
+ * to make the memo recompute when colors are updated.
+ */
+export const useBarberColorVersion = (): number => {
+  return useSyncExternalStore(subscribeColorState, getColorStateVersion, getColorStateVersion);
+};
+
 export const setBarberList = (barbers: string[]) => {
-  sortedBarberList = [...barbers].sort();
+  const next = [...barbers].sort();
+  // Skip notify if nothing changed to avoid useless re-renders.
+  if (next.length === sortedBarberList.length && next.every((n, i) => n === sortedBarberList[i])) {
+    return;
+  }
+  sortedBarberList = next;
+  notifyColorState();
 };
 
 /**
@@ -78,7 +115,17 @@ export const setBarberColorOverrides = (map: Record<string, string | null | unde
     if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) continue;
     next[name] = hex.toLowerCase();
   }
+  // Skip notify if the map is structurally identical.
+  const prevKeys = Object.keys(barberColorOverrides);
+  const nextKeys = Object.keys(next);
+  if (
+    prevKeys.length === nextKeys.length &&
+    nextKeys.every((k) => barberColorOverrides[k] === next[k])
+  ) {
+    return;
+  }
   barberColorOverrides = next;
+  notifyColorState();
 };
 
 const getOverrideHex = (barberName: string | null | undefined): string | null => {
@@ -104,10 +151,11 @@ const fallbackHexByName = (barberName: string): string => {
   return pastelHexColors[hash % pastelHexColors.length];
 };
 
-// Get pastel color classes for a booking based on its barber.
+// Get pastel color classes for a barber by name.
 // Resolution order: explicit override → palette fallback by sorted index.
-export const getBarberPastelColor = (booking: ApiBooking): ColorClasses => {
-  const barberName = booking.barber;
+// This is the single source of truth for "what color does barber X use?"
+// in the calendar UI. Use it from legends, headers, filter chips, etc.
+export const getBarberPastelColorByName = (barberName: string | null | undefined): ColorClasses => {
   if (!barberName) return pastelColors[0];
 
   const overrideHex = getOverrideHex(barberName);
@@ -116,6 +164,11 @@ export const getBarberPastelColor = (booking: ApiBooking): ColorClasses => {
     if (classes) return classes;
   }
   return fallbackPastelByName(barberName);
+};
+
+// Get pastel color classes for a booking based on its barber.
+export const getBarberPastelColor = (booking: ApiBooking): ColorClasses => {
+  return getBarberPastelColorByName(booking.barber);
 };
 
 // Legacy function - now redirects to barber-based coloring

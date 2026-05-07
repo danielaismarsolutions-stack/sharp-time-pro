@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useAutoScrollOnDrag } from '@/hooks/useAutoScrollOnDrag';
 import { getServicePastelColor, getOverlapInfo, getUnifiedOverlapInfo, getBookingPosition, getEventPosition } from '@/components/calendar/shared';
-import { pastelColors } from '@/components/calendar/shared/colorUtils';
+import { getBarberPastelColorByName, useBarberColorVersion } from '@/components/calendar/shared/colorUtils';
 import { BookingCard } from '@/components/calendar/shared/BookingCard';
 import { EventCard } from '@/components/calendar/shared/EventCard';
 import { DroppableTimeSlotEnhanced } from '@/components/calendar/shared/DroppableTimeSlotEnhanced';
@@ -449,14 +449,16 @@ export function ThreeDayView({
     return { top, height };
   };
 
-  // Barber colors for floating legend
+  // Barber colors for floating legend. Depends on colorVersion so it
+  // refreshes when an admin changes a barber's color.
+  const colorVersion = useBarberColorVersion();
   const barberColors = useMemo(() => {
-    const sorted = [...barberNames].sort();
-    return sorted.map((name, i) => ({
+    return [...barberNames].sort().map((name) => ({
       name,
-      colors: pastelColors[i % pastelColors.length],
+      colors: getBarberPastelColorByName(name),
     }));
-  }, [barberNames]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [barberNames, colorVersion]);
 
   // Split barber legend items into balanced rows
   const legendRows = useMemo(() => {

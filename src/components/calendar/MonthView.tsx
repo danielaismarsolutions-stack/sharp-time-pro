@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { pastelColors, getBarberHexColor, DEFAULT_EVENT_HEX } from './shared/colorUtils';
+import { getBarberPastelColorByName, getBarberHexColor, DEFAULT_EVENT_HEX, useBarberColorVersion } from './shared/colorUtils';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
 import {
   Tooltip,
@@ -36,20 +36,12 @@ interface MonthViewProps {
 
 const MAX_VISIBLE_BOOKINGS = 3;
 
-// Get pastel color classes for a booking based on its barber
-const getBarberColor = (booking: ApiBooking, sortedBarbers: string[]) => {
-  const barberName = booking.barber || '';
-  const index = sortedBarbers.indexOf(barberName);
-  if (index >= 0) {
-    return pastelColors[index % pastelColors.length];
-  }
-  const hash = barberName.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-  return pastelColors[hash % pastelColors.length];
-};
-
 export function MonthView({ currentDate, bookings, services, barberNames, onDateClick, onBookingClick, getEventsForDay, onEventClick }: MonthViewProps) {
-  const sortedBarbers = useMemo(() => [...barberNames].sort(), [barberNames]);
   const isMobile = useIsMobile();
+  // Subscribe to color overrides so the view re-renders when an admin
+  // changes a barber's color (the inline getBarberPastelColorByName calls
+  // below already read the latest state).
+  useBarberColorVersion();
   
   // Generate calendar days grid
   const calendarDays = useMemo(() => {
@@ -147,7 +139,7 @@ export function MonthView({ currentDate, bookings, services, barberNames, onDate
               <div className="flex flex-col">
                 {items.slice(0, MAX_VISIBLE_BOOKINGS).map((item) => {
                   if (item.type === 'booking') {
-                    const colorClasses = getBarberColor(item.data, sortedBarbers);
+                    const colorClasses = getBarberPastelColorByName(item.data.barber);
                     return (
                       <MonthBookingCard
                         key={item.data.id}
