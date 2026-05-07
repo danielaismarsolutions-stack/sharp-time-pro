@@ -1170,6 +1170,13 @@ export default function Calendar() {
     onSlotSelect: (date, startTime, endTime) => openCreateChoice(date, startTime, endTime),
   });
 
+  // Track which barber column initiated the drag, so the selection overlay
+  // is rendered only in that column (all day-view columns share the same date).
+  const [activeDayBarberId, setActiveDayBarberId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!daySlotSelection.isSelecting) setActiveDayBarberId(null);
+  }, [daySlotSelection.isSelecting]);
+
   // Slot selection (drag-to-create) for Week view
   const weekSlotSelection = useSlotSelection({
     hourHeight: HOUR_HEIGHT_WEEK,
@@ -1282,10 +1289,16 @@ export default function Calendar() {
                   key={barber.id}
                   className="flex-1 min-w-[160px] md:min-w-[180px] border-r border-border last:border-r-0 relative"
                   onClick={(e) => daySlotSelection.handleSlotClick(currentDate, e)}
-                  onMouseDown={(e) => daySlotSelection.handleMouseDown(currentDate, e)}
+                  onMouseDown={(e) => {
+                    setActiveDayBarberId(barber.id);
+                    daySlotSelection.handleMouseDown(currentDate, e);
+                  }}
                   onMouseMove={daySlotSelection.handleMouseMove}
                   onMouseUp={daySlotSelection.handleMouseUp}
-                  onTouchStart={(e) => daySlotSelection.handleTouchStart(currentDate, e)}
+                  onTouchStart={(e) => {
+                    setActiveDayBarberId(barber.id);
+                    daySlotSelection.handleTouchStart(currentDate, e);
+                  }}
                   onTouchMove={daySlotSelection.handleTouchMove}
                   onTouchEnd={daySlotSelection.handleTouchEnd}
                 >
@@ -1381,6 +1394,18 @@ export default function Calendar() {
                       showTimeLabel={false}
                     />
                   </div>
+
+                  {/* Drag-to-create selection overlay */}
+                  {daySlotSelection.isSelecting && activeDayBarberId === barber.id && daySlotSelection.getSelectionStyle() && (
+                    <div
+                      className="absolute left-1 right-1 bg-primary/20 border-2 border-primary border-dashed rounded-md z-20 pointer-events-none"
+                      style={daySlotSelection.getSelectionStyle()!}
+                    >
+                      <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap">
+                        {daySlotSelection.getSelectionTimeRange()}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
