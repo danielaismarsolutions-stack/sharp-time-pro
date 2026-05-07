@@ -985,6 +985,7 @@ export default function Calendar() {
     setSelectedEvent(null);
     try {
       await supabaseEventBookingsApi.delete(eventId);
+      invalidateBookings();
 
       // Notify all admins about event deletion
       if (deletedEvent) {
@@ -1065,6 +1066,7 @@ export default function Calendar() {
         setCalendarEvents(
           calendarEvents.map((e) => (e.id === selectedEvent.id ? updatedEvent : e))
         );
+        invalidateBookings();
 
         // Notify all admins about event update
         try {
@@ -1100,7 +1102,10 @@ export default function Calendar() {
           recurrence_rule: buildRecurrenceRule(data.repeat),
         });
         const createdEvent = bookingToCalendarEvent(createdBooking);
+        // Track id so the realtime INSERT handler skips duplicate notifications
+        locallyCreatedBookingIds.current.add(createdBooking.id);
         setCalendarEvents([...calendarEvents, createdEvent]);
+        invalidateBookings();
 
         // Notify all admins about new event
         try {
@@ -1880,7 +1885,8 @@ export default function Calendar() {
                 });
                 
                 setBookings(bookings.map(b => b.id === selectedBooking.id ? updatedBooking : b));
-                
+                invalidateBookings();
+
                 // Notify admins + barber about booking modification
                 try {
                   await notifyBookingUsers({
@@ -1924,6 +1930,7 @@ export default function Calendar() {
                 
                 setBookings([...bookings, newBooking]);
                 locallyCreatedBookingIds.current.add(newBooking.id);
+                invalidateBookings();
 
                 // Notify admins + barber about new booking
                 try {
