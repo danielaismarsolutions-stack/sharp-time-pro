@@ -3,94 +3,129 @@ import { ApiBooking } from '@/types/api';
 import { Service } from '@/types';
 import { ColorClasses } from './types';
 
-// Predefined pastel colors for barbers
-export const pastelColors: ColorClasses[] = [
-  { bg: 'bg-blue-100', hover: 'hover:bg-blue-200', text: 'text-blue-900', border: 'border-l-blue-500' },
-  { bg: 'bg-emerald-100', hover: 'hover:bg-emerald-200', text: 'text-emerald-900', border: 'border-l-emerald-500' },
-  { bg: 'bg-amber-100', hover: 'hover:bg-amber-200', text: 'text-amber-900', border: 'border-l-amber-500' },
-  { bg: 'bg-rose-100', hover: 'hover:bg-rose-200', text: 'text-rose-900', border: 'border-l-rose-500' },
-  { bg: 'bg-violet-100', hover: 'hover:bg-violet-200', text: 'text-violet-900', border: 'border-l-violet-500' },
-  { bg: 'bg-pink-100', hover: 'hover:bg-pink-200', text: 'text-pink-900', border: 'border-l-pink-500' },
-  { bg: 'bg-cyan-100', hover: 'hover:bg-cyan-200', text: 'text-cyan-900', border: 'border-l-cyan-500' },
-  { bg: 'bg-lime-100', hover: 'hover:bg-lime-200', text: 'text-lime-900', border: 'border-l-lime-500' },
+// Single source of truth for the barber color palette.
+// Keep entries aligned: classes + hex must describe the SAME color so the
+// calendar (which mixes Tailwind classes for appointments and inline hex for
+// events) renders consistently for a given barber.
+export interface BarberColorOption {
+  /** Display label (Spanish) used by the picker UI. */
+  label: string;
+  /** Canonical hex (#RRGGBB) stored on the user row when chosen. */
+  hex: string;
+  /** Tailwind class set used by BookingCard. */
+  classes: ColorClasses;
+}
+
+export const BARBER_COLOR_PALETTE: BarberColorOption[] = [
+  { label: 'Azul',     hex: '#3b82f6', classes: { bg: 'bg-blue-100',    hover: 'hover:bg-blue-200',    text: 'text-blue-900',    border: 'border-l-blue-500' } },
+  { label: 'Verde',    hex: '#10b981', classes: { bg: 'bg-emerald-100', hover: 'hover:bg-emerald-200', text: 'text-emerald-900', border: 'border-l-emerald-500' } },
+  { label: 'Ámbar',    hex: '#f59e0b', classes: { bg: 'bg-amber-100',   hover: 'hover:bg-amber-200',   text: 'text-amber-900',   border: 'border-l-amber-500' } },
+  { label: 'Rosa',     hex: '#f43f5e', classes: { bg: 'bg-rose-100',    hover: 'hover:bg-rose-200',    text: 'text-rose-900',    border: 'border-l-rose-500' } },
+  { label: 'Violeta',  hex: '#8b5cf6', classes: { bg: 'bg-violet-100',  hover: 'hover:bg-violet-200',  text: 'text-violet-900',  border: 'border-l-violet-500' } },
+  { label: 'Magenta',  hex: '#ec4899', classes: { bg: 'bg-pink-100',    hover: 'hover:bg-pink-200',    text: 'text-pink-900',    border: 'border-l-pink-500' } },
+  { label: 'Cian',     hex: '#06b6d4', classes: { bg: 'bg-cyan-100',    hover: 'hover:bg-cyan-200',    text: 'text-cyan-900',    border: 'border-l-cyan-500' } },
+  { label: 'Lima',     hex: '#84cc16', classes: { bg: 'bg-lime-100',    hover: 'hover:bg-lime-200',    text: 'text-lime-900',    border: 'border-l-lime-500' } },
 ];
 
-// Hex equivalents (Tailwind ${color}-500) aligned with pastelColors above.
-// Used by calendar events (which store hex) so they match appointment colors per barber.
-export const pastelHexColors: string[] = [
-  '#3b82f6', // blue-500
-  '#10b981', // emerald-500
-  '#f59e0b', // amber-500
-  '#f43f5e', // rose-500
-  '#8b5cf6', // violet-500
-  '#ec4899', // pink-500
-  '#06b6d4', // cyan-500
-  '#84cc16', // lime-500
-];
+// Derived arrays kept for backward compatibility with existing callers.
+export const pastelColors: ColorClasses[] = BARBER_COLOR_PALETTE.map((p) => p.classes);
+export const pastelHexColors: string[] = BARBER_COLOR_PALETTE.map((p) => p.hex);
 
 // Default hex color for entities without an assigned barber
 export const DEFAULT_EVENT_HEX = '#d1d5db';
 
-// Map service colors to pastel classes (kept for backwards compatibility)
+// Map every palette hex (lowercased) to its ColorClasses for O(1) lookup.
+const HEX_TO_CLASSES: Record<string, ColorClasses> = BARBER_COLOR_PALETTE.reduce(
+  (acc, opt) => {
+    acc[opt.hex.toLowerCase()] = opt.classes;
+    return acc;
+  },
+  {} as Record<string, ColorClasses>
+);
+
+// Legacy serviceColorMap (extra hexes used by services). Kept for any code
+// that still wants to translate a service hex to Tailwind classes.
 export const serviceColorMap: Record<string, ColorClasses> = {
-  '#3b82f6': { bg: 'bg-blue-100', hover: 'hover:bg-blue-200', text: 'text-blue-900', border: 'border-l-blue-500' },
-  '#10b981': { bg: 'bg-emerald-100', hover: 'hover:bg-emerald-200', text: 'text-emerald-900', border: 'border-l-emerald-500' },
-  '#f59e0b': { bg: 'bg-amber-100', hover: 'hover:bg-amber-200', text: 'text-amber-900', border: 'border-l-amber-500' },
-  '#ef4444': { bg: 'bg-red-100', hover: 'hover:bg-red-200', text: 'text-red-900', border: 'border-l-red-500' },
-  '#8b5cf6': { bg: 'bg-violet-100', hover: 'hover:bg-violet-200', text: 'text-violet-900', border: 'border-l-violet-500' },
-  '#ec4899': { bg: 'bg-pink-100', hover: 'hover:bg-pink-200', text: 'text-pink-900', border: 'border-l-pink-500' },
-  '#06b6d4': { bg: 'bg-cyan-100', hover: 'hover:bg-cyan-200', text: 'text-cyan-900', border: 'border-l-cyan-500' },
-  '#84cc16': { bg: 'bg-lime-100', hover: 'hover:bg-lime-200', text: 'text-lime-900', border: 'border-l-lime-500' },
+  ...HEX_TO_CLASSES,
+  '#ef4444': { bg: 'bg-red-100',    hover: 'hover:bg-red-200',    text: 'text-red-900',    border: 'border-l-red-500' },
   '#6366f1': { bg: 'bg-indigo-100', hover: 'hover:bg-indigo-200', text: 'text-indigo-900', border: 'border-l-indigo-500' },
-  '#14b8a6': { bg: 'bg-teal-100', hover: 'hover:bg-teal-200', text: 'text-teal-900', border: 'border-l-teal-500' },
+  '#14b8a6': { bg: 'bg-teal-100',   hover: 'hover:bg-teal-200',   text: 'text-teal-900',   border: 'border-l-teal-500' },
   '#f97316': { bg: 'bg-orange-100', hover: 'hover:bg-orange-200', text: 'text-orange-900', border: 'border-l-orange-500' },
 };
 
-// Sorted barber list for consistent coloring - must be set externally
+// Sorted barber list for consistent fallback coloring.
 let sortedBarberList: string[] = [];
 
-// Set the barber list for consistent color assignment
+// Per-barber overrides: barberName -> hex (#RRGGBB). Populated from the
+// current business's barbers; cleared/rebuilt on every Calendar load so it
+// can never leak across businesses.
+let barberColorOverrides: Record<string, string> = {};
+
 export const setBarberList = (barbers: string[]) => {
   sortedBarberList = [...barbers].sort();
 };
 
-// Get pastel color classes for a booking based on its barber
-export const getBarberPastelColor = (booking: ApiBooking): ColorClasses => {
-  const barberName = booking.barber;
-  
-  if (!barberName) {
-    // Fallback for bookings without barber
-    return pastelColors[0];
+/**
+ * Replace the per-barber color override map. Pass an empty object to clear.
+ * Only valid palette hex strings are kept; anything else is ignored to
+ * prevent malformed values from corrupting the calendar.
+ */
+export const setBarberColorOverrides = (map: Record<string, string | null | undefined>) => {
+  const next: Record<string, string> = {};
+  for (const [name, hex] of Object.entries(map)) {
+    if (!name || !hex) continue;
+    if (typeof hex !== 'string') continue;
+    if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) continue;
+    next[name] = hex.toLowerCase();
   }
-  
-  // Use sorted index for consistent coloring
+  barberColorOverrides = next;
+};
+
+const getOverrideHex = (barberName: string | null | undefined): string | null => {
+  if (!barberName) return null;
+  return barberColorOverrides[barberName] || null;
+};
+
+const getClassesForHex = (hex: string): ColorClasses | null => {
+  return HEX_TO_CLASSES[hex.toLowerCase()] || null;
+};
+
+const fallbackPastelByName = (barberName: string): ColorClasses => {
   const index = sortedBarberList.indexOf(barberName);
-  if (index >= 0) {
-    return pastelColors[index % pastelColors.length];
-  }
-  
-  // Fallback: hash-based color if barber not in list
+  if (index >= 0) return pastelColors[index % pastelColors.length];
   const hash = barberName.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
   return pastelColors[hash % pastelColors.length];
 };
 
+const fallbackHexByName = (barberName: string): string => {
+  const index = sortedBarberList.indexOf(barberName);
+  if (index >= 0) return pastelHexColors[index % pastelHexColors.length];
+  const hash = barberName.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+  return pastelHexColors[hash % pastelHexColors.length];
+};
+
+// Get pastel color classes for a booking based on its barber.
+// Resolution order: explicit override → palette fallback by sorted index.
+export const getBarberPastelColor = (booking: ApiBooking): ColorClasses => {
+  const barberName = booking.barber;
+  if (!barberName) return pastelColors[0];
+
+  const overrideHex = getOverrideHex(barberName);
+  if (overrideHex) {
+    const classes = getClassesForHex(overrideHex);
+    if (classes) return classes;
+  }
+  return fallbackPastelByName(barberName);
+};
+
 // Legacy function - now redirects to barber-based coloring
-export const getServicePastelColor = (booking: ApiBooking, services: Service[]): ColorClasses => {
+export const getServicePastelColor = (booking: ApiBooking, _services: Service[]): ColorClasses => {
   return getBarberPastelColor(booking);
 };
 
-// Get the hex color for a barber, mirroring the index used by getBarberPastelColor
-// so that calendar events (hex-stored) render with the same color as the
-// appointments of the same barber. Returns the default hex if no barber.
+// Get the hex color for a barber, mirroring getBarberPastelColor so
+// hex-stored events render with the same color as the barber's appointments.
 export const getBarberHexColor = (barberName: string | null | undefined): string => {
   if (!barberName) return DEFAULT_EVENT_HEX;
-
-  const index = sortedBarberList.indexOf(barberName);
-  if (index >= 0) {
-    return pastelHexColors[index % pastelHexColors.length];
-  }
-
-  // Fallback: hash-based color if barber not in list
-  const hash = barberName.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-  return pastelHexColors[hash % pastelHexColors.length];
+  return getOverrideHex(barberName) || fallbackHexByName(barberName);
 };

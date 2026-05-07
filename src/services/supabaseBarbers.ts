@@ -23,6 +23,7 @@ interface DbUser {
   role: string;
   booking_buffer_minutes?: number;
   timezone?: string;
+  appointment_color?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -130,6 +131,7 @@ const mapUserToBarber = (
   is_active: user.is_active,
   booking_buffer_minutes: user.booking_buffer_minutes,
   timezone: user.timezone,
+  appointment_color: user.appointment_color ?? null,
   created_at: user.created_at,
   updated_at: user.updated_at,
 });
@@ -258,6 +260,7 @@ export const supabaseBarbersApi = {
       role: barberData.role || 'barber',
       phone: barberData.phone || null,
       bio: barberData.bio || null,
+      appointment_color: barberData.appointment_color ?? null,
       business_id: getBusinessId(),
     };
 

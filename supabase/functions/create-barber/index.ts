@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
 
     // 5. Parse and validate request body
     const body = await req.json();
-    const { name, email, password, role, phone, bio, business_id } = body;
+    const { name, email, password, role, phone, bio, appointment_color, business_id } = body;
 
     if (!name?.trim() || !email?.trim() || !password) {
       return jsonResponse(400, {
@@ -84,6 +84,17 @@ Deno.serve(async (req) => {
       return jsonResponse(400, {
         error: "El rol debe ser 'barber' o 'admin'",
       });
+    }
+
+    // Validate appointment_color (hex #RRGGBB) if provided
+    let normalizedColor: string | null = null;
+    if (appointment_color !== undefined && appointment_color !== null && appointment_color !== "") {
+      if (typeof appointment_color !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(appointment_color)) {
+        return jsonResponse(400, {
+          error: "El color de cita debe ser un valor hexadecimal #RRGGBB",
+        });
+      }
+      normalizedColor = appointment_color;
     }
 
     // Enforce business isolation: admin can only create users in their own business
@@ -131,6 +142,7 @@ Deno.serve(async (req) => {
         email: email.trim(),
         phone: phone || null,
         bio: bio || null,
+        appointment_color: normalizedColor,
         role,
         auth_uid: newAuth.user.id,
         is_active: true,
