@@ -431,10 +431,7 @@ export function SetmoreHeader({
             </Button>
           )}
 
-        {/* Barber Filter - shown for all users; barber users default to their
-            own name. The "Todos" option is hidden in 3-day view because that
-            view groups bookings by day, so picking a single staff member is
-            required for it to read clearly. */}
+        {/* Barber Filter - shown for all users; barber users default to their own name */}
         {barberNames.length > 0 && (
           <Select
             value={selectedBarber || 'all'}
@@ -445,9 +442,7 @@ export function SetmoreHeader({
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
-              {viewMode !== '3day' && (
-                <SelectItem value="all">Todos</SelectItem>
-              )}
+              <SelectItem value="all">Todos</SelectItem>
               {barberNames.map((barberName) => (
                 <SelectItem key={barberName} value={barberName}>
                   {barberName}
