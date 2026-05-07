@@ -668,7 +668,7 @@ export function ThreeDayView({
               <div
                 key={day.toISOString()}
                 className={cn(
-                  'py-1.5 flex items-center justify-center gap-1.5 shrink-0',
+                  'py-1.5 flex items-center justify-center gap-1.5 shrink-0 bg-white',
                   !isMobile && 'flex-1',
                   isMobileSnap && 'snap-start'
                 )}
@@ -916,7 +916,11 @@ export function ThreeDayView({
             );
           })}
 
-          {/* Current time indicator */}
+          {/* Current time indicator. On mobile we wrap the label and dot in
+              full-width absolute "rails" so their inner sticky-left children
+              stay pinned to the viewport while the day strip scrolls
+              laterally. The line itself spans the whole strip so it remains
+              visible at the same Y across all visible days. */}
           {showCurrentTime && currentTimePosition !== null && (
             <div
               className={cn(
@@ -924,49 +928,131 @@ export function ThreeDayView({
                 isMonthPickerOpen ? "opacity-0" : "opacity-100"
               )}
             >
-              {/* Time label - positioned in the time column */}
-              <div
-                className="absolute flex items-center justify-end pointer-events-none"
-                style={{
-                  top: currentTimePosition,
-                  transform: 'translateY(-50%)',
-                  left: 0,
-                  width: '48px',
-                  paddingRight: '4px',
-                  zIndex: 35,
-                }}
-              >
-                <span
-                  className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
-                  style={{
-                    backgroundColor: '#000000',
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
-                  }}
-                >
-                  {format(currentTime, 'H:mm')}
-                </span>
-              </div>
+              {isMobile ? (
+                <>
+                  {/* Line — spans the entire 9-day strip so it's visible at
+                      the same Y regardless of which group the user is on. */}
+                  <div
+                    data-current-time-indicator
+                    className="absolute pointer-events-none"
+                    style={{
+                      top: currentTimePosition,
+                      transform: 'translateY(-50%)',
+                      left: TIME_COL_WIDTH,
+                      right: 0,
+                      height: 2,
+                      backgroundColor: '#000000',
+                      zIndex: 34,
+                    }}
+                  />
 
-              {/* Dot and line - starts after time column */}
-              <div
-                data-current-time-indicator
-                className="absolute flex items-center pointer-events-none"
-                style={{
-                  top: currentTimePosition,
-                  left: '48px',
-                  right: 0,
-                  zIndex: 35,
-                }}
-              >
-                <div
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                  style={{ backgroundColor: '#000000', marginLeft: '-5px' }}
-                />
-                <div
-                  className="flex-1"
-                  style={{ height: '2px', backgroundColor: '#000000' }}
-                />
-              </div>
+                  {/* Label rail — full width; the inner element is sticky-left
+                      so the time pill stays inside the time column area. */}
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{
+                      top: currentTimePosition,
+                      left: 0,
+                      right: 0,
+                      height: 0,
+                      zIndex: 36,
+                    }}
+                  >
+                    <div
+                      className="flex items-center justify-end"
+                      style={{
+                        position: 'sticky',
+                        left: 0,
+                        width: TIME_COL_WIDTH,
+                        paddingRight: 4,
+                        transform: 'translateY(-50%)',
+                      }}
+                    >
+                      <span
+                        className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
+                        style={{
+                          backgroundColor: '#000000',
+                          fontFamily: 'system-ui, -apple-system, sans-serif',
+                        }}
+                      >
+                        {format(currentTime, 'H:mm')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Dot rail — full width; inner dot sticks at the right
+                      edge of the time column so it always appears at the
+                      start of the visible body. */}
+                  <div
+                    className="absolute pointer-events-none"
+                    style={{
+                      top: currentTimePosition,
+                      left: 0,
+                      right: 0,
+                      height: 0,
+                      zIndex: 35,
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: 'sticky',
+                        left: TIME_COL_WIDTH - 5,
+                        width: 10,
+                        height: 10,
+                        borderRadius: '50%',
+                        backgroundColor: '#000000',
+                        transform: 'translateY(-50%)',
+                      }}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Time label - positioned in the time column */}
+                  <div
+                    className="absolute flex items-center justify-end pointer-events-none"
+                    style={{
+                      top: currentTimePosition,
+                      transform: 'translateY(-50%)',
+                      left: 0,
+                      width: '48px',
+                      paddingRight: '4px',
+                      zIndex: 35,
+                    }}
+                  >
+                    <span
+                      className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
+                      style={{
+                        backgroundColor: '#000000',
+                        fontFamily: 'system-ui, -apple-system, sans-serif',
+                      }}
+                    >
+                      {format(currentTime, 'H:mm')}
+                    </span>
+                  </div>
+
+                  {/* Dot and line - starts after time column */}
+                  <div
+                    data-current-time-indicator
+                    className="absolute flex items-center pointer-events-none"
+                    style={{
+                      top: currentTimePosition,
+                      left: '48px',
+                      right: 0,
+                      zIndex: 35,
+                    }}
+                  >
+                    <div
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: '#000000', marginLeft: '-5px' }}
+                    />
+                    <div
+                      className="flex-1"
+                      style={{ height: '2px', backgroundColor: '#000000' }}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
