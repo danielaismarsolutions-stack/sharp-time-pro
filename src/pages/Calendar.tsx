@@ -516,6 +516,16 @@ export default function Calendar() {
     return Array.from(barberSet).sort();
   }, [bookings]);
 
+  // 3-day view requires a specific barber selection (it has no "Todos"
+  // option). If we land in 3-day with no selection, fall back to the first
+  // available barber so the view always renders something coherent.
+  useEffect(() => {
+    if (viewMode !== '3day') return;
+    if (selectedBarber !== null) return;
+    if (barberNames.length === 0) return;
+    setSelectedBarber(barberNames[0]);
+  }, [viewMode, selectedBarber, barberNames]);
+
   // Build a stable, complete barber list (includes registered barbers without
   // bookings yet and any names appearing on events) so each barber gets a
   // consistent color across appointments and events on every view.
