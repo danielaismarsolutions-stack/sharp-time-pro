@@ -1223,7 +1223,9 @@ export default function Calendar() {
         {/* Time grid */}
         <div className="flex flex-1">
           {/* Time column — sticky on the left so hours stay visible during
-              horizontal scroll. z-30 keeps labels above column backgrounds. */}
+              horizontal scroll. z-30 keeps labels above column backgrounds
+              and lets the column overlap the current-time line (z-25) that
+              scrolls beneath it. */}
           <div className="w-16 md:w-20 shrink-0 border-r border-border bg-card sticky left-0 z-30">
             {HOURS.map((hour) => (
               <div
@@ -1234,16 +1236,31 @@ export default function Calendar() {
                 {hour.toString().padStart(2, '0')}:00
               </div>
             ))}
+
+            {/* Current-time HH:mm pill — rendered inside the sticky time
+                column so it stays anchored to the left edge during horizontal
+                scroll instead of sliding away with the barber columns. */}
+            <div className={cn(
+              "transition-opacity duration-200 ease-in-out",
+              isMonthPickerOpen ? "opacity-0" : "opacity-100"
+            )}>
+              <CurrentTimeIndicator
+                currentDate={currentDate}
+                startHour={START_HOUR}
+                endHour={23}
+                hourHeight={HOUR_HEIGHT_DAY}
+                variant="pill"
+              />
+            </div>
           </div>
 
           {/* Barber columns — horizontal scrolling is handled by the outer
               scrollContainerRef so header and body scroll together. */}
           <div className="flex-1 flex">
-            {visibleBarbers.map((barber, barberIdx) => {
+            {visibleBarbers.map((barber) => {
               const barberBookings = dayBookings.filter((b) => b.barber === barber.name);
               const barberEvents = dayEvents.filter((e) => !e.barber || e.barber === barber.name);
               const allItems = [...barberBookings, ...barberEvents];
-              const isFirstColumn = barberIdx === 0;
 
               return (
                 <div
@@ -1333,10 +1350,10 @@ export default function Calendar() {
                     );
                   })}
 
-                  {/* Current time indicator on every column, shown for any
-                      day (not only today) so it doubles as a "right now"
-                      reference. The time pill is only rendered on the first
-                      column so it appears once on the left edge of the grid. */}
+                  {/* Current time line+dot on every barber column. The HH:mm
+                      pill is rendered separately inside the sticky time
+                      column above so it remains visible during horizontal
+                      scroll. */}
                   <div className={cn(
                     "transition-opacity duration-200 ease-in-out",
                     isMonthPickerOpen ? "opacity-0" : "opacity-100"
@@ -1346,7 +1363,7 @@ export default function Calendar() {
                       startHour={START_HOUR}
                       endHour={23}
                       hourHeight={HOUR_HEIGHT_DAY}
-                      showTimeLabel={isFirstColumn}
+                      showTimeLabel={false}
                     />
                   </div>
                 </div>

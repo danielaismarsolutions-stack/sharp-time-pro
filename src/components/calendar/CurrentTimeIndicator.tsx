@@ -8,6 +8,10 @@ interface CurrentTimeIndicatorProps {
   hourHeight: number;
   /** When true, the time label pill is shown on the line (used when there's no separate time column label) */
   showTimeLabel?: boolean;
+  /** "line" renders dot+line+optional inline pill. "pill" renders only the
+   *  HH:mm pill — meant to live inside a sticky time column so the number
+   *  stays anchored during horizontal scroll. */
+  variant?: 'line' | 'pill';
 }
 
 // Get current time in Madrid timezone
@@ -22,6 +26,7 @@ export function CurrentTimeIndicator({
   endHour = 23,
   hourHeight,
   showTimeLabel = true,
+  variant = 'line',
 }: CurrentTimeIndicatorProps) {
   const [time, setTime] = useState(getMadridTime);
 
@@ -42,6 +47,30 @@ export function CurrentTimeIndicator({
   if (totalMinutes < startMinutes || totalMinutes > endMinutes) return null;
 
   const top = ((totalMinutes - startMinutes) / 60) * hourHeight;
+
+  if (variant === 'pill') {
+    return (
+      <div
+        className="absolute left-0 right-0 flex items-center justify-end pointer-events-none"
+        style={{
+          top,
+          transform: 'translateY(-50%)',
+          paddingRight: '4px',
+        }}
+      >
+        <span
+          className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm whitespace-nowrap"
+          style={{
+            backgroundColor: '#000000',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            lineHeight: 1,
+          }}
+        >
+          {format(time, 'H:mm')}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div
