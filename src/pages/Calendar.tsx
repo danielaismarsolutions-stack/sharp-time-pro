@@ -454,9 +454,9 @@ export default function Calendar() {
 
   // Configure sensors for drag-drop.
   // MouseSensor: solo mouse en desktop (NO intercepta touch — crítico).
-  // TouchSensor: long-press 1.5s con tolerance baja para que CUALQUIER
+  // TouchSensor: long-press 1s con tolerance baja para que CUALQUIER
   // movimiento del dedo durante el delay cancele la activación. Así el drag
-  // solo se dispara si el dedo está quieto (scroll en pausa) 1500ms completos.
+  // solo se dispara si el dedo está quieto (scroll en pausa) 1000ms completos.
   // Nota: usamos MouseSensor en vez de PointerSensor porque PointerSensor
   // también captura touch events y su distance:8 se dispara antes del delay.
   const sensors = useSensors(
@@ -467,7 +467,7 @@ export default function Calendar() {
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 1500,
+        delay: 1000,
         tolerance: 5,
       },
     })
