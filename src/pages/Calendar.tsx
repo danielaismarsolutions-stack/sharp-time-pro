@@ -2021,7 +2021,9 @@ export default function Calendar() {
           selectedDate={selectedDate}
           selectedTime={selectedTime}
           selectedEndTime={selectedEndTime}
-          defaultBarberId={user?.id}
+          defaultBarberId={
+            (selectedBarber && barbers.find((b) => b.name === selectedBarber)?.id) || user?.id
+          }
         />
 
         {/* Event Detail Modal */}
