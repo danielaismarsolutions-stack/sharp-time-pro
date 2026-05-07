@@ -278,15 +278,25 @@ export function useCalendarDragDropEnhanced({
   // Compute the 15-min-snapped start time (HH:MM) from the live drag event.
   // Shared between handleDragMove (preview) and handleDragEnd (commit) so the
   // two paths can never disagree.
+  //
+  // We derive the position from `active.rect.current.translated` (the dragged
+  // element's translated rect) instead of `activatorEvent.clientY`. The
+  // activator event is a PointerEvent on desktop but a TouchEvent on touch
+  // devices, where `clientY` is undefined → previously the math fell back to
+  // 0 and every drop snapped to ":00" of the hovered hour. Reading the
+  // translated rect works identically across input types.
   const computeSnappedStartTime = useCallback(
     (
       e: DragMoveEvent | DragEndEvent,
       baseHour: number,
       overRect: { top: number },
     ): string => {
-      const activatorClientY = (e.activatorEvent as PointerEvent)?.clientY ?? 0;
-      const dragY = e.delta.y + activatorClientY;
-      const relativeY = Math.max(0, Math.min(hourHeight, dragY - overRect.top));
+      const translated = e.active.rect.current.translated;
+      // Fallback: if the translated rect is unavailable for any reason, use
+      // the activator pointer position (works on mouse / pointer events).
+      const cardTop = translated?.top
+        ?? ((e.activatorEvent as PointerEvent)?.clientY ?? 0) + e.delta.y;
+      const relativeY = Math.max(0, Math.min(hourHeight, cardTop - overRect.top));
       const snapped = snapToQuarterHour((relativeY / hourHeight) * 60);
       const minutes = snapped >= 60 ? 0 : snapped;
       const hours = snapped >= 60 ? Math.min(baseHour + 1, businessCloseHour) : baseHour;
