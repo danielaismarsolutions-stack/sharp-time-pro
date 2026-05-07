@@ -1662,7 +1662,7 @@ export default function Calendar() {
             "flex-1",
             viewMode === 'agenda' && 'overflow-hidden',
             viewMode === 'day' && 'overflow-auto',
-            viewMode === '3day' && isMobile && 'overflow-auto snap-x snap-mandatory',
+            viewMode === '3day' && isMobile && 'overflow-auto',
             viewMode === '3day' && !isMobile && 'overflow-y-auto overflow-x-hidden',
             viewMode !== 'agenda' && viewMode !== 'day' && viewMode !== '3day' && 'overflow-y-auto overflow-x-hidden',
           )}>
