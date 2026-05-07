@@ -282,6 +282,21 @@ export default function Calendar() {
     }
   }, [isBarber, user?.name]);
 
+  // First-load default: if the logged-in account matches an active barber profile
+  // (e.g. an admin/owner who is also a barber), preselect their own column.
+  // Only runs once per mount; later user changes (incl. switching to "Todos") are respected.
+  const adminBarberDefaultAppliedRef = useRef(false);
+  useEffect(() => {
+    if (adminBarberDefaultAppliedRef.current) return;
+    if (isBarber) return; // already handled by the effect above
+    if (!user?.name || barbers.length === 0) return;
+    const match = barbers.find((b) => b.is_active && b.name === user.name);
+    if (match) {
+      setSelectedBarber(match.name);
+    }
+    adminBarberDefaultAppliedRef.current = true;
+  }, [isBarber, user?.name, barbers]);
+
   // Real-time subscription for bookings from web/external sources
   useEffect(() => {
     if (!user?.id) return;
@@ -1647,7 +1662,9 @@ export default function Calendar() {
             "flex-1",
             viewMode === 'agenda' && 'overflow-hidden',
             viewMode === 'day' && 'overflow-auto',
-            viewMode !== 'agenda' && viewMode !== 'day' && 'overflow-y-auto overflow-x-hidden',
+            viewMode === '3day' && isMobile && 'overflow-auto snap-x snap-mandatory',
+            viewMode === '3day' && !isMobile && 'overflow-y-auto overflow-x-hidden',
+            viewMode !== 'agenda' && viewMode !== 'day' && viewMode !== '3day' && 'overflow-y-auto overflow-x-hidden',
           )}>
             {viewMode === 'day' && renderDayView()}
             {viewMode === '3day' && (
@@ -1679,6 +1696,7 @@ export default function Calendar() {
                 onEventClick={openEventDetail}
                 scrollContainerRef={scrollContainerRef}
                 isMonthPickerOpen={isMonthPickerOpen}
+                isMobile={isMobile}
               />
             )}
             {viewMode === 'week' && renderWeekView()}

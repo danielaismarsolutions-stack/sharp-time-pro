@@ -1,4 +1,4 @@
-import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
+import { useMemo, useRef, useCallback, useState, useEffect, useLayoutEffect } from 'react';
 import { format, addDays, isToday, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
@@ -51,7 +51,11 @@ interface ThreeDayViewProps {
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   /** Whether the month picker overlay is open (hides legend + time indicator) */
   isMonthPickerOpen?: boolean;
+  /** Mobile mode: render a 9-day strip with horizontal scroll-snap navigation */
+  isMobile?: boolean;
 }
+
+const TIME_COL_WIDTH = 48;
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0:00 - 23:00
 const START_HOUR = 0;
@@ -83,6 +87,7 @@ export function ThreeDayView({
   onEventClick,
   scrollContainerRef,
   isMonthPickerOpen = false,
+  isMobile = false,
 }: ThreeDayViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -235,10 +240,109 @@ export function ThreeDayView({
     return () => container.removeEventListener('scroll', handleScroll);
   }, [isSelecting, effectiveScrollRef]);
 
-  // Get 3 consecutive days starting from currentDate
+  // Days strip: desktop renders 3 days starting from currentDate; mobile renders
+  // a 9-day strip centered on currentDate (3 before, 3 visible, 3 after) so the
+  // user can scroll horizontally with snap, and we recycle the strip when they
+  // approach either edge.
   const days = useMemo(() => {
+    if (isMobile) {
+      return Array.from({ length: 9 }, (_, i) => addDays(currentDate, i - 3));
+    }
     return [currentDate, addDays(currentDate, 1), addDays(currentDate, 2)];
-  }, [currentDate]);
+  }, [currentDate, isMobile]);
+
+  // Mobile day-column width: each day takes 1/3 of the visible body (viewport
+  // minus the sticky time column). Recomputed when the scroll container resizes.
+  const [mobileDayWidth, setMobileDayWidth] = useState<number | null>(null);
+  useEffect(() => {
+    if (!isMobile) {
+      setMobileDayWidth(null);
+      return;
+    }
+    const container = scrollContainerRef?.current;
+    if (!container) return;
+    const update = () => {
+      const w = (container.clientWidth - TIME_COL_WIDTH) / 3;
+      if (w > 0) setMobileDayWidth(w);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [isMobile, scrollContainerRef]);
+
+  // Lock used while we're re-centering scrollLeft after an internal currentDate
+  // advance, so the scroll handler doesn't immediately retrigger another advance.
+  const recenterLockRef = useRef(false);
+
+  // Apply scroll-padding-left so scroll-snap aligns each day group with the
+  // right edge of the sticky time column.
+  useEffect(() => {
+    const container = scrollContainerRef?.current;
+    if (!container) return;
+    if (isMobile) {
+      container.style.scrollPaddingLeft = `${TIME_COL_WIDTH}px`;
+    } else {
+      container.style.scrollPaddingLeft = '';
+    }
+    return () => {
+      container.style.scrollPaddingLeft = '';
+    };
+  }, [isMobile, scrollContainerRef]);
+
+  // Re-center the scroll position to the middle group whenever the date strip
+  // changes (initial mount, header button clicks, internal advances). Runs in a
+  // layout effect so the reposition is applied before paint to avoid flicker
+  // when the strip recycles after an internal advance.
+  useLayoutEffect(() => {
+    if (!isMobile || !mobileDayWidth) return;
+    const container = scrollContainerRef?.current;
+    if (!container) return;
+    const pageWidth = mobileDayWidth * 3;
+    container.scrollLeft = pageWidth;
+    // Release the lock once we've recentered. We schedule via rAF so any
+    // in-flight scroll events from the reposition fire before the lock clears.
+    const raf = requestAnimationFrame(() => {
+      recenterLockRef.current = false;
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [currentDate, isMobile, mobileDayWidth, scrollContainerRef]);
+
+  // Infinite horizontal scroll: when the user lands on the leftmost or
+  // rightmost group, advance currentDate by ±3 days. The re-center effect
+  // above puts the strip back in the middle so the same set of visible days
+  // remains under the user's finger and the experience feels seamless.
+  useEffect(() => {
+    if (!isMobile || !mobileDayWidth) return;
+    const container = scrollContainerRef?.current;
+    if (!container) return;
+
+    const pageWidth = mobileDayWidth * 3;
+    let settleTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const onScroll = () => {
+      if (recenterLockRef.current) return;
+      if (settleTimer) clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => {
+        if (recenterLockRef.current) return;
+        const sl = container.scrollLeft;
+        const threshold = 8;
+        if (sl >= 2 * pageWidth - threshold) {
+          recenterLockRef.current = true;
+          onDateChange(addDays(currentDateRef.current, 3));
+        } else if (sl <= threshold) {
+          recenterLockRef.current = true;
+          onDateChange(addDays(currentDateRef.current, -3));
+        }
+      }, 120);
+    };
+
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', onScroll);
+      if (settleTimer) clearTimeout(settleTimer);
+    };
+  }, [isMobile, mobileDayWidth, onDateChange, scrollContainerRef]);
 
   // Track recent drag to block swipe navigation right after a drag ends
   const recentDragRef = useRef(false);
@@ -252,10 +356,12 @@ export function ThreeDayView({
     }
   }, [isDragging]);
 
-  // Swipe handlers for navigation - disabled when dragging or just finished dragging
+  // Swipe handlers for navigation - disabled when dragging or just finished dragging.
+  // On mobile we disable swipe entirely: navigation happens via horizontal scroll
+  // and the header buttons (per product decision).
   const swipeHandlers = useSwipeGesture({
-    onSwipeLeft: () => !isDraggingRef.current && !recentDragRef.current && onDateChange(addDays(currentDate, 3)),
-    onSwipeRight: () => !isDraggingRef.current && !recentDragRef.current && onDateChange(addDays(currentDate, -3)),
+    onSwipeLeft: () => !isMobile && !isDraggingRef.current && !recentDragRef.current && onDateChange(addDays(currentDate, 3)),
+    onSwipeRight: () => !isMobile && !isDraggingRef.current && !recentDragRef.current && onDateChange(addDays(currentDate, -3)),
   });
 
   // Get bookings for a specific day
@@ -482,17 +588,34 @@ export function ThreeDayView({
       <div className="sticky top-0 z-30 bg-white relative">
         {/* Column Headers */}
         <div className="flex border-b" style={{ borderColor: '#e0e0e0' }}>
-          {/* Time column spacer */}
-          <div className="w-12 shrink-0" style={{ borderRight: '1px solid #e0e0e0' }} />
+          {/* Time column spacer (sticky-left on mobile so it covers the corner
+              when scrolling horizontally) */}
+          <div
+            className={cn(
+              'w-12 shrink-0 bg-white',
+              isMobile && 'sticky left-0 z-40'
+            )}
+            style={{ borderRight: '1px solid #e0e0e0' }}
+          />
 
           {/* Day columns */}
-          {days.map((day) => {
+          {days.map((day, dayIdx) => {
             const dayIsToday = isToday(day);
+            const isMobileSnap = isMobile && dayIdx % 3 === 0;
             return (
               <div
                 key={day.toISOString()}
-                className="flex-1 py-1.5 flex items-center justify-center gap-1.5"
-                style={{ borderRight: '1px solid #e0e0e0' }}
+                className={cn(
+                  'py-1.5 flex items-center justify-center gap-1.5 shrink-0',
+                  !isMobile && 'flex-1',
+                  isMobileSnap && 'snap-start'
+                )}
+                style={{
+                  borderRight: '1px solid #e0e0e0',
+                  width: isMobile
+                    ? (mobileDayWidth ?? `calc((100vw - ${TIME_COL_WIDTH}px) / 3)`)
+                    : undefined,
+                }}
               >
                 <span className={cn(
                   'w-6 h-6 flex items-center justify-center rounded-full text-sm font-medium',
@@ -551,8 +674,15 @@ export function ThreeDayView({
       {/* Scrollable content */}
       <div className="flex-1">
         <div className="flex relative">
-          {/* Time labels column */}
-          <div className="w-12 shrink-0 bg-white" style={{ borderRight: '1px solid #e0e0e0' }}>
+          {/* Time labels column (sticky-left on mobile so the labels stay
+              visible while the day strip scrolls horizontally) */}
+          <div
+            className={cn(
+              'w-12 shrink-0 bg-white',
+              isMobile && 'sticky left-0 z-30'
+            )}
+            style={{ borderRight: '1px solid #e0e0e0' }}
+          >
             {HOURS.map((hour) => (
               <div
                 key={hour}
@@ -576,18 +706,26 @@ export function ThreeDayView({
           </div>
 
           {/* Day columns */}
-          {days.map((day) => {
+          {days.map((day, dayIdx) => {
             const dayBookings = getBookingsForDay(day);
             const dayIsToday = isToday(day);
             const dateStr = format(day, 'yyyy-MM-dd');
+            const isMobileSnap = isMobile && dayIdx % 3 === 0;
 
             return (
               <div
                 key={day.toISOString()}
-                className="flex-1 relative"
+                className={cn(
+                  'relative shrink-0',
+                  !isMobile && 'flex-1',
+                  isMobileSnap && 'snap-start'
+                )}
                 style={{
                   borderRight: '1px solid #e0e0e0',
-                  backgroundColor: dayIsToday ? '#fafafa' : '#f8f8f8'
+                  backgroundColor: dayIsToday ? '#fafafa' : '#f8f8f8',
+                  width: isMobile
+                    ? (mobileDayWidth ?? `calc((100vw - ${TIME_COL_WIDTH}px) / 3)`)
+                    : undefined,
                 }}
                 onClick={(e) => handleSlotClick(day, e)}
                 onMouseDown={(e) => handleMouseDown(day, e)}
