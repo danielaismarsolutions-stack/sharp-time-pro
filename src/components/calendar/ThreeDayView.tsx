@@ -740,7 +740,7 @@ export function ThreeDayView({
               visible while the day strip scrolls horizontally) */}
           <div
             className={cn(
-              'w-12 shrink-0 bg-white',
+              'w-12 shrink-0 bg-white relative',
               isMobile && 'sticky left-0 z-30'
             )}
             style={{ borderRight: '1px solid #e0e0e0' }}
@@ -765,6 +765,35 @@ export function ThreeDayView({
                 )}
               </div>
             ))}
+
+            {/* Current time label - inside the (sticky on mobile) time column
+                so the "HH:mm" pill stays visible during horizontal scroll and
+                the column overlaps the line that scrolls beneath it. */}
+            {showCurrentTime && currentTimePosition !== null && (
+              <div
+                className={cn(
+                  'absolute flex items-center justify-end pointer-events-none transition-opacity duration-200 ease-in-out',
+                  isMonthPickerOpen ? 'opacity-0' : 'opacity-100'
+                )}
+                style={{
+                  top: currentTimePosition,
+                  transform: 'translateY(-50%)',
+                  left: 0,
+                  right: 0,
+                  paddingRight: '4px',
+                }}
+              >
+                <span
+                  className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
+                  style={{
+                    backgroundColor: '#000000',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                  }}
+                >
+                  {format(currentTime, 'H:mm')}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Day columns */}
@@ -916,143 +945,32 @@ export function ThreeDayView({
             );
           })}
 
-          {/* Current time indicator. On mobile we wrap the label and dot in
-              full-width absolute "rails" so their inner sticky-left children
-              stay pinned to the viewport while the day strip scrolls
-              laterally. The line itself spans the whole strip so it remains
-              visible at the same Y across all visible days. */}
+          {/* Current time indicator dot + line. Sits below the sticky time
+              column's z-index so the column visually overlaps it during
+              horizontal scroll. The "HH:mm" pill is rendered inside the time
+              column (above) to remain sticky-visible. */}
           {showCurrentTime && currentTimePosition !== null && (
             <div
+              data-current-time-indicator
               className={cn(
-                "transition-opacity duration-200 ease-in-out",
-                isMonthPickerOpen ? "opacity-0" : "opacity-100"
+                'absolute flex items-center pointer-events-none transition-opacity duration-200 ease-in-out',
+                isMonthPickerOpen ? 'opacity-0' : 'opacity-100'
               )}
+              style={{
+                top: currentTimePosition,
+                left: '48px',
+                right: 0,
+                zIndex: 25,
+              }}
             >
-              {isMobile ? (
-                <>
-                  {/* Line — spans the entire 9-day strip so it's visible at
-                      the same Y regardless of which group the user is on. */}
-                  <div
-                    data-current-time-indicator
-                    className="absolute pointer-events-none"
-                    style={{
-                      top: currentTimePosition,
-                      transform: 'translateY(-50%)',
-                      left: TIME_COL_WIDTH,
-                      right: 0,
-                      height: 2,
-                      backgroundColor: '#000000',
-                      zIndex: 34,
-                    }}
-                  />
-
-                  {/* Label rail — full width; the inner element is sticky-left
-                      so the time pill stays inside the time column area. */}
-                  <div
-                    className="absolute pointer-events-none"
-                    style={{
-                      top: currentTimePosition,
-                      left: 0,
-                      right: 0,
-                      height: 0,
-                      zIndex: 36,
-                    }}
-                  >
-                    <div
-                      className="flex items-center justify-end"
-                      style={{
-                        position: 'sticky',
-                        left: 0,
-                        width: TIME_COL_WIDTH,
-                        paddingRight: 4,
-                        transform: 'translateY(-50%)',
-                      }}
-                    >
-                      <span
-                        className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
-                        style={{
-                          backgroundColor: '#000000',
-                          fontFamily: 'system-ui, -apple-system, sans-serif',
-                        }}
-                      >
-                        {format(currentTime, 'H:mm')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Dot rail — full width; inner dot sticks at the right
-                      edge of the time column so it always appears at the
-                      start of the visible body. */}
-                  <div
-                    className="absolute pointer-events-none"
-                    style={{
-                      top: currentTimePosition,
-                      left: 0,
-                      right: 0,
-                      height: 0,
-                      zIndex: 35,
-                    }}
-                  >
-                    <div
-                      style={{
-                        position: 'sticky',
-                        left: TIME_COL_WIDTH - 5,
-                        width: 10,
-                        height: 10,
-                        borderRadius: '50%',
-                        backgroundColor: '#000000',
-                        transform: 'translateY(-50%)',
-                      }}
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* Time label - positioned in the time column */}
-                  <div
-                    className="absolute flex items-center justify-end pointer-events-none"
-                    style={{
-                      top: currentTimePosition,
-                      transform: 'translateY(-50%)',
-                      left: 0,
-                      width: '48px',
-                      paddingRight: '4px',
-                      zIndex: 35,
-                    }}
-                  >
-                    <span
-                      className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
-                      style={{
-                        backgroundColor: '#000000',
-                        fontFamily: 'system-ui, -apple-system, sans-serif',
-                      }}
-                    >
-                      {format(currentTime, 'H:mm')}
-                    </span>
-                  </div>
-
-                  {/* Dot and line - starts after time column */}
-                  <div
-                    data-current-time-indicator
-                    className="absolute flex items-center pointer-events-none"
-                    style={{
-                      top: currentTimePosition,
-                      left: '48px',
-                      right: 0,
-                      zIndex: 35,
-                    }}
-                  >
-                    <div
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: '#000000', marginLeft: '-5px' }}
-                    />
-                    <div
-                      className="flex-1"
-                      style={{ height: '2px', backgroundColor: '#000000' }}
-                    />
-                  </div>
-                </>
-              )}
+              <div
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: '#000000', marginLeft: '-5px' }}
+              />
+              <div
+                className="flex-1"
+                style={{ height: '2px', backgroundColor: '#000000' }}
+              />
             </div>
           )}
         </div>
