@@ -1333,23 +1333,22 @@ export default function Calendar() {
                     );
                   })}
 
-                  {/* Current time indicator on every column. The time pill
-                      is only rendered on the first column so it appears once
-                      on the left edge of the grid. */}
-                  {isToday(currentDate) && (
-                    <div className={cn(
-                      "transition-opacity duration-200 ease-in-out",
-                      isMonthPickerOpen ? "opacity-0" : "opacity-100"
-                    )}>
-                      <CurrentTimeIndicator
-                        currentDate={currentDate}
-                        startHour={START_HOUR}
-                        endHour={23}
-                        hourHeight={HOUR_HEIGHT_DAY}
-                        showTimeLabel={isFirstColumn}
-                      />
-                    </div>
-                  )}
+                  {/* Current time indicator on every column, shown for any
+                      day (not only today) so it doubles as a "right now"
+                      reference. The time pill is only rendered on the first
+                      column so it appears once on the left edge of the grid. */}
+                  <div className={cn(
+                    "transition-opacity duration-200 ease-in-out",
+                    isMonthPickerOpen ? "opacity-0" : "opacity-100"
+                  )}>
+                    <CurrentTimeIndicator
+                      currentDate={currentDate}
+                      startHour={START_HOUR}
+                      endHour={23}
+                      hourHeight={HOUR_HEIGHT_DAY}
+                      showTimeLabel={isFirstColumn}
+                    />
+                  </div>
                 </div>
               );
             })}

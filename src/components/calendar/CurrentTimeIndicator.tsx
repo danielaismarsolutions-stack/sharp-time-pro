@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { isToday } from 'date-fns';
 
 interface CurrentTimeIndicatorProps {
   currentDate: Date;
@@ -19,7 +18,6 @@ const getMadridTime = () => {
 };
 
 export function CurrentTimeIndicator({
-  currentDate,
   startHour = 0,
   endHour = 23,
   hourHeight,
@@ -35,8 +33,6 @@ export function CurrentTimeIndicator({
     return () => clearInterval(interval);
   }, []);
 
-  if (!isToday(currentDate)) return null;
-
   const hours = time.getHours();
   const minutes = time.getMinutes();
   const totalMinutes = hours * 60 + minutes;
@@ -51,7 +47,7 @@ export function CurrentTimeIndicator({
     <div
       data-current-time-indicator
       className="absolute left-0 right-0 flex items-center pointer-events-none"
-      style={{ top, zIndex: 35 }}
+      style={{ top, zIndex: 25 }}
     >
       {/* Dot */}
       <div
