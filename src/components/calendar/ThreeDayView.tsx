@@ -740,7 +740,7 @@ export function ThreeDayView({
               visible while the day strip scrolls horizontally) */}
           <div
             className={cn(
-              'w-12 shrink-0 bg-white',
+              'w-12 shrink-0 bg-white relative',
               isMobile && 'sticky left-0 z-30'
             )}
             style={{ borderRight: '1px solid #e0e0e0' }}
@@ -765,6 +765,35 @@ export function ThreeDayView({
                 )}
               </div>
             ))}
+
+            {/* Current time label - inside the (sticky on mobile) time column
+                so the "HH:mm" pill stays visible during horizontal scroll and
+                the column overlaps the line that scrolls beneath it. */}
+            {showCurrentTime && currentTimePosition !== null && (
+              <div
+                className={cn(
+                  'absolute flex items-center justify-end pointer-events-none transition-opacity duration-200 ease-in-out',
+                  isMonthPickerOpen ? 'opacity-0' : 'opacity-100'
+                )}
+                style={{
+                  top: currentTimePosition,
+                  transform: 'translateY(-50%)',
+                  left: 0,
+                  right: 0,
+                  paddingRight: '4px',
+                }}
+              >
+                <span
+                  className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
+                  style={{
+                    backgroundColor: '#000000',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                  }}
+                >
+                  {format(currentTime, 'H:mm')}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Day columns */}
@@ -916,57 +945,32 @@ export function ThreeDayView({
             );
           })}
 
-          {/* Current time indicator */}
+          {/* Current time indicator dot + line. Sits below the sticky time
+              column's z-index so the column visually overlaps it during
+              horizontal scroll. The "HH:mm" pill is rendered inside the time
+              column (above) to remain sticky-visible. */}
           {showCurrentTime && currentTimePosition !== null && (
             <div
+              data-current-time-indicator
               className={cn(
-                "transition-opacity duration-200 ease-in-out",
-                isMonthPickerOpen ? "opacity-0" : "opacity-100"
+                'absolute flex items-center pointer-events-none transition-opacity duration-200 ease-in-out',
+                isMonthPickerOpen ? 'opacity-0' : 'opacity-100'
               )}
+              style={{
+                top: currentTimePosition,
+                left: '48px',
+                right: 0,
+                zIndex: 25,
+              }}
             >
-              {/* Time label - positioned in the time column */}
               <div
-                className="absolute flex items-center justify-end pointer-events-none"
-                style={{
-                  top: currentTimePosition,
-                  transform: 'translateY(-50%)',
-                  left: 0,
-                  width: '48px',
-                  paddingRight: '4px',
-                  zIndex: 35,
-                }}
-              >
-                <span
-                  className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
-                  style={{
-                    backgroundColor: '#000000',
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
-                  }}
-                >
-                  {format(currentTime, 'H:mm')}
-                </span>
-              </div>
-
-              {/* Dot and line - starts after time column */}
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: '#000000', marginLeft: '-5px' }}
+              />
               <div
-                data-current-time-indicator
-                className="absolute flex items-center pointer-events-none"
-                style={{
-                  top: currentTimePosition,
-                  left: '48px',
-                  right: 0,
-                  zIndex: 35,
-                }}
-              >
-                <div
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                  style={{ backgroundColor: '#000000', marginLeft: '-5px' }}
-                />
-                <div
-                  className="flex-1"
-                  style={{ height: '2px', backgroundColor: '#000000' }}
-                />
-              </div>
+                className="flex-1"
+                style={{ height: '2px', backgroundColor: '#000000' }}
+              />
             </div>
           )}
         </div>
