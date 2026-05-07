@@ -308,23 +308,77 @@ export function ThreeDayView({
     return () => cancelAnimationFrame(raf);
   }, [currentDate, isMobile, mobileDayWidth, scrollContainerRef]);
 
-  // Infinite horizontal scroll: when the user lands on the leftmost or
-  // rightmost group, advance currentDate by ±3 days. The re-center effect
-  // above puts the strip back in the middle so the same set of visible days
-  // remains under the user's finger and the experience feels seamless.
+  // Touch-driven "commitment snap": users must drag past ~45% of the page width
+  // (or flick with enough velocity) to advance to the previous/next 3 days.
+  // Smaller drags spring back to the group they started from. After a committed
+  // swipe lands the scroll on an edge group (0 or 2*pageWidth), the scroll-end
+  // detector advances currentDate and the recenter effect recycles the strip.
   useEffect(() => {
     if (!isMobile || !mobileDayWidth) return;
     const container = scrollContainerRef?.current;
     if (!container) return;
 
     const pageWidth = mobileDayWidth * 3;
-    let settleTimer: ReturnType<typeof setTimeout> | null = null;
+    const COMMIT_THRESHOLD = 0.45; // fraction of pageWidth
+    const FLING_LOOKAHEAD_MS = 200;
 
+    let touchStartScrollLeft = 0;
+    let lastTouchScrollLeft = 0;
+    let lastTouchTime = 0;
+    let isTouching = false;
+
+    const onTouchStart = () => {
+      touchStartScrollLeft = container.scrollLeft;
+      lastTouchScrollLeft = touchStartScrollLeft;
+      lastTouchTime = performance.now();
+      isTouching = true;
+    };
+
+    const onTouchMove = () => {
+      lastTouchScrollLeft = container.scrollLeft;
+      lastTouchTime = performance.now();
+    };
+
+    const onTouchEnd = () => {
+      if (!isTouching) return;
+      isTouching = false;
+
+      const now = performance.now();
+      const dt = Math.max(now - lastTouchTime, 1);
+      const velocity = (container.scrollLeft - lastTouchScrollLeft) / dt; // px/ms
+      const projection = container.scrollLeft + velocity * FLING_LOOKAHEAD_MS;
+
+      const startIndex = Math.round(touchStartScrollLeft / pageWidth);
+      const projectedDelta = projection / pageWidth - startIndex;
+
+      let direction = 0;
+      if (projectedDelta > COMMIT_THRESHOLD) direction = 1;
+      else if (projectedDelta < -COMMIT_THRESHOLD) direction = -1;
+
+      const desiredIndex = startIndex + direction;
+
+      // If already at an edge group and the user commits to go further, jump
+      // directly to the date advance (no intermediate scroll-to-the-same-spot).
+      if (desiredIndex < 0) {
+        recenterLockRef.current = true;
+        onDateChange(addDays(currentDateRef.current, -3));
+        return;
+      }
+      if (desiredIndex > 2) {
+        recenterLockRef.current = true;
+        onDateChange(addDays(currentDateRef.current, 3));
+        return;
+      }
+
+      container.scrollTo({ left: desiredIndex * pageWidth, behavior: 'smooth' });
+    };
+
+    let settleTimer: ReturnType<typeof setTimeout> | null = null;
     const onScroll = () => {
       if (recenterLockRef.current) return;
       if (settleTimer) clearTimeout(settleTimer);
       settleTimer = setTimeout(() => {
-        if (recenterLockRef.current) return;
+        if (recenterLockRef.current || isTouching) return;
         const sl = container.scrollLeft;
         const threshold = 8;
         if (sl >= 2 * pageWidth - threshold) {
@@ -337,8 +391,16 @@ export function ThreeDayView({
       }, 120);
     };
 
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: true });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', onTouchEnd, { passive: true });
     container.addEventListener('scroll', onScroll, { passive: true });
     return () => {
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('touchcancel', onTouchEnd);
       container.removeEventListener('scroll', onScroll);
       if (settleTimer) clearTimeout(settleTimer);
     };
