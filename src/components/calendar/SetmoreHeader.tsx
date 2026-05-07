@@ -431,8 +431,10 @@ export function SetmoreHeader({
             </Button>
           )}
 
-        {/* Barber Filter - shown for all users; barber users default to their own name */}
-        {barberNames.length > 0 && (
+        {/* Barber Filter - shown for all users; barber users default to their
+            own name. Hidden in 3-day view (it groups bookings by day, not by
+            staff member, so the filter is not useful there). */}
+        {barberNames.length > 0 && viewMode !== '3day' && (
           <Select
             value={selectedBarber || 'all'}
             onValueChange={(v) => onBarberChange(v === 'all' ? null : v)}
