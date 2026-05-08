@@ -332,59 +332,61 @@ export default function Clients() {
         </motion.div>
       </div>
 
-      {/* Stats Cards - 2x2 on mobile */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <AnimatedCard delay={0}>
-          <Card className="border-border h-full">
-            <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-                Total Clientes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <p className="text-xl md:text-2xl font-bold">{stats.totalClients}</p>
-            </CardContent>
-          </Card>
-        </AnimatedCard>
-        <AnimatedCard delay={1}>
-          <Card className="border-border h-full">
-            <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-                Activos Este Mes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <p className="text-xl md:text-2xl font-bold">{stats.activeThisMonth}</p>
-            </CardContent>
-          </Card>
-        </AnimatedCard>
-        <AnimatedCard delay={2}>
-          <Card className="border-border h-full">
-            <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-                Ingresos Totales
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <p className="text-xl md:text-2xl font-bold">
-                €{stats.totalRevenue.toLocaleString()}
-              </p>
-            </CardContent>
-          </Card>
-        </AnimatedCard>
-        <AnimatedCard delay={3}>
-          <Card className="border-border h-full">
-            <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-                Prom. por Cliente
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-              <p className="text-xl md:text-2xl font-bold">€{stats.averageSpent}</p>
-            </CardContent>
-          </Card>
-        </AnimatedCard>
-      </div>
+      {/* Stats Cards - 2x2 on mobile (hidden for barbers) */}
+      {user?.role !== 'barber' && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <AnimatedCard delay={0}>
+            <Card className="border-border h-full">
+              <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+                <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
+                  Total Clientes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+                <p className="text-xl md:text-2xl font-bold">{stats.totalClients}</p>
+              </CardContent>
+            </Card>
+          </AnimatedCard>
+          <AnimatedCard delay={1}>
+            <Card className="border-border h-full">
+              <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+                <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
+                  Activos Este Mes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+                <p className="text-xl md:text-2xl font-bold">{stats.activeThisMonth}</p>
+              </CardContent>
+            </Card>
+          </AnimatedCard>
+          <AnimatedCard delay={2}>
+            <Card className="border-border h-full">
+              <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+                <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
+                  Ingresos Totales
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+                <p className="text-xl md:text-2xl font-bold">
+                  €{stats.totalRevenue.toLocaleString()}
+                </p>
+              </CardContent>
+            </Card>
+          </AnimatedCard>
+          <AnimatedCard delay={3}>
+            <Card className="border-border h-full">
+              <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
+                <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
+                  Prom. por Cliente
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+                <p className="text-xl md:text-2xl font-bold">€{stats.averageSpent}</p>
+              </CardContent>
+            </Card>
+          </AnimatedCard>
+        </div>
+      )}
 
       {/* Search & Client List */}
       <AnimatedCard delay={4}>
