@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
+import { useState, useRef, useEffect } from 'react';
+import { format, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Menu, ChevronDown, ChevronLeft, ChevronRight, Bell, List, LayoutGrid, Calendar as CalendarIcon, Filter, Settings, HelpCircle, User, Check, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -93,19 +93,6 @@ export function SetmoreHeader({
     .join('')
     .toUpperCase()
     .slice(0, 2) || 'U';
-
-  // Generate week days starting from Monday of current week
-  const weekDays = useMemo(() => {
-    const start = startOfWeek(currentDate, { weekStartsOn: 1 });
-    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  }, [currentDate]);
-
-  // Spanish day abbreviations
-  const dayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-
-  const handleDayClick = (date: Date) => {
-    onDateChange(date);
-  };
 
   const handleMonthSelect = (date: Date) => {
     onDateChange(date);
@@ -314,48 +301,6 @@ export function SetmoreHeader({
         onToggle={toggleMonthPicker}
         toggleButtonRef={toggleButtonRef}
       />
-
-      {/* Week day strip */}
-      <div className="flex items-center justify-around px-2 py-2 overflow-x-auto scrollbar-hide">
-        {weekDays.map((day, index) => {
-          const isToday = isSameDay(day, new Date());
-          const isSelected = isSameDay(day, currentDate);
-          const dateNumber = format(day, 'd');
-
-          return (
-            <button
-              key={day.toISOString()}
-              onClick={() => handleDayClick(day)}
-              className={cn(
-                'flex flex-col items-center justify-center min-w-[40px] py-1 px-2 rounded-lg transition-colors',
-                'hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-              )}
-            >
-              {/* Day letter */}
-              <span
-                className={cn(
-                  'text-xs font-medium mb-1',
-                  isSelected ? 'text-foreground' : 'text-muted-foreground'
-                )}
-              >
-                {dayLabels[index]}
-              </span>
-              
-              {/* Date number */}
-              <span
-                className={cn(
-                  'flex items-center justify-center w-8 h-8 text-sm font-medium rounded-full transition-colors',
-                  isSelected && 'bg-foreground text-background',
-                  isToday && !isSelected && 'ring-2 ring-foreground ring-inset',
-                  !isSelected && !isToday && 'text-foreground'
-                )}
-              >
-                {dateNumber}
-              </span>
-            </button>
-          );
-        })}
-      </div>
 
       {/* View Switcher + Barber Filter Row */}
       <div className="flex items-center justify-between px-3 py-2 border-t border-border bg-card">
