@@ -238,7 +238,12 @@ export function EventModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
+      <DialogContent
+        className="bg-card border-border max-h-[85vh] overflow-y-auto"
+        onOpenAutoFocus={(e) => {
+          if (event) e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-1.5">
             <CalendarDays className="h-4 w-4 text-violet-600" />
