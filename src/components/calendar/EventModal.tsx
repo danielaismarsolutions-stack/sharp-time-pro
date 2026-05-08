@@ -257,7 +257,7 @@ export function EventModal({
               }
               placeholder="Ej: Reunión de equipo, Limpieza..."
               className="h-8 text-xs"
-              autoFocus
+              autoFocus={!event}
             />
           </div>
 
