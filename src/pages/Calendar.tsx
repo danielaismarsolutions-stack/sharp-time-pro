@@ -238,6 +238,11 @@ export default function Calendar() {
   const [selectedEndTime, setSelectedEndTime] = useState<string | undefined>();
   const [isSlotCreation, setIsSlotCreation] = useState(false);
   const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
+  // Barber id captured from the day-view column where the user initiated the
+  // slot creation. The ref is set on pointer down/click and consumed by
+  // openCreateChoice into state, so it survives the choice-dialog round-trip.
+  const slotBarberIdRef = useRef<string | null>(null);
+  const [slotCreationBarberId, setSlotCreationBarberId] = useState<string | null>(null);
 
   // Event state
   const [isChoiceDialogOpen, setIsChoiceDialogOpen] = useState(false);
@@ -926,6 +931,8 @@ export default function Calendar() {
     setIsSlotCreation(!!date); // slot creation when triggered from a calendar slot
     setSelectedBooking(null);
     setSelectedEvent(null);
+    setSlotCreationBarberId(slotBarberIdRef.current);
+    slotBarberIdRef.current = null;
     setIsChoiceDialogOpen(true);
   };
 
@@ -1278,14 +1285,19 @@ export default function Calendar() {
                 <div
                   key={barber.id}
                   className="flex-1 min-w-[160px] md:min-w-[180px] border-r border-border last:border-r-0 relative"
-                  onClick={(e) => daySlotSelection.handleSlotClick(currentDate, e)}
+                  onClick={(e) => {
+                    slotBarberIdRef.current = barber.id;
+                    daySlotSelection.handleSlotClick(currentDate, e);
+                  }}
                   onMouseDown={(e) => {
+                    slotBarberIdRef.current = barber.id;
                     setActiveDayBarberId(barber.id);
                     daySlotSelection.handleMouseDown(currentDate, e);
                   }}
                   onMouseMove={daySlotSelection.handleMouseMove}
                   onMouseUp={daySlotSelection.handleMouseUp}
                   onTouchStart={(e) => {
+                    slotBarberIdRef.current = barber.id;
                     setActiveDayBarberId(barber.id);
                     daySlotSelection.handleTouchStart(currentDate, e);
                   }}
@@ -1979,7 +1991,10 @@ export default function Calendar() {
           selectedDate={selectedDate}
           selectedTime={selectedTime}
           isSlotCreation={isSlotCreation}
-          preselectedBarberName={selectedBarber}
+          preselectedBarberName={
+            (slotCreationBarberId && barbers.find((b) => b.id === slotCreationBarberId)?.name)
+              || selectedBarber
+          }
         />
 
         {/* Move Booking Confirmation Dialog */}
@@ -2022,7 +2037,11 @@ export default function Calendar() {
           selectedTime={selectedTime}
           selectedEndTime={selectedEndTime}
           defaultBarberId={
-            (selectedBarber && barbers.find((b) => b.name === selectedBarber)?.id) || user?.id
+            (slotCreationBarberId && barbers.some((b) => b.id === slotCreationBarberId)
+              ? slotCreationBarberId
+              : undefined)
+            || (selectedBarber && barbers.find((b) => b.name === selectedBarber)?.id)
+            || user?.id
           }
         />
 
