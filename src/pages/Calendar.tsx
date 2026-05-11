@@ -1870,6 +1870,7 @@ export default function Calendar() {
             barber: selectedBooking.barber,
             date: selectedBooking.booking_date,
             time: selectedBooking.start_time.substring(0, 5),
+            endTime: selectedBooking.end_time.substring(0, 5),
             status: selectedBooking.status.replace('_', '-') as BookingStatus,
             source: selectedBooking.source.replace('_', '-') as BookingSource,
             notes: selectedBooking.notes || '',
@@ -1906,8 +1907,14 @@ export default function Calendar() {
               const [hours, minutes] = (data.time || '09:00').split(':').map(Number);
               const endHours = hours + Math.floor((minutes + duration) / 60);
               const endMinutes = (minutes + duration) % 60;
-              const endTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}:00`;
-              
+              const computedEndTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}:00`;
+
+              // When editing, honor a user-customized end time if provided.
+              // For new bookings (and as a fallback), derive end time from the service duration.
+              const endTime = data.endTime
+                ? `${data.endTime}:00`
+                : computedEndTime;
+
               if (selectedBooking) {
                 const updatedBooking = await supabaseBookingsApi.update(selectedBooking.id, {
                   booking_date: data.date,

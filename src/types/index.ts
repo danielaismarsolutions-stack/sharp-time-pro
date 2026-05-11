@@ -17,6 +17,7 @@ export interface Booking {
   barber?: string | null;
   date: string; // ISO format YYYY-MM-DD
   time: string; // HH:mm format
+  endTime?: string; // HH:mm format - custom end time (overrides service duration)
   status: BookingStatus;
   source: BookingSource;
   notes: string;
