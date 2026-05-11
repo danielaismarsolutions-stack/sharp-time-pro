@@ -239,19 +239,20 @@ export function EventModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="bg-card border-border max-h-[85vh] overflow-y-auto"
+        className="bg-card border-border max-h-[calc(100dvh-1rem)] flex flex-col gap-0 p-0"
         onOpenAutoFocus={(e) => {
           if (event) e.preventDefault();
         }}
       >
-        <DialogHeader>
+        <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
           <DialogTitle className="flex items-center gap-1.5">
             <CalendarDays className="h-4 w-4 text-violet-600" />
             {event ? 'Editar Evento' : 'Nuevo Evento'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
+          <div className="space-y-3 overflow-y-auto px-4 pb-2 flex-1">
           {/* Event Name */}
           <div className="space-y-1">
             <Label className="text-xs font-medium">Nombre del evento</Label>
@@ -497,8 +498,10 @@ export function EventModal({
             </p>
           </div>
 
+          </div>
+
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 px-4 py-3 border-t border-border bg-card shrink-0 rounded-b-2xl">
             <Button
               type="button"
               variant="outline"
