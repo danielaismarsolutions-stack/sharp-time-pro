@@ -1199,10 +1199,26 @@ export default function Calendar() {
 
     return (
       <div className="flex flex-col relative w-max min-w-full">
+        {/* Date header — shows which day is currently being viewed.
+            Sticky on both axes so it remains visible during scroll. */}
+        <div className="sticky top-0 z-40 bg-card border-b border-border h-10">
+          <div className="sticky left-0 h-10 flex items-center gap-2 px-3 md:pl-6 bg-card">
+            <span className="text-sm md:text-base font-medium capitalize text-foreground">
+              {format(currentDate, "EEEE, d 'de' MMMM", { locale: es })}
+            </span>
+            {isToday(currentDate) && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                Hoy
+              </span>
+            )}
+          </div>
+        </div>
+
         {/* Sticky barber header row — stays fixed vertically while scrolling
             down, and slides horizontally with its column on lateral scroll.
-            z-40 keeps it above the current-time indicator (z-35). */}
-        <div className="flex sticky top-0 z-40 bg-card">
+            top-10 leaves room for the date header above. z-40 keeps it above
+            the current-time indicator (z-35). */}
+        <div className="flex sticky top-10 z-40 bg-card">
           {/* Top-left corner: sticky on both axes so it covers the
               intersection of the sticky header row and the sticky time column.
               z-50 keeps it above the rest. */}
