@@ -37,7 +37,7 @@ import { getBarberHexColor, DEFAULT_EVENT_HEX } from '@/components/calendar/shar
 
 const generateTimeSlots = () => {
   const slots: string[] = [];
-  for (let hour = 7; hour < 22; hour++) {
+  for (let hour = 0; hour < 24; hour++) {
     for (let min = 0; min < 60; min += 15) {
       slots.push(
         `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`
@@ -48,6 +48,28 @@ const generateTimeSlots = () => {
 };
 
 const TIME_SLOTS = generateTimeSlots();
+
+const SLOT_MINUTES = 15;
+const SLOTS_PER_HOUR = 60 / SLOT_MINUTES;
+
+const formatSlot = (hour: number, minute: number) =>
+  `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+
+// Round up to the next 15-minute slot, handling hour rollover
+const roundUpToSlot = (date: Date): string => {
+  const totalMins =
+    date.getHours() * 60 + Math.ceil(date.getMinutes() / SLOT_MINUTES) * SLOT_MINUTES;
+  const h = Math.floor(totalMins / 60) % 24;
+  const m = totalMins % 60;
+  return formatSlot(h, m);
+};
+
+// Add one hour to a slot string, falling back to the last available slot
+const addHourClamped = (slot: string): string => {
+  const idx = TIME_SLOTS.indexOf(slot);
+  if (idx === -1) return TIME_SLOTS[TIME_SLOTS.length - 1];
+  return TIME_SLOTS[Math.min(idx + SLOTS_PER_HOUR, TIME_SLOTS.length - 1)];
+};
 
 const EVENT_COLORS: { label: string; value: string; tw: string }[] = [
   { label: 'Gris', value: '#d1d5db', tw: 'bg-gray-300' },
@@ -139,22 +161,8 @@ export function EventModal({
       });
     } else {
       // Create mode: use slot time or current time
-      let startTime: string;
-      if (selectedTime) {
-        startTime = selectedTime;
-      } else {
-        const now = new Date();
-        startTime = `${now.getHours().toString().padStart(2, '0')}:${(Math.ceil(now.getMinutes() / 15) * 15 % 60).toString().padStart(2, '0')}`;
-      }
-      let endTime: string;
-      if (selectedEndTime) {
-        endTime = selectedEndTime;
-      } else {
-        const [startH, startM] = startTime.split(':').map(Number);
-        const endH = startH + Math.floor((startM + 60) / 60);
-        const endM = (startM + 60) % 60;
-        endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
-      }
+      const startTime = selectedTime ?? roundUpToSlot(new Date());
+      const endTime = selectedEndTime ?? addHourClamped(startTime);
 
       // Default barber to the logged-in user if they exist in the barbers list
       const resolvedBarberId = defaultBarberId && barbers.some((b) => b.id === defaultBarberId)
@@ -309,14 +317,7 @@ export function EventModal({
                     startTime: value,
                     // Auto-adjust end time if needed
                     endTime:
-                      prev.endTime <= value
-                        ? TIME_SLOTS[
-                            Math.min(
-                              TIME_SLOTS.indexOf(value) + 4,
-                              TIME_SLOTS.length - 1
-                            )
-                          ]
-                        : prev.endTime,
+                      prev.endTime <= value ? addHourClamped(value) : prev.endTime,
                   }));
                 }}
               >
