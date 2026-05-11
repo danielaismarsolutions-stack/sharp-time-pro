@@ -85,6 +85,31 @@ const generateAllTimeSlots = () => {
 
 const ALL_TIME_SLOTS = generateAllTimeSlots();
 
+// Generate 5-minute time slots covering the full day for the edit-mode
+// start/end time dropdowns. Edit mode allows full freedom (no availability
+// filtering), so users can pick any time even outside business hours.
+const generateEditTimeSlots = () => {
+  const slots: string[] = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (let min = 0; min < 60; min += 5) {
+      slots.push(`${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`);
+    }
+  }
+  return slots;
+};
+
+const EDIT_TIME_SLOTS = generateEditTimeSlots();
+
+// Add `duration` minutes to a HH:mm time string, returning HH:mm.
+const addMinutesToTime = (time: string, duration: number): string => {
+  const [hours, minutes] = time.split(':').map(Number);
+  const total = hours * 60 + minutes + duration;
+  const wrapped = ((total % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(wrapped / 60);
+  const m = wrapped % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
+
 export default function BookingModal({
   open,
   onOpenChange,
@@ -113,6 +138,7 @@ export default function BookingModal({
     serviceId: '',
     barberId: '',
     time: '',
+    endTime: '',
     status: 'confirmed' as Booking['status'],
     source: 'phone' as Booking['source'],
     notes: '',
@@ -270,6 +296,7 @@ export default function BookingModal({
         serviceId: booking.serviceId,
         barberId: booking.barber ? barbers.find(b => b.name === booking.barber)?.id || '' : '',
         time: booking.time,
+        endTime: booking.endTime || addMinutesToTime(booking.time, booking.serviceDuration || 30),
         status: booking.status,
         source: booking.source,
         notes: booking.notes || '',
@@ -287,6 +314,7 @@ export default function BookingModal({
         serviceId: '',
         barberId: preselectedBarberId,
         time: selectedTime || '',
+        endTime: '',
         status: 'confirmed',
         source: 'phone',
         notes: '',
@@ -352,6 +380,16 @@ export default function BookingModal({
       return;
     }
 
+    // Only validate end time in edit mode (where the user controls it directly)
+    if (booking && formData.endTime && formData.endTime <= formData.time) {
+      toast({
+        title: 'Horario inválido',
+        description: 'La hora de fin debe ser posterior a la hora de inicio',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       await onSave({
@@ -368,6 +406,7 @@ export default function BookingModal({
         barber: selectedBarber?.name || null,
         date: format(date, 'yyyy-MM-dd'),
         time: formData.time,
+        endTime: booking ? formData.endTime : undefined,
         status: formData.status,
         source: formData.source,
         notes: formData.notes,
@@ -490,10 +529,16 @@ export default function BookingModal({
                 const service = services.find(s => s.id === value);
                 const validBarberIds = service?.barberIds;
                 const barberStillValid = !validBarberIds || validBarberIds.length === 0 || validBarberIds.includes(formData.barberId);
+                // When editing, recalculate endTime from the new service's duration
+                // so any previous custom end time is reset.
+                const nextEndTime = booking && formData.time && service?.duration
+                  ? addMinutesToTime(formData.time, service.duration)
+                  : formData.endTime;
                 setFormData({
                   ...formData,
                   serviceId: value,
                   barberId: barberStillValid ? formData.barberId : '',
+                  endTime: nextEndTime,
                 });
               }}
             >
@@ -574,43 +619,87 @@ export default function BookingModal({
               </Popover>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs font-medium">Hora</Label>
-              <Select
-                value={formData.time}
-                onValueChange={(value) => setFormData({ ...formData, time: value })}
-                disabled={!isSlotCreation && (!formData.barberId || !date || availableTimeSlots.length === 0)}
-              >
-                <SelectTrigger className={cn(
-                  "h-8 text-xs",
-                  !isSlotCreation && (!formData.barberId || !date) && 'opacity-60'
-                )}>
-                  <SelectValue placeholder={
-                    !isSlotCreation && !formData.barberId
-                      ? staffTerms.singularCap
-                      : !date
-                        ? 'Fecha'
-                        : availableTimeSlots.length === 0
-                          ? 'Sin horas'
-                          : 'Hora'
-                  } />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableTimeSlots.map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {time}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {formData.barberId && date && availableTimeSlots.length === 0 && (
-                <p className="text-[10px] text-destructive flex items-center gap-1">
-                  <AlertCircle className="h-2.5 w-2.5" />
-                  Sin horas disponibles
-                </p>
-              )}
-            </div>
+            {!booking && (
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Hora</Label>
+                <Select
+                  value={formData.time}
+                  onValueChange={(value) => setFormData({ ...formData, time: value })}
+                  disabled={!isSlotCreation && (!formData.barberId || !date || availableTimeSlots.length === 0)}
+                >
+                  <SelectTrigger className={cn(
+                    "h-8 text-xs",
+                    !isSlotCreation && (!formData.barberId || !date) && 'opacity-60'
+                  )}>
+                    <SelectValue placeholder={
+                      !isSlotCreation && !formData.barberId
+                        ? staffTerms.singularCap
+                        : !date
+                          ? 'Fecha'
+                          : availableTimeSlots.length === 0
+                            ? 'Sin horas'
+                            : 'Hora'
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableTimeSlots.map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formData.barberId && date && availableTimeSlots.length === 0 && (
+                  <p className="text-[10px] text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-2.5 w-2.5" />
+                    Sin horas disponibles
+                  </p>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* Edit-mode time controls: independent start & end pickers (5-min steps) */}
+          {booking && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Inicio</Label>
+                <Select
+                  value={formData.time}
+                  onValueChange={(value) => setFormData({ ...formData, time: value })}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Hora de inicio" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[240px]">
+                    {EDIT_TIME_SLOTS.map((time) => (
+                      <SelectItem key={`start-${time}`} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Fin</Label>
+                <Select
+                  value={formData.endTime}
+                  onValueChange={(value) => setFormData({ ...formData, endTime: value })}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Hora de fin" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[240px]">
+                    {EDIT_TIME_SLOTS.map((time) => (
+                      <SelectItem key={`end-${time}`} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
 
           {/* Notes */}
           <div className="space-y-1">
