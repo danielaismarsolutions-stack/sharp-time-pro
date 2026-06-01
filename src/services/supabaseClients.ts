@@ -127,18 +127,64 @@ export interface ClientWithBookings extends Client {
 
 export const supabaseClientsApi = {
   /**
-   * Fetch all clients for the business
+   * Fetch all clients for the business.
+   * Uses Supabase pagination (Range header) to avoid the default 1000-row cap,
+   * which previously hid any client beyond the first 1000 (oldest clients were
+   * dropped because the result is ordered by created_at.desc).
    */
   getAll: async (search?: string): Promise<Client[]> => {
-    let endpoint = `/clients?business_id=eq.${getBusinessId()}&order=created_at.desc`;
-    
-    if (search) {
-      // Search by name, phone, or email using OR
-      endpoint += `&or=(name.ilike.*${encodeURIComponent(search)}*,phone.ilike.*${encodeURIComponent(search)}*,email.ilike.*${encodeURIComponent(search)}*)`;
+    const PAGE_SIZE = 1000;
+    let allRows: DbClient[] = [];
+    let offset = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const url = new URL(`${SUPABASE_CONFIG.url}/rest/v1/clients`);
+      url.searchParams.append('business_id', `eq.${getBusinessId()}`);
+      url.searchParams.append('order', 'created_at.desc');
+
+      if (search) {
+        // Search by name, phone, or email using OR
+        url.searchParams.append(
+          'or',
+          `(name.ilike.*${search}*,phone.ilike.*${search}*,email.ilike.*${search}*)`
+        );
+      }
+
+      const authHeaders = await getAuthHeaders();
+      const rangeEnd = offset + PAGE_SIZE - 1;
+      const response = await fetch(url.toString(), {
+        headers: {
+          ...authHeaders,
+          'Range-Unit': 'items',
+          'Range': `${offset}-${rangeEnd}`,
+          'Prefer': 'count=exact',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Supabase error: ${response.status} - ${errorText}`);
+      }
+
+      const page: DbClient[] = await response.json();
+      allRows = allRows.concat(page);
+
+      // Supabase returns Content-Range: 0-999/1234 (or */0 when empty)
+      const contentRange = response.headers.get('Content-Range');
+      if (contentRange) {
+        const match = contentRange.match(/\/(\d+)/);
+        const total = match ? parseInt(match[1], 10) : 0;
+        hasMore = allRows.length < total;
+      } else {
+        // Fallback: a full page suggests there may be more
+        hasMore = page.length === PAGE_SIZE;
+      }
+
+      offset += PAGE_SIZE;
     }
-    
-    const data = await supabaseFetch<DbClient[]>(endpoint);
-    return data.map(mapDbToClient);
+
+    return allRows.map(mapDbToClient);
   },
 
   /**
