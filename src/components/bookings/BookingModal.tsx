@@ -110,6 +110,40 @@ const addMinutesToTime = (time: string, duration: number): string => {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 };
 
+// Lowercase and strip diacritics for accent-insensitive matching
+// (so "jose" matches "José").
+const normalizeText = (value: string): string =>
+  value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+// Keep only digits so phone numbers match regardless of formatting
+// (so "600123456" matches "+34 600 123 456").
+const digitsOnly = (value: string): string => value.replace(/\D/g, '');
+
+// Resolve which client record a booking refers to. Prefers the linked
+// client_id, but falls back to matching the booking's stored phone (then name)
+// so bookings without a linked client_id — created from the online widget,
+// imported, or converted from a consultation — still preselect the correct
+// client when editing. Returns '' when no match is found.
+const resolveBookingClientId = (booking: Booking, clients: Client[]): string => {
+  if (booking.clientId && clients.some((c) => c.id === booking.clientId)) {
+    return booking.clientId;
+  }
+
+  const bookingDigits = digitsOnly(booking.clientPhone || '');
+  if (bookingDigits) {
+    const byPhone = clients.find((c) => digitsOnly(c.phone) === bookingDigits);
+    if (byPhone) return byPhone.id;
+  }
+
+  const bookingName = normalizeText(booking.clientName || '').trim();
+  if (bookingName) {
+    const byName = clients.find((c) => normalizeText(c.name).trim() === bookingName);
+    if (byName) return byName.id;
+  }
+
+  return booking.clientId || '';
+};
+
 export default function BookingModal({
   open,
   onOpenChange,
@@ -153,21 +187,16 @@ export default function BookingModal({
     const query = clientSearch.trim();
     if (!query) return clients;
 
-    // Lowercase and strip diacritics for accent-insensitive matching.
-    const normalize = (value: string) =>
-      value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const onlyDigits = (value: string) => value.replace(/\D/g, '');
-
-    const terms = normalize(query).split(/\s+/).filter(Boolean);
-    const queryDigits = onlyDigits(query);
+    const terms = normalizeText(query).split(/\s+/).filter(Boolean);
+    const queryDigits = digitsOnly(query);
 
     return clients.filter((client) => {
-      const haystack = normalize(`${client.name} ${client.email ?? ''}`);
+      const haystack = normalizeText(`${client.name} ${client.email ?? ''}`);
       const nameEmailMatch = terms.every((term) => haystack.includes(term));
 
       const phoneMatch =
         queryDigits.length > 0 &&
-        onlyDigits(client.phone).includes(queryDigits);
+        digitsOnly(client.phone).includes(queryDigits);
 
       return nameEmailMatch || phoneMatch;
     });
@@ -309,7 +338,10 @@ export default function BookingModal({
     if (booking) {
       setDate(new Date(booking.date));
       setFormData({
-        clientId: booking.clientId,
+        // Resolve the client by id, falling back to phone/name so bookings
+        // whose client_id is null or not in the loaded list still preselect
+        // the right client when editing.
+        clientId: resolveBookingClientId(booking, clients),
         serviceId: booking.serviceId,
         barberId: booking.barber ? barbers.find(b => b.name === booking.barber)?.id || '' : '',
         time: booking.time,
@@ -337,6 +369,11 @@ export default function BookingModal({
         notes: '',
       });
     }
+    // `clients` is intentionally omitted: it is read only to resolve the
+    // preselected client on open. Including it would re-run this effect (and
+    // wipe in-progress edits) whenever the list changes, e.g. after creating
+    // a client inline.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [booking, selectedDate, selectedTime, isSlotCreation, preselectedBarberName, open, barbers]);
 
   // Reset time when date or barber changes (only for new bookings via + button)
@@ -471,6 +508,12 @@ export default function BookingModal({
                 >
                   {selectedClient ? (
                     <span className="truncate">{selectedClient.name} - {selectedClient.phone}</span>
+                  ) : booking?.clientName ? (
+                    // Fallback for bookings whose client has no matching record:
+                    // show the name stored on the booking instead of going blank.
+                    <span className="truncate">
+                      {booking.clientName}{booking.clientPhone ? ` - ${booking.clientPhone}` : ''}
+                    </span>
                   ) : (
                     <span className="text-muted-foreground">Buscar cliente...</span>
                   )}
