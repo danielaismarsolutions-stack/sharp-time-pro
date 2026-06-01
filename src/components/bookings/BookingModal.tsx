@@ -144,16 +144,33 @@ export default function BookingModal({
     notes: '',
   });
 
-  // Filter clients based on search
+  // Filter clients based on search.
+  // - Accent-insensitive (so "jose" matches "José")
+  // - Phone matched by digits only (so "600123456" matches "+34 600 123 456")
+  // - Multi-word: every term must appear in name/email (so "juan perez"
+  //   matches "Juan García Pérez")
   const filteredClients = useMemo(() => {
-    if (!clientSearch) return clients;
-    const searchLower = clientSearch.toLowerCase();
-    return clients.filter(
-      (client) =>
-        client.name.toLowerCase().includes(searchLower) ||
-        client.phone.includes(clientSearch) ||
-        client.email?.toLowerCase().includes(searchLower)
-    );
+    const query = clientSearch.trim();
+    if (!query) return clients;
+
+    // Lowercase and strip diacritics for accent-insensitive matching.
+    const normalize = (value: string) =>
+      value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const onlyDigits = (value: string) => value.replace(/\D/g, '');
+
+    const terms = normalize(query).split(/\s+/).filter(Boolean);
+    const queryDigits = onlyDigits(query);
+
+    return clients.filter((client) => {
+      const haystack = normalize(`${client.name} ${client.email ?? ''}`);
+      const nameEmailMatch = terms.every((term) => haystack.includes(term));
+
+      const phoneMatch =
+        queryDigits.length > 0 &&
+        onlyDigits(client.phone).includes(queryDigits);
+
+      return nameEmailMatch || phoneMatch;
+    });
   }, [clients, clientSearch]);
 
   const selectedService = services.find((s) => s.id === formData.serviceId);
