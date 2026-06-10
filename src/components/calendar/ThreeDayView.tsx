@@ -475,15 +475,15 @@ export function ThreeDayView({
     <div
       ref={containerRef}
       className="flex flex-col flex-1"
-      style={{ backgroundColor: '#f5f5f5' }}
+      style={{ backgroundColor: 'var(--cal-canvas)' }}
       {...swipeHandlers}
     >
       {/* Sticky header: Column Headers + Legend overlay */}
-      <div className="sticky top-0 z-30 bg-white relative">
+      <div className="sticky top-0 z-30 relative" style={{ backgroundColor: 'var(--cal-surface)' }}>
         {/* Column Headers */}
-        <div className="flex border-b" style={{ borderColor: '#e0e0e0' }}>
+        <div className="flex border-b" style={{ borderColor: 'var(--cal-border)' }}>
           {/* Time column spacer */}
-          <div className="w-12 shrink-0" style={{ borderRight: '1px solid #e0e0e0' }} />
+          <div className="w-12 shrink-0" style={{ borderRight: '1px solid var(--cal-border)' }} />
 
           {/* Day columns */}
           {days.map((day) => {
@@ -492,7 +492,7 @@ export function ThreeDayView({
               <div
                 key={day.toISOString()}
                 className="flex-1 py-1.5 flex items-center justify-center gap-1.5"
-                style={{ borderRight: '1px solid #e0e0e0' }}
+                style={{ borderRight: '1px solid var(--cal-border)' }}
               >
                 <span className={cn(
                   'w-6 h-6 flex items-center justify-center rounded-full text-sm font-medium',
@@ -526,7 +526,7 @@ export function ThreeDayView({
                 !isMonthPickerOpen && "pointer-events-auto"
               )}
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                backgroundColor: 'var(--cal-legend-bg)',
                 boxShadow: '0 1px 8px rgba(0, 0, 0, 0.08)',
                 backdropFilter: 'blur(8px)',
               }}
@@ -537,7 +537,7 @@ export function ThreeDayView({
                     {row.map(({ name, colors }) => (
                       <div key={name} className="flex items-center gap-1">
                         <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
-                        <span className="text-[11px] font-medium text-gray-700 whitespace-nowrap">{name}</span>
+                        <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{name}</span>
                       </div>
                     ))}
                   </div>
@@ -552,7 +552,7 @@ export function ThreeDayView({
       <div className="flex-1">
         <div className="flex relative">
           {/* Time labels column */}
-          <div className="w-12 shrink-0 bg-white" style={{ borderRight: '1px solid #e0e0e0' }}>
+          <div className="w-12 shrink-0" style={{ backgroundColor: 'var(--cal-surface)', borderRight: '1px solid var(--cal-border)' }}>
             {HOURS.map((hour) => (
               <div
                 key={hour}
@@ -561,7 +561,7 @@ export function ThreeDayView({
               >
                 {hour !== START_HOUR && (
                   <span
-                    className="absolute right-2 text-[11px] text-gray-400 font-normal leading-none"
+                    className="absolute right-2 text-[11px] text-gray-400 dark:text-gray-500 font-normal leading-none"
                     style={{
                       fontFamily: 'system-ui, -apple-system, sans-serif',
                       top: 0,
@@ -586,8 +586,8 @@ export function ThreeDayView({
                 key={day.toISOString()}
                 className="flex-1 relative"
                 style={{
-                  borderRight: '1px solid #e0e0e0',
-                  backgroundColor: dayIsToday ? '#fafafa' : '#f8f8f8'
+                  borderRight: '1px solid var(--cal-border)',
+                  backgroundColor: dayIsToday ? 'var(--cal-day-today)' : 'var(--cal-day)'
                 }}
                 onClick={(e) => handleSlotClick(day, e)}
                 onMouseDown={(e) => handleMouseDown(day, e)}
@@ -625,14 +625,14 @@ export function ThreeDayView({
                     {/* Full hour line at top */}
                     <div
                       className="absolute top-0 left-0 right-0 h-px pointer-events-none"
-                      style={{ backgroundColor: '#e0e0e0' }}
+                      style={{ backgroundColor: 'var(--cal-line)' }}
                     />
                     {/* Half hour line */}
                     <div
                       className="absolute left-0 right-0 h-px pointer-events-none"
                       style={{
                         top: hourHeight / 2,
-                        backgroundColor: '#ebebeb'
+                        backgroundColor: 'var(--cal-line-half)'
                       }}
                     />
                   </DroppableTimeSlotEnhanced>
@@ -737,9 +737,10 @@ export function ThreeDayView({
                 }}
               >
                 <span
-                  className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm"
+                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm"
                   style={{
-                    backgroundColor: '#000000',
+                    backgroundColor: 'var(--cal-now)',
+                    color: 'var(--cal-now-fg)',
                     fontFamily: 'system-ui, -apple-system, sans-serif',
                   }}
                 >
@@ -760,11 +761,11 @@ export function ThreeDayView({
               >
                 <div
                   className="w-2.5 h-2.5 rounded-full shrink-0"
-                  style={{ backgroundColor: '#000000', marginLeft: '-5px' }}
+                  style={{ backgroundColor: 'var(--cal-now)', marginLeft: '-5px' }}
                 />
                 <div
                   className="flex-1"
-                  style={{ height: '2px', backgroundColor: '#000000' }}
+                  style={{ height: '2px', backgroundColor: 'var(--cal-now)' }}
                 />
               </div>
             </div>

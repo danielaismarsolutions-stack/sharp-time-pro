@@ -36,6 +36,18 @@
     --sidebar-accent-foreground: 262 5.9% 10%;
     --sidebar-border: 260 13% 91%;
     --sidebar-ring: 262 83% 58%;
+
+    /* Calendar surfaces (used via inline styles so they adapt to the theme) */
+    --cal-canvas: #f5f5f5;
+    --cal-surface: #ffffff;
+    --cal-border: #e0e0e0;
+    --cal-line: #e0e0e0;
+    --cal-line-half: #ebebeb;
+    --cal-day: #f8f8f8;
+    --cal-day-today: #fafafa;
+    --cal-legend-bg: rgba(255, 255, 255, 0.92);
+    --cal-now: #000000;
+    --cal-now-fg: #ffffff;
   }
 
   .dark {
@@ -108,6 +120,18 @@
     --chart-3: 38 92% 50%;
     --chart-4: 320 60% 50%;
     --chart-5: 0 72% 51%;
+
+    /* Calendar surfaces - dark theme */
+    --cal-canvas: hsl(260 10% 4%);
+    --cal-surface: hsl(260 10% 6%);
+    --cal-border: hsl(260 5% 18%);
+    --cal-line: hsl(260 5% 14%);
+    --cal-line-half: hsl(260 5% 10%);
+    --cal-day: hsl(260 10% 5%);
+    --cal-day-today: hsl(260 10% 8%);
+    --cal-legend-bg: hsla(260 10% 8% / 0.92);
+    --cal-now: hsl(0 0% 95%);
+    --cal-now-fg: hsl(260 10% 4%);
   }
 }
 
@@ -117,7 +141,6 @@
   }
 
   html {
-    @apply dark;
     overflow-x: hidden;
   }
 

@@ -16,6 +16,7 @@ import { Service } from '@/types';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getBarberPastelColorByName, getBarberHexColor, DEFAULT_EVENT_HEX, useBarberColorVersion } from './shared/colorUtils';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
   Tooltip,
   TooltipContent,
@@ -266,10 +267,14 @@ interface MonthEventCardProps {
 
 function MonthEventCard({ event, isMobile, onClick }: MonthEventCardProps) {
   const staffTerms = useStaffTerms();
+  const { theme } = useTheme();
   const startTime = event.start_time.substring(0, 5);
   const endTime = event.end_time.substring(0, 5);
   const eventHex = event.color
     || (event.barber ? getBarberHexColor(event.barber) : DEFAULT_EVENT_HEX);
+  // The tinted background reads light in light mode and dark in dark mode, so
+  // darken the text for contrast on light and lighten it on dark.
+  const eventTextColor = theme === 'dark' ? '#f3f4f6' : darkenColor(eventHex);
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -293,7 +298,7 @@ function MonthEventCard({ event, isMobile, onClick }: MonthEventCardProps) {
                 'font-bold leading-none truncate',
                 isMobile ? 'text-[6px]' : 'text-[8px]'
               )}
-              style={{ color: darkenColor(eventHex) }}
+              style={{ color: eventTextColor }}
               >
                 {startTime}
               </span>
@@ -301,7 +306,7 @@ function MonthEventCard({ event, isMobile, onClick }: MonthEventCardProps) {
                 'font-medium leading-none truncate',
                 isMobile ? 'text-[6px]' : 'text-[8px]'
               )}
-              style={{ color: darkenColor(eventHex) }}
+              style={{ color: eventTextColor }}
               >
                 {event.name.length > 6 ? event.name.substring(0, 6) + '…' : event.name}
               </span>
