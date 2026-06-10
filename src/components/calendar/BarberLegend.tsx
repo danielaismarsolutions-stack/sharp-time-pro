@@ -41,7 +41,7 @@ export function BarberLegend({ barberNames, floating = false }: BarberLegendProp
             {row.map(({ name, colors }) => (
               <div key={name} className="flex items-center gap-1">
                 <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />
-                <span className="text-[11px] font-medium text-gray-700 whitespace-nowrap">{name}</span>
+                <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{name}</span>
               </div>
             ))}
           </div>

@@ -59,9 +59,10 @@ export function CurrentTimeIndicator({
         }}
       >
         <span
-          className="text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm whitespace-nowrap"
+          className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm whitespace-nowrap"
           style={{
-            backgroundColor: '#000000',
+            backgroundColor: 'var(--cal-now)',
+            color: 'var(--cal-now-fg)',
             fontFamily: 'system-ui, -apple-system, sans-serif',
             lineHeight: 1,
           }}
@@ -81,19 +82,20 @@ export function CurrentTimeIndicator({
       {/* Dot */}
       <div
         className="w-2.5 h-2.5 rounded-full shrink-0"
-        style={{ backgroundColor: '#000000', marginLeft: '-5px' }}
+        style={{ backgroundColor: 'var(--cal-now)', marginLeft: '-5px' }}
       />
       {/* Line */}
       <div
         className="flex-1 relative"
-        style={{ height: '2px', backgroundColor: '#000000' }}
+        style={{ height: '2px', backgroundColor: 'var(--cal-now)' }}
       >
         {/* Time label pill — anchored inside the line so it's never clipped */}
         {showTimeLabel && (
           <span
-            className="absolute text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-sm whitespace-nowrap"
+            className="absolute text-[10px] font-semibold px-1.5 py-0.5 rounded-sm whitespace-nowrap"
             style={{
-              backgroundColor: '#000000',
+              backgroundColor: 'var(--cal-now)',
+              color: 'var(--cal-now-fg)',
               fontFamily: 'system-ui, -apple-system, sans-serif',
               top: '50%',
               left: '4px',

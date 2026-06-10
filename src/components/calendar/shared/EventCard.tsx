@@ -6,6 +6,7 @@ import { CalendarDays, MapPin, Repeat, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ApiCalendarEvent } from '@/types/api';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { useTheme } from '@/contexts/ThemeContext';
 import { getBarberHexColor, DEFAULT_EVENT_HEX } from '@/components/calendar/shared/colorUtils';
 import {
   Tooltip,
@@ -24,12 +25,14 @@ interface EventCardProps {
   isPendingMove?: boolean;
 }
 
-// Map hex color to slightly transparent version for background
-function hexToStyle(hex: string) {
+// Map hex color to slightly transparent version for background.
+// In dark mode the translucent tint sits over a dark grid, so it reads dark —
+// use a light text color there; keep the dark text on the light theme.
+function hexToStyle(hex: string, isDark: boolean) {
   return {
-    backgroundColor: hex + '33', // 20% opacity
+    backgroundColor: hex + (isDark ? '40' : '33'), // ~20-25% opacity
     borderLeftColor: hex,
-    color: '#1f2937', // gray-800
+    color: isDark ? '#f3f4f6' : '#1f2937', // gray-100 / gray-800
   };
 }
 
@@ -43,13 +46,14 @@ export function EventCard({
   isPendingMove = false,
 }: EventCardProps) {
   const staffTerms = useStaffTerms();
+  const { theme } = useTheme();
   const startTime = event.start_time.substring(0, 5);
   const endTime = event.end_time.substring(0, 5);
   // Prefer the stored color (manual override). Fall back to the assigned
   // barber's color so events match the barber's appointments by default.
   const eventHex = event.color
     || (event.barber ? getBarberHexColor(event.barber) : DEFAULT_EVENT_HEX);
-  const colorStyle = hexToStyle(eventHex);
+  const colorStyle = hexToStyle(eventHex, theme === 'dark');
 
   const isCompact = style.height < 40;
   const isNarrow = viewMode === 'week';

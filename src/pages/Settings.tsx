@@ -15,6 +15,10 @@ import {
   Upload,
   X,
   Fingerprint,
+  Palette,
+  Moon,
+  Sun,
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,12 +56,13 @@ import { getBusinessId } from '@/config/session';
 import { notifyAllAdmins } from '@/services/supabaseNotifications';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useBusinessBrand } from '@/contexts/BusinessBrandContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const dayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-const ADMIN_TABS = ['business', 'hours', 'booking', 'time-tracking', 'notifications', 'account'];
-const BARBER_TABS = ['notifications', 'account'];
+const ADMIN_TABS = ['business', 'hours', 'booking', 'time-tracking', 'notifications', 'appearance', 'account'];
+const BARBER_TABS = ['notifications', 'appearance', 'account'];
 
 export default function Settings() {
   const { toast } = useToast();
@@ -66,6 +71,7 @@ export default function Settings() {
   const allowedTabs = isAdmin ? ADMIN_TABS : BARBER_TABS;
   const defaultTab = isAdmin ? 'business' : 'notifications';
   const { brand, updateLogoUrl } = useBusinessBrand();
+  const { theme, setTheme } = useTheme();
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -602,6 +608,10 @@ export default function Settings() {
           <TabsTrigger value="notifications" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Notif.</span>
+          </TabsTrigger>
+          <TabsTrigger value="appearance" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
+            <Palette className="h-4 w-4" />
+            <span className="hidden sm:inline">Apariencia</span>
           </TabsTrigger>
           <TabsTrigger value="account" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <User className="h-4 w-4" />
@@ -1192,6 +1202,62 @@ export default function Settings() {
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                 Guardar Configuración
               </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Appearance Settings */}
+        <TabsContent value="appearance">
+          <Card className="border-border">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5" />
+                Apariencia
+              </CardTitle>
+              <CardDescription>
+                Elige cómo quieres ver la aplicación. Tu preferencia se guarda en tu cuenta y se
+                aplica en todos tus dispositivos.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Label>Tema</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md">
+                {([
+                  { value: 'light', label: 'Claro', description: 'Fondo blanco', icon: Sun },
+                  { value: 'dark', label: 'Oscuro', description: 'Fondo negro', icon: Moon },
+                ] as const).map((option) => {
+                  const isSelected = theme === option.value;
+                  const Icon = option.icon;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setTheme(option.value)}
+                      aria-pressed={isSelected}
+                      className={`relative flex items-center gap-3 rounded-lg border p-4 text-left transition-colors ${
+                        isSelected
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          : 'border-border hover:bg-accent'
+                      }`}
+                    >
+                      <span
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${
+                          isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block font-medium">{option.label}</span>
+                        <span className="block text-sm text-muted-foreground">{option.description}</span>
+                      </span>
+                      {isSelected && (
+                        <Check className="absolute top-3 right-3 h-4 w-4 text-primary" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -50,6 +50,16 @@
 </head>
 
   <body>
+    <script>
+      // Apply saved theme before render to avoid a flash of the wrong theme.
+      (function () {
+        try {
+          if (localStorage.getItem('nexio-theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

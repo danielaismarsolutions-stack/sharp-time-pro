@@ -205,13 +205,13 @@ function AgendaEventCard({ event, onClick }: AgendaEventCardProps) {
         backgroundColor: eventHex + '33',
       }}
     >
-      <p className="text-sm text-gray-800">
+      <p className="text-sm text-gray-800 dark:text-gray-100">
         <span className="font-semibold">{event.name}</span>
         {event.location && (
-          <span className="font-normal text-gray-600"> - {event.location}</span>
+          <span className="font-normal text-gray-600 dark:text-gray-300"> - {event.location}</span>
         )}
       </p>
-      <p className="text-xs text-gray-600 mt-0.5">
+      <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
         {timeRange}
       </p>
     </button>
