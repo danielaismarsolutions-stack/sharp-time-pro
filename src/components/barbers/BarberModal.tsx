@@ -131,7 +131,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="top-0 left-0 translate-x-0 translate-y-0 w-screen max-w-none h-[100dvh] max-h-[100dvh] rounded-none border-0 overflow-y-auto pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:top-[50%] sm:left-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-[calc(100%-3rem)] sm:max-w-[340px] sm:h-auto sm:max-h-none sm:rounded-2xl sm:border sm:p-4">
+      <DialogContent className="top-0 left-0 translate-x-0 translate-y-0 w-screen max-w-none h-[100dvh] max-h-[100dvh] rounded-none border-0 overflow-y-auto pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:top-[50%] sm:left-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-[calc(100%-3rem)] sm:max-w-[340px] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:rounded-2xl sm:border sm:p-4">
         <DialogHeader>
           <DialogTitle>{barber ? `Editar ${staffTerms.singularCap}` : `Nuevo ${staffTerms.singularCap}`}</DialogTitle>
         </DialogHeader>
