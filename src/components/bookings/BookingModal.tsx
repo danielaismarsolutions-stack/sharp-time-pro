@@ -85,6 +85,22 @@ const generateAllTimeSlots = () => {
 
 const ALL_TIME_SLOTS = generateAllTimeSlots();
 
+// Generate 15-minute time slots covering the full 24h day. Used for the
+// start-time picker when creating a booking from a calendar slot (scroll/drag):
+// the calendar spans 0:00–23:00, so a slot can fall outside the barber's
+// business hours and we must still offer/preselect that time.
+const generateFullDayTimeSlots = () => {
+  const slots: string[] = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (let min = 0; min < 60; min += 15) {
+      slots.push(`${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`);
+    }
+  }
+  return slots;
+};
+
+const FULL_DAY_TIME_SLOTS = generateFullDayTimeSlots();
+
 // Generate 5-minute time slots covering the full day for the edit-mode
 // start/end time dropdowns. Edit mode allows full freedom (no availability
 // filtering), so users can pick any time even outside business hours.
@@ -323,6 +339,21 @@ export default function BookingModal({
 
     return availableSlots;
   }, [date, selectedBarber, selectedService, existingBookings, booking?.id]);
+
+  // Time options for the start-time picker when creating a booking.
+  // - Slot creation (calendar scroll/drag): allow ANY time of the day so the
+  //   appointment can be placed outside the barber's business hours, and make
+  //   sure the exact time the user picked on the calendar is present so it
+  //   stays preselected even when it falls outside those hours.
+  // - "+" button flow: keep suggesting the barber's available slots, but still
+  //   include the current selection if it somehow isn't among them.
+  const newBookingTimeSlots = useMemo(() => {
+    const base = isSlotCreation ? FULL_DAY_TIME_SLOTS : availableTimeSlots;
+    if (formData.time && !base.includes(formData.time)) {
+      return [...base, formData.time].sort();
+    }
+    return base;
+  }, [isSlotCreation, availableTimeSlots, formData.time]);
 
   // Disable dates where barber doesn't work
   const disabledDates = useCallback(
@@ -722,15 +753,15 @@ export default function BookingModal({
                             : 'Hora'
                     } />
                   </SelectTrigger>
-                  <SelectContent>
-                    {availableTimeSlots.map((time) => (
+                  <SelectContent className="max-h-[240px]">
+                    {newBookingTimeSlots.map((time) => (
                       <SelectItem key={time} value={time}>
                         {time}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {formData.barberId && date && availableTimeSlots.length === 0 && (
+                {!isSlotCreation && formData.barberId && date && availableTimeSlots.length === 0 && (
                   <p className="text-[10px] text-destructive flex items-center gap-1">
                     <AlertCircle className="h-2.5 w-2.5" />
                     Sin horas disponibles
