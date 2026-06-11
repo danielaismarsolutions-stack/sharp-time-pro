@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format, getDay, addMinutes, parse, isBefore, isAfter, isSameDay } from 'date-fns';
-import { Calendar as CalendarIcon, Plus, Check, ChevronsUpDown, AlertCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Check, ChevronsUpDown, AlertCircle, X } from 'lucide-react';
 import { es } from 'date-fns/locale';
 import {
   Dialog,
@@ -495,39 +495,60 @@ export default function BookingModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Client Selection with Search */}
+          {/* Client Selection with Search.
+              Rendered inline (not in a portaled Popover) so the search input
+              stays inside the Dialog's focus trap and the list scrolls
+              normally: a Popover portaled outside DialogContent gets its
+              scroll blocked by the dialog's scroll lock and its input can
+              lose focus on touch devices. */}
           <div className="space-y-1">
             <Label className="text-xs font-medium">Cliente</Label>
-            <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={clientSearchOpen}
-                  className="w-full justify-between font-normal h-8 text-xs"
-                >
-                  {selectedClient ? (
-                    <span className="truncate">{selectedClient.name} - {selectedClient.phone}</span>
-                  ) : booking?.clientName ? (
-                    // Fallback for bookings whose client has no matching record:
-                    // show the name stored on the booking instead of going blank.
-                    <span className="truncate">
-                      {booking.clientName}{booking.clientPhone ? ` - ${booking.clientPhone}` : ''}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">Buscar cliente...</span>
-                  )}
-                  <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start" side="bottom" avoidCollisions={false}>
+            {!clientSearchOpen ? (
+              <Button
+                type="button"
+                variant="outline"
+                role="combobox"
+                aria-expanded={clientSearchOpen}
+                onClick={() => setClientSearchOpen(true)}
+                className="w-full justify-between font-normal h-8 text-xs"
+              >
+                {selectedClient ? (
+                  <span className="truncate">{selectedClient.name} - {selectedClient.phone}</span>
+                ) : booking?.clientName ? (
+                  // Fallback for bookings whose client has no matching record:
+                  // show the name stored on the booking instead of going blank.
+                  <span className="truncate">
+                    {booking.clientName}{booking.clientPhone ? ` - ${booking.clientPhone}` : ''}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">Buscar cliente...</span>
+                )}
+                <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+              </Button>
+            ) : (
+              <div className="rounded-md border">
                 <Command shouldFilter={false}>
-                  <CommandInput
-                    placeholder="Buscar por nombre, teléfono..."
-                    value={clientSearch}
-                    onValueChange={setClientSearch}
-                  />
-                  <CommandList className="max-h-[160px]">
+                  <div className="relative">
+                    <CommandInput
+                      autoFocus
+                      placeholder="Buscar por nombre, teléfono..."
+                      value={clientSearch}
+                      onValueChange={setClientSearch}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setClientSearchOpen(false);
+                        setClientSearch('');
+                      }}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+                      aria-label="Cerrar búsqueda"
+                    >
+                      <X className="h-3.5 w-3.5 opacity-50" />
+                    </Button>
+                  </div>
+                  <CommandList className="max-h-[200px]">
                     <CommandEmpty>No se encontraron clientes</CommandEmpty>
 
                     {/* Create New Client Option */}
@@ -576,8 +597,8 @@ export default function BookingModal({
                     </CommandGroup>
                   </CommandList>
                 </Command>
-              </PopoverContent>
-            </Popover>
+              </div>
+            )}
           </div>
 
           {/* Service Selection */}
