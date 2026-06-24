@@ -135,6 +135,14 @@ const normalizeText = (value: string): string =>
 // (so "600123456" matches "+34 600 123 456").
 const digitsOnly = (value: string): string => value.replace(/\D/g, '');
 
+// Normalize a phone to its last 9 digits (Spanish national number length) so a
+// booking stored with a country prefix ("+34617827908") still matches a client
+// saved without it ("617827908").
+const phoneKey = (value: string): string => {
+  const d = digitsOnly(value);
+  return d.length > 9 ? d.slice(-9) : d;
+};
+
 // Resolve which client record a booking refers to. Prefers the linked
 // client_id, but falls back to matching the booking's stored phone (then name)
 // so bookings without a linked client_id — created from the online widget,
@@ -145,9 +153,9 @@ const resolveBookingClientId = (booking: Booking, clients: Client[]): string => 
     return booking.clientId;
   }
 
-  const bookingDigits = digitsOnly(booking.clientPhone || '');
-  if (bookingDigits) {
-    const byPhone = clients.find((c) => digitsOnly(c.phone) === bookingDigits);
+  const bookingPhone = phoneKey(booking.clientPhone || '');
+  if (bookingPhone) {
+    const byPhone = clients.find((c) => phoneKey(c.phone) === bookingPhone);
     if (byPhone) return byPhone.id;
   }
 
@@ -456,7 +464,11 @@ export default function BookingModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!date || !formData.clientId || !formData.serviceId) {
+    // A client must be selected when creating. When editing, the booking already
+    // carries its client info (name/phone), so an unresolved client link must not
+    // block saving — e.g. editing only the end time of an imported/widget booking.
+    const clientRequired = !booking;
+    if (!date || !formData.serviceId || (clientRequired && !formData.clientId)) {
       toast({
         title: 'Campos incompletos',
         description: 'Por favor, completa todos los campos obligatorios',
