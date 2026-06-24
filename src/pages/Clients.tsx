@@ -39,6 +39,7 @@ import { supabaseClientsApi } from '@/services/supabaseClients';
 import { useToast } from '@/hooks/use-toast';
 import { useClients as useClientsQuery, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { cn } from '@/lib/utils';
+import { clientMatchesQuery } from '@/lib/clientSearch';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
@@ -98,16 +99,9 @@ export default function Clients() {
   const filteredAndSortedClients = useMemo(() => {
     let result = [...clients];
 
-    // Filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (c) =>
-          c.name.toLowerCase().includes(query) ||
-          c.phone.includes(query) ||
-          c.email?.toLowerCase().includes(query) ||
-          c.tags?.some(tag => tag.toLowerCase().includes(query))
-      );
+    // Filter (accent-insensitive, multi-word name, format/prefix-tolerant phone)
+    if (searchQuery.trim()) {
+      result = result.filter((c) => clientMatchesQuery(c, searchQuery));
     }
 
     // Sort

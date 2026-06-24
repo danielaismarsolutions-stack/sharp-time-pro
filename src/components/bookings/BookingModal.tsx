@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/command';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { clientMatchesQuery, normalizeText, phoneKey } from '@/lib/clientSearch';
 import { Booking, Client, Service } from '@/types';
 import { ApiBooking } from '@/types/api';
 import { Barber, BarberSchedule } from '@/types/barber';
@@ -126,23 +127,6 @@ const addMinutesToTime = (time: string, duration: number): string => {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
 };
 
-// Lowercase and strip diacritics for accent-insensitive matching
-// (so "jose" matches "José").
-const normalizeText = (value: string): string =>
-  value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
-// Keep only digits so phone numbers match regardless of formatting
-// (so "600123456" matches "+34 600 123 456").
-const digitsOnly = (value: string): string => value.replace(/\D/g, '');
-
-// Normalize a phone to its last 9 digits (Spanish national number length) so a
-// booking stored with a country prefix ("+34617827908") still matches a client
-// saved without it ("617827908").
-const phoneKey = (value: string): string => {
-  const d = digitsOnly(value);
-  return d.length > 9 ? d.slice(-9) : d;
-};
-
 // Resolve which client record a booking refers to. Prefers the linked
 // client_id, but falls back to matching the booking's stored phone (then name)
 // so bookings without a linked client_id — created from the online widget,
@@ -202,28 +186,14 @@ export default function BookingModal({
     notes: '',
   });
 
-  // Filter clients based on search.
+  // Filter clients based on search (shared, robust matcher):
   // - Accent-insensitive (so "jose" matches "José")
-  // - Phone matched by digits only (so "600123456" matches "+34 600 123 456")
-  // - Multi-word: every term must appear in name/email (so "juan perez"
-  //   matches "Juan García Pérez")
+  // - Multi-word: every term must appear in name/email/tags
+  // - Phone matched by digits only and country-prefix tolerant
+  //   (so "600123456", "+34 600 123 456" and "34600123456" all match)
   const filteredClients = useMemo(() => {
-    const query = clientSearch.trim();
-    if (!query) return clients;
-
-    const terms = normalizeText(query).split(/\s+/).filter(Boolean);
-    const queryDigits = digitsOnly(query);
-
-    return clients.filter((client) => {
-      const haystack = normalizeText(`${client.name} ${client.email ?? ''}`);
-      const nameEmailMatch = terms.every((term) => haystack.includes(term));
-
-      const phoneMatch =
-        queryDigits.length > 0 &&
-        digitsOnly(client.phone).includes(queryDigits);
-
-      return nameEmailMatch || phoneMatch;
-    });
+    if (!clientSearch.trim()) return clients;
+    return clients.filter((client) => clientMatchesQuery(client, clientSearch));
   }, [clients, clientSearch]);
 
   const selectedService = services.find((s) => s.id === formData.serviceId);
