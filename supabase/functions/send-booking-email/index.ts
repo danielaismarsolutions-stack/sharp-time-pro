@@ -41,11 +41,11 @@ Deno.serve(async (req) => {
   }
   try {
     if (!RESEND_API_KEY) {
-      console.error("[send-confirmation-email] Missing RESEND_API_KEY");
+      console.error("[send-booking-email] Missing RESEND_API_KEY");
       return jsonResponse({ ok: false, error: "Server configuration error" }, 500);
     }
     if (!EXTERNAL_URL || !EXTERNAL_KEY) {
-      console.error("[send-confirmation-email] Missing external Supabase credentials");
+      console.error("[send-booking-email] Missing external Supabase credentials");
       return jsonResponse({ ok: false, error: "Server configuration error" }, 500);
     }
     const {
@@ -67,18 +67,33 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: false, error: "Missing required fields" }, 400);
     }
     const supabase = createClient(EXTERNAL_URL, EXTERNAL_KEY);
+
+    // ── IDEMPOTENCY: skip if confirmation already sent for this booking ──
+    if (booking_id) {
+      const { data: existing } = await supabase
+        .from("bookings")
+        .select("confirmation_sent_at")
+        .eq("id", booking_id)
+        .maybeSingle();
+
+      if (existing?.confirmation_sent_at) {
+        console.log("[send-booking-email] Skipped (already sent):", booking_id);
+        return jsonResponse({ ok: true, skipped: true, reason: "already_sent" });
+      }
+    }
+
     const { data: business, error: bizError } = await supabase
       .from("businesses")
       .select("business_name, address, location_url, email, phone, logo_url, contact_email, website, staff_terminology")
       .eq("id", business_id)
       .single();
     if (bizError || !business) {
-      console.error("[send-confirmation-email] Business lookup error:", bizError);
+      console.error("[send-booking-email] Business lookup error:", bizError);
       return jsonResponse({ ok: false, error: "Business not found" }, 404);
     }
     const biz = business as BusinessInfo;
     const staffTerms = resolveStaffTerms(biz.staff_terminology);
-    console.log("[send-confirmation-email] Sending to:", to_email, "business:", biz.business_name);
+    console.log("[send-booking-email] Sending to:", to_email, "business:", biz.business_name);
     const dateObj = new Date(booking_date + "T00:00:00");
     const formattedDate = new Intl.DateTimeFormat("es-ES", {
       weekday: "long",
@@ -208,7 +223,25 @@ Deno.serve(async (req) => {
   </table>
 </body>
 </html>`;
+    // Plain-text version (mejora la entregabilidad: los filtros antispam penalizan HTML sin parte de texto)
+    const emailText = [
+      `Hola ${customer_name},`,
+      ``,
+      `Tu reserva ha sido confirmada. Aquí están los detalles:`,
+      ``,
+      `Fecha: ${formattedDate}`,
+      `Hora: ${startFormatted}${endFormatted ? ` - ${endFormatted}` : ""}`,
+      `Servicio: ${service_name}`,
+      `${staffTerms.singularCap}: ${barber_name || `Tu ${staffTerms.singular}`}`,
+      ...(biz.address ? [``, `Ubicación: ${biz.business_name}, ${biz.address}`] : []),
+      ...(cancelUrl ? [``, `Si no puedes asistir, cancela tu reserva aquí: ${cancelUrl}`] : []),
+      ``,
+      `¡Te esperamos!`,
+      biz.business_name,
+    ].join("\n");
+
     const senderName = biz.business_name;
+    const replyTo = biz.contact_email || biz.email || "";
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -217,23 +250,39 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: `${senderName} <claudia@smartflow-labs.com>`,
+        ...(replyTo ? { reply_to: [replyTo] } : {}),
         to: [to_email],
         subject: `✅ Reserva confirmada - ${formattedDate} a las ${startFormatted}`,
         html: emailHtml,
+        text: emailText,
       }),
     });
     const result = await response.json();
     if (!response.ok) {
-      console.error("[send-confirmation-email] Resend error:", result);
+      console.error("[send-booking-email] Resend error:", result);
       return jsonResponse(
         { ok: false, error: result.message || "Failed to send email" },
         500,
       );
     }
-    console.log("[send-confirmation-email] Email sent successfully:", result.id);
+
+    // ── Mark confirmation as sent (AFTER successful Resend send) ──
+    if (booking_id) {
+      const { error: updateError } = await supabase
+        .from("bookings")
+        .update({ confirmation_sent_at: new Date().toISOString() })
+        .eq("id", booking_id);
+
+      if (updateError) {
+        console.error("[send-booking-email] Failed to update confirmation_sent_at:", updateError);
+        // Don't fail the response — email was already sent
+      }
+    }
+
+    console.log("[send-booking-email] Email sent successfully:", result.id, "booking:", booking_id);
     return jsonResponse({ ok: true, email_id: result.id });
   } catch (err) {
-    console.error("[send-confirmation-email] Error:", err);
+    console.error("[send-booking-email] Error:", err);
     return jsonResponse({ ok: false, error: "Internal server error" }, 500);
   }
 });
