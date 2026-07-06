@@ -76,8 +76,27 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: false, error: "Missing required fields" }, 400);
     }
 
-    // Fetch business details
     const supabase = createClient(EXTERNAL_URL, EXTERNAL_KEY);
+
+    // ── IDEMPOTENCY: skip if reminder already sent or booking no longer confirmed ──
+    if (payload.booking_id) {
+      const { data: existing } = await supabase
+        .from("bookings")
+        .select("reminder_sent_at, status")
+        .eq("id", payload.booking_id)
+        .maybeSingle();
+
+      if (existing?.reminder_sent_at) {
+        console.log("[send-reminder-email] Skipped (already sent):", payload.booking_id);
+        return jsonResponse({ ok: true, skipped: true, reason: "already_sent" });
+      }
+      if (existing && existing.status !== "confirmed") {
+        console.log("[send-reminder-email] Skipped (status:", existing.status, "):", payload.booking_id);
+        return jsonResponse({ ok: true, skipped: true, reason: "not_confirmed" });
+      }
+    }
+
+    // Fetch business details
     const { data: business, error: bizError } = await supabase
       .from("businesses")
       .select("business_name, address, location_url, email, phone, logo_url, contact_email, website, staff_terminology")
@@ -237,8 +256,26 @@ Deno.serve(async (req) => {
 </body>
 </html>`;
 
+    // Plain-text version (mejora la entregabilidad: los filtros antispam penalizan HTML sin parte de texto)
+    const emailText = [
+      `Hola ${payload.customer_name},`,
+      ``,
+      `Te recordamos que tienes una cita programada:`,
+      ``,
+      `Fecha: ${formattedDate}`,
+      `Hora: ${startFormatted}${endFormatted ? ` - ${endFormatted}` : ""}`,
+      `Servicio: ${payload.service_name}`,
+      `${staffTerms.singularCap}: ${payload.barber_name || `Tu ${staffTerms.singular}`}`,
+      ...(biz.address ? [``, `Ubicación: ${biz.business_name}, ${biz.address}`] : []),
+      ...(cancelUrl ? [``, `Si no puedes asistir, cancela tu cita aquí: ${cancelUrl}`] : []),
+      ``,
+      `¡Te esperamos!`,
+      biz.business_name,
+    ].join("\n");
+
     // Send email via Resend
     const senderName = biz.business_name;
+    const replyTo = biz.contact_email || biz.email || "";
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -247,9 +284,11 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: `${senderName} <claudia@smartflow-labs.com>`,
+        ...(replyTo ? { reply_to: [replyTo] } : {}),
         to: [payload.to_email],
         subject: `⏰ Recordatorio de tu cita - ${formattedDate} a las ${startFormatted}`,
         html: emailHtml,
+        text: emailText,
       }),
     });
 
@@ -262,7 +301,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Mark reminder as sent in the bookings table
+    // Mark reminder as sent (AFTER successful Resend send).
+    // El cron reintenta hasta 5 veces mientras reminder_sent_at siga NULL.
     const { error: updateError } = await supabase
       .from("bookings")
       .update({ reminder_sent_at: new Date().toISOString() })
