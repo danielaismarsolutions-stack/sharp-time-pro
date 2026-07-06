@@ -1960,7 +1960,9 @@ export default function Calendar() {
                 toast({ title: 'Cita actualizada correctamente' });
               } else {
                 const newBooking = await supabaseBookingsApi.create({
-                  client_id: data.clientId || '',
+                  // null (not '') when the appointment has no client: the
+                  // client_id column is a nullable uuid and '' is not a valid uuid.
+                  client_id: data.clientId || null,
                   service_id: data.serviceId || '',
                   user_id: data.barberId || null,
                   booking_date: data.date || '',

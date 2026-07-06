@@ -1,11 +1,11 @@
-// Regression test for the client search inside the booking modal ("Nueva
-// Cita"): typing in the search box must filter the client list by name
-// (accent-insensitive) and by phone (prefix/format tolerant), best match first.
-import { describe, it, expect, vi, beforeAll } from 'vitest';
-import { render, screen, within, waitFor } from '@testing-library/react';
+// Client assignment in the booking modal: when creating, a Clients-page-style
+// search bar (plain input, filters as you type, best match first) lets the
+// user optionally assign a client; when editing, the client is read-only.
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import BookingModal from './BookingModal';
-import type { Client } from '@/types';
+import type { Booking, Client } from '@/types';
 
 vi.mock('@/services/supabaseBookings', () => ({
   supabaseBookingsApi: { getByDateRange: vi.fn().mockResolvedValue([]) },
@@ -22,7 +22,6 @@ vi.mock('@/hooks/useStaffTerms', () => ({
     pluralCap: 'Barberos',
   }),
 }));
-vi.mock('@/components/clients/ClientModal', () => ({ default: () => null }));
 
 const makeClient = (id: string, name: string, phone: string): Client => ({
   id,
@@ -40,72 +39,95 @@ const makeClient = (id: string, name: string, phone: string): Client => ({
 const clients = [
   makeClient('1', 'Miguel Fernández Narciso', '629037597'),
   makeClient('2', 'Miguel García', '615481969'),
-  makeClient('3', 'Alfredo Pérez', '600111222'),
+  makeClient('3', 'Alfredo Pérez', '617650912'),
 ];
 
-const renderModal = () =>
-  render(
-    <BookingModal
-      open
-      onOpenChange={() => {}}
-      clients={clients}
-      services={[]}
-      barbers={[]}
-      onSave={async () => {}}
-    />,
-  );
-
-const openClientSearch = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(screen.getByText('Buscar cliente...'));
-  return screen.getByPlaceholderText('Buscar por nombre, teléfono...');
+const baseProps = {
+  open: true,
+  onOpenChange: () => {},
+  clients,
+  services: [],
+  barbers: [],
+  onSave: async () => {},
 };
 
-const clientList = () => screen.getByText('Clientes').parentElement as HTMLElement;
+const SEARCH_PLACEHOLDER = 'Buscar por nombre, teléfono, email o etiqueta...';
 
-beforeAll(() => {
-  // cmdk calls scrollIntoView when highlighting items; happy-dom lacks it.
-  Element.prototype.scrollIntoView = Element.prototype.scrollIntoView ?? (() => {});
-});
+describe('BookingModal client assignment (create)', () => {
+  it('shows the Clients-page-style search bar and no results until typing', () => {
+    render(<BookingModal {...baseProps} />);
 
-describe('BookingModal client search', () => {
-  it('filters the list by name as the user types', async () => {
+    expect(screen.getByPlaceholderText(SEARCH_PLACEHOLDER)).toBeInTheDocument();
+    // No client list rendered while the query is empty
+    expect(screen.queryByText('Miguel García')).not.toBeInTheDocument();
+  });
+
+  it('filters by name as the user types and assigns on click', async () => {
     const user = userEvent.setup();
-    renderModal();
-    const input = await openClientSearch(user);
+    render(<BookingModal {...baseProps} />);
 
-    await user.type(input, 'Alfr');
-
+    await user.type(screen.getByPlaceholderText(SEARCH_PLACEHOLDER), 'Alfr');
     await waitFor(() => {
-      const list = clientList();
-      expect(within(list).getByText('Alfredo Pérez')).toBeInTheDocument();
-      expect(within(list).queryByText('Miguel García')).not.toBeInTheDocument();
-      expect(within(list).queryByText('Miguel Fernández Narciso')).not.toBeInTheDocument();
+      expect(screen.getByText('Alfredo Pérez')).toBeInTheDocument();
+      expect(screen.queryByText('Miguel García')).not.toBeInTheDocument();
     });
+
+    await user.click(screen.getByText('Alfredo Pérez'));
+    // Selected chip replaces the search input
+    expect(screen.getByText(/Alfredo Pérez - 617650912/)).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(SEARCH_PLACEHOLDER)).not.toBeInTheDocument();
+
+    // The X clears the selection and brings the search back
+    await user.click(screen.getByRole('button', { name: 'Quitar cliente' }));
+    expect(screen.getByPlaceholderText(SEARCH_PLACEHOLDER)).toBeInTheDocument();
   });
 
   it('filters by phone without country prefix', async () => {
     const user = userEvent.setup();
-    renderModal();
-    const input = await openClientSearch(user);
+    render(<BookingModal {...baseProps} />);
 
-    await user.type(input, '615 481');
-
+    await user.type(screen.getByPlaceholderText(SEARCH_PLACEHOLDER), '615 481');
     await waitFor(() => {
-      const list = clientList();
-      expect(within(list).getByText('Miguel García')).toBeInTheDocument();
-      expect(within(list).queryByText('Alfredo Pérez')).not.toBeInTheDocument();
+      expect(screen.getByText('Miguel García')).toBeInTheDocument();
+      expect(screen.queryByText('Alfredo Pérez')).not.toBeInTheDocument();
     });
   });
 
   it('shows the empty state when nothing matches', async () => {
     const user = userEvent.setup();
-    renderModal();
-    const input = await openClientSearch(user);
+    render(<BookingModal {...baseProps} />);
 
-    await user.type(input, 'zzz');
-
+    await user.type(screen.getByPlaceholderText(SEARCH_PLACEHOLDER), 'zzz');
     await waitFor(() => {
       expect(screen.getByText('No se encontraron clientes')).toBeInTheDocument();
     });
+  });
+});
+
+describe('BookingModal client display (edit)', () => {
+  const editedBooking: Booking = {
+    id: 'b1',
+    clientId: '2',
+    clientName: 'Miguel García',
+    clientPhone: '615481969',
+    clientEmail: '',
+    serviceId: 's1',
+    serviceName: 'Corte',
+    serviceDuration: 30,
+    servicePrice: 15,
+    date: '2026-07-10',
+    time: '10:00',
+    endTime: '10:30',
+    status: 'confirmed',
+    source: 'phone',
+    notes: '',
+    createdAt: '2026-07-01',
+  };
+
+  it('shows the client read-only without a search bar', () => {
+    render(<BookingModal {...baseProps} booking={editedBooking} />);
+
+    expect(screen.getByText(/Miguel García - 615481969/)).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(SEARCH_PLACEHOLDER)).not.toBeInTheDocument();
   });
 });
