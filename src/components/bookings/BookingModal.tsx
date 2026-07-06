@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format, getDay, addMinutes, parse, isBefore, isAfter, isSameDay } from 'date-fns';
-import { Calendar as CalendarIcon, AlertCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, AlertCircle, Search, X } from 'lucide-react';
 import { es } from 'date-fns/locale';
 import {
   Dialog,
@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -25,7 +26,7 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { normalizeText, phoneKey } from '@/lib/clientSearch';
+import { normalizeText, phoneKey, rankClients } from '@/lib/clientSearch';
 import { Booking, Client, Service } from '@/types';
 import { ApiBooking } from '@/types/api';
 import { Barber, BarberSchedule } from '@/types/barber';
@@ -159,6 +160,7 @@ export default function BookingModal({
   const staffTerms = useStaffTerms();
   const [isLoading, setIsLoading] = useState(false);
   const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
+  const [clientSearch, setClientSearch] = useState('');
   const [existingBookings, setExistingBookings] = useState<ApiBooking[]>([]);
   const [formData, setFormData] = useState({
     clientId: '',
@@ -173,6 +175,14 @@ export default function BookingModal({
 
   const selectedService = services.find((s) => s.id === formData.serviceId);
   const selectedClient = clients.find((c) => c.id === formData.clientId);
+
+  // Same search engine as the Clients page (shared rankClients): accent-
+  // insensitive name/email/tag terms, format/prefix-tolerant phone digits,
+  // best matches first. Results only render while the user is typing.
+  const filteredClients = useMemo(
+    () => rankClients(clients, clientSearch),
+    [clients, clientSearch],
+  );
   const selectedBarber = barbers.find((b) => b.id === formData.barberId);
 
   // Filter barbers based on selected service's barber assignments
@@ -464,11 +474,11 @@ export default function BookingModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Client picker intentionally removed from the create flow: new
-              appointments are created without assigning a client. When
-              editing, the booking's client is shown read-only so the
-              appointment's owner stays visible but cannot be changed here. */}
-          {booking && (
+          {/* Client assignment. When creating: the same kind of search bar as
+              the Clients page (plain input, filters as you type) to pick the
+              client; optional, so the appointment can be created without one.
+              When editing: the booking's client is shown read-only. */}
+          {booking ? (
             <div className="space-y-1">
               <Label className="text-xs font-medium">Cliente</Label>
               <div className="flex h-8 w-full items-center rounded-md border border-input bg-muted/50 px-3 text-xs">
@@ -480,6 +490,65 @@ export default function BookingModal({
                       : 'Sin cliente'}
                 </span>
               </div>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Cliente</Label>
+              {selectedClient ? (
+                <div className="flex h-8 w-full items-center justify-between rounded-md border border-input px-3 text-xs">
+                  <span className="truncate">
+                    {selectedClient.name} - {selectedClient.phone}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setFormData({ ...formData, clientId: '' })}
+                    className="h-6 w-6 shrink-0 p-0"
+                    aria-label="Quitar cliente"
+                  >
+                    <X className="h-3.5 w-3.5 opacity-50" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      inputMode="search"
+                      autoComplete="off"
+                      placeholder="Buscar por nombre, teléfono, email o etiqueta..."
+                      className="pl-9 h-9 text-xs"
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                    />
+                  </div>
+                  {clientSearch.trim() && (
+                    <div className="max-h-[180px] overflow-y-auto rounded-md border p-1">
+                      {filteredClients.length === 0 ? (
+                        <p className="py-4 text-center text-xs text-muted-foreground">
+                          No se encontraron clientes
+                        </p>
+                      ) : (
+                        filteredClients.map((client) => (
+                          <button
+                            key={client.id}
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, clientId: client.id });
+                              setClientSearch('');
+                            }}
+                            className="flex w-full flex-col rounded-sm px-2 py-1.5 text-left hover:bg-accent"
+                          >
+                            <span className="text-xs font-medium">{client.name}</span>
+                            <span className="text-[10px] text-muted-foreground">{client.phone}</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
