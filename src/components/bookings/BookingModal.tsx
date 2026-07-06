@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/command';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { clientMatchesQuery, normalizeText, phoneKey } from '@/lib/clientSearch';
+import { normalizeText, phoneKey, rankClients } from '@/lib/clientSearch';
 import { Booking, Client, Service } from '@/types';
 import { ApiBooking } from '@/types/api';
 import { Barber, BarberSchedule } from '@/types/barber';
@@ -191,10 +191,11 @@ export default function BookingModal({
   // - Multi-word: every term must appear in name/email/tags
   // - Phone matched by digits only and country-prefix tolerant
   //   (so "600123456", "+34 600 123 456" and "34600123456" all match)
-  const filteredClients = useMemo(() => {
-    if (!clientSearch.trim()) return clients;
-    return clients.filter((client) => clientMatchesQuery(client, clientSearch));
-  }, [clients, clientSearch]);
+  // - Ordered by relevance: exact phone/name first, then prefix, then partial
+  const filteredClients = useMemo(
+    () => rankClients(clients, clientSearch),
+    [clients, clientSearch],
+  );
 
   const selectedService = services.find((s) => s.id === formData.serviceId);
   const selectedClient = clients.find((c) => c.id === formData.clientId);
