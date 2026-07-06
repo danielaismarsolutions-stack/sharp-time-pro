@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { clientMatchesQuery, phonesMatch, phoneKey } from './clientSearch';
+import {
+  clientMatchesQuery,
+  clientMatchScore,
+  phonesMatch,
+  phoneKey,
+  rankClients,
+} from './clientSearch';
 
 const client = {
   name: 'José García Pérez',
@@ -56,6 +62,80 @@ describe('clientMatchesQuery', () => {
     const sparse = { name: 'Ana', phone: '', email: null, tags: null };
     expect(clientMatchesQuery(sparse, 'ana')).toBe(true);
     expect(clientMatchesQuery(sparse, '600')).toBe(false);
+  });
+});
+
+describe('clientMatchScore', () => {
+  it('scores exact phone above prefix above partial', () => {
+    const exact = clientMatchScore({ phone: '617827908' }, '617827908');
+    const prefixed = clientMatchScore({ phone: '+34617827908' }, '617827908');
+    const startsWith = clientMatchScore({ phone: '617827908' }, '617');
+    const contains = clientMatchScore({ phone: '617827908' }, '827');
+    expect(exact).toBe(100);
+    expect(prefixed).toBe(100);
+    expect(startsWith).toBeLessThan(exact);
+    expect(contains).toBeLessThan(startsWith);
+  });
+
+  it('scores exact name above starts-with above word-prefix above substring', () => {
+    const exact = clientMatchScore({ name: 'José García' }, 'jose garcia');
+    const startsWith = clientMatchScore({ name: 'José García' }, 'jose');
+    const wordPrefix = clientMatchScore({ name: 'José García' }, 'gar');
+    const substring = clientMatchScore({ name: 'José García' }, 'arci');
+    expect(exact).toBeGreaterThan(startsWith);
+    expect(startsWith).toBeGreaterThan(wordPrefix);
+    expect(wordPrefix).toBeGreaterThan(substring);
+    expect(substring).toBeGreaterThan(0);
+  });
+
+  it('scores name matches above email/tag-only matches', () => {
+    const byName = clientMatchScore({ name: 'Vip Pérez' }, 'vip');
+    const byTag = clientMatchScore({ name: 'Ana', tags: ['VIP'] }, 'vip');
+    expect(byName).toBeGreaterThan(byTag);
+    expect(byTag).toBeGreaterThan(0);
+  });
+
+  it('returns 0 for non-matches', () => {
+    expect(clientMatchScore(client, 'pedro')).toBe(0);
+    expect(clientMatchScore(client, '999999999')).toBe(0);
+  });
+});
+
+describe('rankClients', () => {
+  const ana = { name: 'Ana Torres', phone: '600111222' };
+  const anabel = { name: 'Anabel Ruiz', phone: '600333444' };
+  const susana = { name: 'Susana López', phone: '600555666' };
+
+  it('returns the list unchanged for an empty query', () => {
+    expect(rankClients([susana, ana], '')).toEqual([susana, ana]);
+  });
+
+  it('drops non-matches and puts best matches first', () => {
+    const result = rankClients([susana, anabel, ana], 'ana');
+    // "Ana Torres"/"Anabel" both start with the query (alphabetical
+    // tie-break), "Susana" only matches as a substring and goes last.
+    expect(result.map((c) => c.name)).toEqual([
+      'Ana Torres',
+      'Anabel Ruiz',
+      'Susana López',
+    ]);
+    expect(rankClients([susana, anabel, ana], 'pedro')).toEqual([]);
+  });
+
+  it('ranks the exact phone first even without the country prefix', () => {
+    const withPrefix = { name: 'Zoe', phone: '+34 600 111 222' };
+    const longerNumber = { name: 'Abel', phone: '6001112223' };
+    const result = rankClients([longerNumber, withPrefix], '600111222');
+    expect(result).toEqual([withPrefix, longerNumber]);
+  });
+
+  it('breaks score ties alphabetically', () => {
+    const beto = { name: 'Beto García', phone: '1' };
+    const alba = { name: 'Alba García', phone: '2' };
+    expect(rankClients([beto, alba], 'garcia').map((c) => c.name)).toEqual([
+      'Alba García',
+      'Beto García',
+    ]);
   });
 });
 

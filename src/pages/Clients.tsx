@@ -39,7 +39,7 @@ import { supabaseClientsApi } from '@/services/supabaseClients';
 import { useToast } from '@/hooks/use-toast';
 import { useClients as useClientsQuery, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { cn } from '@/lib/utils';
-import { clientMatchesQuery } from '@/lib/clientSearch';
+import { clientMatchScore } from '@/lib/clientSearch';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { useAuth } from '@/contexts/AuthContext';
 import { getBusinessId } from '@/config/session';
@@ -99,13 +99,25 @@ export default function Clients() {
   const filteredAndSortedClients = useMemo(() => {
     let result = [...clients];
 
-    // Filter (accent-insensitive, multi-word name, format/prefix-tolerant phone)
-    if (searchQuery.trim()) {
-      result = result.filter((c) => clientMatchesQuery(c, searchQuery));
+    // Filter (accent-insensitive, multi-word name, format/prefix-tolerant
+    // phone) keeping each match's relevance score for ordering below.
+    const query = searchQuery.trim();
+    const relevance = new Map<string, number>();
+    if (query) {
+      result = result.filter((c) => {
+        const score = clientMatchScore(c, query);
+        if (score > 0) relevance.set(c.id, score);
+        return score > 0;
+      });
     }
 
-    // Sort
+    // Sort. While searching, the best matches come first (exact phone/name
+    // above prefix above partial); the selected column only breaks ties.
     result.sort((a, b) => {
+      if (query) {
+        const byRelevance = (relevance.get(b.id) ?? 0) - (relevance.get(a.id) ?? 0);
+        if (byRelevance !== 0) return byRelevance;
+      }
       let comparison = 0;
       switch (sortField) {
         case 'name':
