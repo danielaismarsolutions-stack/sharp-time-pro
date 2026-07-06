@@ -44,7 +44,8 @@ export interface DbBooking {
 }
 
 export interface CreateBookingData {
-  client_id: string;
+  // Nullable: manual appointments can be created without linking a client.
+  client_id: string | null;
   service_id: string;
   user_id?: string | null;
   booking_date: string;

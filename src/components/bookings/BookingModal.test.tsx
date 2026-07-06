@@ -1,11 +1,10 @@
-// Regression test for the client search inside the booking modal ("Nueva
-// Cita"): typing in the search box must filter the client list by name
-// (accent-insensitive) and by phone (prefix/format tolerant), best match first.
-import { describe, it, expect, vi, beforeAll } from 'vitest';
-import { render, screen, within, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+// The client picker was intentionally removed from the booking modal:
+// creating an appointment must not offer any client search/selection, and
+// editing shows the booking's client as read-only text only.
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import BookingModal from './BookingModal';
-import type { Client } from '@/types';
+import type { Booking, Client } from '@/types';
 
 vi.mock('@/services/supabaseBookings', () => ({
   supabaseBookingsApi: { getByDateRange: vi.fn().mockResolvedValue([]) },
@@ -22,90 +21,72 @@ vi.mock('@/hooks/useStaffTerms', () => ({
     pluralCap: 'Barberos',
   }),
 }));
-vi.mock('@/components/clients/ClientModal', () => ({ default: () => null }));
 
-const makeClient = (id: string, name: string, phone: string): Client => ({
-  id,
-  name,
-  phone,
-  email: '',
-  notes: '',
-  totalVisits: 0,
-  totalSpent: 0,
-  lastVisit: null,
-  createdAt: '2026-01-01',
-  tags: [],
-});
-
-const clients = [
-  makeClient('1', 'Miguel Fernández Narciso', '629037597'),
-  makeClient('2', 'Miguel García', '615481969'),
-  makeClient('3', 'Alfredo Pérez', '600111222'),
+const clients: Client[] = [
+  {
+    id: '1',
+    name: 'Miguel García',
+    phone: '615481969',
+    email: '',
+    notes: '',
+    totalVisits: 0,
+    totalSpent: 0,
+    lastVisit: null,
+    createdAt: '2026-01-01',
+    tags: [],
+  },
 ];
 
-const renderModal = () =>
-  render(
-    <BookingModal
-      open
-      onOpenChange={() => {}}
-      clients={clients}
-      services={[]}
-      barbers={[]}
-      onSave={async () => {}}
-    />,
-  );
-
-const openClientSearch = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(screen.getByText('Buscar cliente...'));
-  return screen.getByPlaceholderText('Buscar por nombre, teléfono...');
+const baseProps = {
+  open: true,
+  onOpenChange: () => {},
+  clients,
+  services: [],
+  barbers: [],
+  onSave: async () => {},
 };
 
-const clientList = () => screen.getByText('Clientes').parentElement as HTMLElement;
+const editedBooking: Booking = {
+  id: 'b1',
+  clientId: '1',
+  clientName: 'Miguel García',
+  clientPhone: '615481969',
+  clientEmail: '',
+  serviceId: 's1',
+  serviceName: 'Corte',
+  serviceDuration: 30,
+  servicePrice: 15,
+  date: '2026-07-10',
+  time: '10:00',
+  endTime: '10:30',
+  status: 'confirmed',
+  source: 'phone',
+  notes: '',
+  createdAt: '2026-07-01',
+};
 
-beforeAll(() => {
-  // cmdk calls scrollIntoView when highlighting items; happy-dom lacks it.
-  Element.prototype.scrollIntoView = Element.prototype.scrollIntoView ?? (() => {});
-});
+describe('BookingModal without client picker', () => {
+  it('offers no client search or selection when creating', () => {
+    render(<BookingModal {...baseProps} />);
 
-describe('BookingModal client search', () => {
-  it('filters the list by name as the user types', async () => {
-    const user = userEvent.setup();
-    renderModal();
-    const input = await openClientSearch(user);
-
-    await user.type(input, 'Alfr');
-
-    await waitFor(() => {
-      const list = clientList();
-      expect(within(list).getByText('Alfredo Pérez')).toBeInTheDocument();
-      expect(within(list).queryByText('Miguel García')).not.toBeInTheDocument();
-      expect(within(list).queryByText('Miguel Fernández Narciso')).not.toBeInTheDocument();
-    });
+    expect(screen.getByText('Nueva Cita')).toBeInTheDocument();
+    expect(screen.queryByText('Cliente')).not.toBeInTheDocument();
+    expect(screen.queryByText('Buscar cliente...')).not.toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText('Buscar por nombre, teléfono...'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Crear nuevo cliente')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Crear Cita' })).toBeInTheDocument();
   });
 
-  it('filters by phone without country prefix', async () => {
-    const user = userEvent.setup();
-    renderModal();
-    const input = await openClientSearch(user);
+  it('shows the client read-only (no search) when editing', () => {
+    render(<BookingModal {...baseProps} booking={editedBooking} />);
 
-    await user.type(input, '615 481');
-
-    await waitFor(() => {
-      const list = clientList();
-      expect(within(list).getByText('Miguel García')).toBeInTheDocument();
-      expect(within(list).queryByText('Alfredo Pérez')).not.toBeInTheDocument();
-    });
-  });
-
-  it('shows the empty state when nothing matches', async () => {
-    const user = userEvent.setup();
-    renderModal();
-    const input = await openClientSearch(user);
-
-    await user.type(input, 'zzz');
-
-    await waitFor(() => {
-      expect(screen.getByText('No se encontraron clientes')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Cliente')).toBeInTheDocument();
+    expect(screen.getByText(/Miguel García - 615481969/)).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText('Buscar por nombre, teléfono...'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Buscar cliente...')).not.toBeInTheDocument();
   });
 });

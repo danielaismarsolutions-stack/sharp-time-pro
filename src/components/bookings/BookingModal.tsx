@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format, getDay, addMinutes, parse, isBefore, isAfter, isSameDay } from 'date-fns';
-import { Calendar as CalendarIcon, Plus, Check, ChevronsUpDown, AlertCircle, Search, X } from 'lucide-react';
+import { Calendar as CalendarIcon, AlertCircle } from 'lucide-react';
 import { es } from 'date-fns/locale';
 import {
   Dialog,
@@ -9,7 +9,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -26,13 +25,12 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { normalizeText, phoneKey, rankClients } from '@/lib/clientSearch';
+import { normalizeText, phoneKey } from '@/lib/clientSearch';
 import { Booking, Client, Service } from '@/types';
 import { ApiBooking } from '@/types/api';
 import { Barber, BarberSchedule } from '@/types/barber';
 import { useToast } from '@/hooks/use-toast';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
-import ClientModal from '@/components/clients/ClientModal';
 import { supabaseBookingsApi } from '@/services/supabaseBookings';
 
 interface BookingModalProps {
@@ -152,7 +150,6 @@ export default function BookingModal({
   barbers,
   allBookings = [],
   onSave,
-  onClientCreate,
   selectedDate,
   selectedTime,
   isSlotCreation = false,
@@ -162,9 +159,6 @@ export default function BookingModal({
   const staffTerms = useStaffTerms();
   const [isLoading, setIsLoading] = useState(false);
   const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
-  const [clientSearchOpen, setClientSearchOpen] = useState(false);
-  const [clientSearch, setClientSearch] = useState('');
-  const [showClientModal, setShowClientModal] = useState(false);
   const [existingBookings, setExistingBookings] = useState<ApiBooking[]>([]);
   const [formData, setFormData] = useState({
     clientId: '',
@@ -176,17 +170,6 @@ export default function BookingModal({
     source: 'phone' as Booking['source'],
     notes: '',
   });
-
-  // Filter clients based on search (shared, robust matcher):
-  // - Accent-insensitive (so "jose" matches "José")
-  // - Multi-word: every term must appear in name/email/tags
-  // - Phone matched by digits only and country-prefix tolerant
-  //   (so "600123456", "+34 600 123 456" and "34600123456" all match)
-  // - Ordered by relevance: exact phone/name first, then prefix, then partial
-  const filteredClients = useMemo(
-    () => rankClients(clients, clientSearch),
-    [clients, clientSearch],
-  );
 
   const selectedService = services.find((s) => s.id === formData.serviceId);
   const selectedClient = clients.find((c) => c.id === formData.clientId);
@@ -404,33 +387,11 @@ export default function BookingModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBarber, booking, isBarberWorkingOnDate, isSlotCreation]);
 
-  // Handle new client creation
-  const handleClientCreate = async (clientData: Partial<Client>) => {
-    if (!onClientCreate) return;
-    try {
-      const newClient = await onClientCreate(clientData);
-      setFormData({ ...formData, clientId: newClient.id });
-      setShowClientModal(false);
-      toast({
-        title: 'Cliente creado',
-        description: 'El nuevo cliente ha sido añadido',
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'No se pudo crear el cliente',
-        variant: 'destructive',
-      });
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // A client must be selected when creating. When editing, the booking already
-    // carries its client info (name/phone), so an unresolved client link must not
-    // block saving — e.g. editing only the end time of an imported/widget booking.
-    const clientRequired = !booking;
-    if (!date || !formData.serviceId || (clientRequired && !formData.clientId)) {
+    // Appointments are created without a client (the picker was removed from
+    // this modal), so only date and service are mandatory.
+    if (!date || !formData.serviceId) {
       toast({
         title: 'Campos incompletos',
         description: 'Por favor, completa todos los campos obligatorios',
@@ -454,7 +415,10 @@ export default function BookingModal({
       await onSave({
         ...booking,
         clientId: formData.clientId,
-        clientName: selectedClient?.name || '',
+        // New appointments carry a "Sin cliente" placeholder so calendar
+        // cards and notifications never render an empty name. When editing,
+        // an empty value lets the save path keep the booking's stored client.
+        clientName: selectedClient?.name || (booking ? '' : 'Sin cliente'),
         clientPhone: selectedClient?.phone || '',
         clientEmail: selectedClient?.email || '',
         serviceId: formData.serviceId,
@@ -500,121 +464,24 @@ export default function BookingModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Client Selection with Search.
-              Rendered inline (not in a portaled Popover) so the search input
-              stays inside the Dialog's focus trap and the list scrolls
-              normally: a Popover portaled outside DialogContent gets its
-              scroll blocked by the dialog's scroll lock and its input can
-              lose focus on touch devices. */}
-          <div className="space-y-1">
-            <Label className="text-xs font-medium">Cliente</Label>
-            {!clientSearchOpen ? (
-              <Button
-                type="button"
-                variant="outline"
-                role="combobox"
-                aria-expanded={clientSearchOpen}
-                onClick={() => setClientSearchOpen(true)}
-                className="w-full justify-between font-normal h-8 text-xs"
-              >
-                {selectedClient ? (
-                  <span className="truncate">{selectedClient.name} - {selectedClient.phone}</span>
-                ) : booking?.clientName ? (
-                  // Fallback for bookings whose client has no matching record:
-                  // show the name stored on the booking instead of going blank.
-                  <span className="truncate">
-                    {booking.clientName}{booking.clientPhone ? ` - ${booking.clientPhone}` : ''}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">Buscar cliente...</span>
-                )}
-                <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
-              </Button>
-            ) : (
-              /* Plain input + plain list on purpose: no cmdk/Command, no
-                 portals, no focus traps. Every keystroke goes straight to
-                 React state and the list below is a straight render of the
-                 ranked matches, so nothing can swallow the filtering. */
-              <div className="rounded-md border">
-                <div className="relative flex items-center border-b px-3">
-                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                  <Input
-                    autoFocus
-                    type="text"
-                    inputMode="search"
-                    autoComplete="off"
-                    placeholder="Buscar por nombre, teléfono..."
-                    value={clientSearch}
-                    onChange={(e) => setClientSearch(e.target.value)}
-                    className="h-9 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      setClientSearchOpen(false);
-                      setClientSearch('');
-                    }}
-                    className="h-6 w-6 shrink-0 p-0"
-                    aria-label="Cerrar búsqueda"
-                  >
-                    <X className="h-3.5 w-3.5 opacity-50" />
-                  </Button>
-                </div>
-                <div className="max-h-[200px] overflow-y-auto p-1">
-                  {onClientCreate && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setClientSearchOpen(false);
-                          setShowClientModal(true);
-                        }}
-                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-primary hover:bg-accent"
-                      >
-                        <Plus className="mr-2 h-3.5 w-3.5" />
-                        <span className="font-medium text-xs">Crear nuevo cliente</span>
-                      </button>
-                      <div className="-mx-1 my-1 h-px bg-border" />
-                    </>
-                  )}
-
-                  <div>
-                    <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Clientes</p>
-                    {filteredClients.length === 0 ? (
-                      <p className="py-6 text-center text-sm text-muted-foreground">
-                        No se encontraron clientes
-                      </p>
-                    ) : (
-                      filteredClients.map((client) => (
-                        <button
-                          key={client.id}
-                          type="button"
-                          onClick={() => {
-                            setFormData({ ...formData, clientId: client.id });
-                            setClientSearchOpen(false);
-                            setClientSearch('');
-                          }}
-                          className="flex w-full items-center rounded-sm px-2 py-1.5 text-left hover:bg-accent"
-                        >
-                          <Check
-                            className={cn(
-                              'mr-2 h-3.5 w-3.5 shrink-0',
-                              formData.clientId === client.id ? 'opacity-100' : 'opacity-0'
-                            )}
-                          />
-                          <div className="flex flex-col">
-                            <span className="text-xs font-medium">{client.name}</span>
-                            <span className="text-[10px] text-muted-foreground">{client.phone}</span>
-                          </div>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
+          {/* Client picker intentionally removed from the create flow: new
+              appointments are created without assigning a client. When
+              editing, the booking's client is shown read-only so the
+              appointment's owner stays visible but cannot be changed here. */}
+          {booking && (
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Cliente</Label>
+              <div className="flex h-8 w-full items-center rounded-md border border-input bg-muted/50 px-3 text-xs">
+                <span className="truncate">
+                  {selectedClient
+                    ? `${selectedClient.name} - ${selectedClient.phone}`
+                    : booking.clientName
+                      ? `${booking.clientName}${booking.clientPhone ? ` - ${booking.clientPhone}` : ''}`
+                      : 'Sin cliente'}
+                </span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Service Selection */}
           <div className="space-y-1">
@@ -835,15 +702,6 @@ export default function BookingModal({
           </div>
         </form>
       </DialogContent>
-
-      {/* Nested Client Creation Modal */}
-      {onClientCreate && (
-        <ClientModal
-          open={showClientModal}
-          onOpenChange={setShowClientModal}
-          onSave={handleClientCreate}
-        />
-      )}
     </Dialog>
   );
 }
