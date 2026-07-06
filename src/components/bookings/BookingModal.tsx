@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format, getDay, addMinutes, parse, isBefore, isAfter, isSameDay } from 'date-fns';
-import { Calendar as CalendarIcon, Plus, Check, ChevronsUpDown, AlertCircle, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Check, ChevronsUpDown, AlertCircle, Search, X } from 'lucide-react';
 import { es } from 'date-fns/locale';
 import {
   Dialog,
@@ -24,15 +24,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from '@/components/ui/command';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { normalizeText, phoneKey, rankClients } from '@/lib/clientSearch';
@@ -540,65 +531,75 @@ export default function BookingModal({
                 <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
               </Button>
             ) : (
+              /* Plain input + plain list on purpose: no cmdk/Command, no
+                 portals, no focus traps. Every keystroke goes straight to
+                 React state and the list below is a straight render of the
+                 ranked matches, so nothing can swallow the filtering. */
               <div className="rounded-md border">
-                <Command shouldFilter={false}>
-                  <div className="relative">
-                    <CommandInput
-                      autoFocus
-                      placeholder="Buscar por nombre, teléfono..."
-                      value={clientSearch}
-                      onValueChange={setClientSearch}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => {
-                        setClientSearchOpen(false);
-                        setClientSearch('');
-                      }}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-                      aria-label="Cerrar búsqueda"
-                    >
-                      <X className="h-3.5 w-3.5 opacity-50" />
-                    </Button>
-                  </div>
-                  <CommandList className="max-h-[200px]">
-                    <CommandEmpty>No se encontraron clientes</CommandEmpty>
+                <div className="relative flex items-center border-b px-3">
+                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                  <Input
+                    autoFocus
+                    type="text"
+                    inputMode="search"
+                    autoComplete="off"
+                    placeholder="Buscar por nombre, teléfono..."
+                    value={clientSearch}
+                    onChange={(e) => setClientSearch(e.target.value)}
+                    className="h-9 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setClientSearchOpen(false);
+                      setClientSearch('');
+                    }}
+                    className="h-6 w-6 shrink-0 p-0"
+                    aria-label="Cerrar búsqueda"
+                  >
+                    <X className="h-3.5 w-3.5 opacity-50" />
+                  </Button>
+                </div>
+                <div className="max-h-[200px] overflow-y-auto p-1">
+                  {onClientCreate && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setClientSearchOpen(false);
+                          setShowClientModal(true);
+                        }}
+                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-primary hover:bg-accent"
+                      >
+                        <Plus className="mr-2 h-3.5 w-3.5" />
+                        <span className="font-medium text-xs">Crear nuevo cliente</span>
+                      </button>
+                      <div className="-mx-1 my-1 h-px bg-border" />
+                    </>
+                  )}
 
-                    {/* Create New Client Option */}
-                    {onClientCreate && (
-                      <>
-                        <CommandGroup>
-                          <CommandItem
-                            onSelect={() => {
-                              setClientSearchOpen(false);
-                              setShowClientModal(true);
-                            }}
-                            className="text-primary"
-                          >
-                            <Plus className="mr-2 h-3.5 w-3.5" />
-                            <span className="font-medium text-xs">Crear nuevo cliente</span>
-                          </CommandItem>
-                        </CommandGroup>
-                        <CommandSeparator />
-                      </>
-                    )}
-
-                    {/* Client List */}
-                    <CommandGroup heading="Clientes">
-                      {filteredClients.map((client) => (
-                        <CommandItem
+                  <div>
+                    <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Clientes</p>
+                    {filteredClients.length === 0 ? (
+                      <p className="py-6 text-center text-sm text-muted-foreground">
+                        No se encontraron clientes
+                      </p>
+                    ) : (
+                      filteredClients.map((client) => (
+                        <button
                           key={client.id}
-                          value={client.id}
-                          onSelect={() => {
+                          type="button"
+                          onClick={() => {
                             setFormData({ ...formData, clientId: client.id });
                             setClientSearchOpen(false);
                             setClientSearch('');
                           }}
+                          className="flex w-full items-center rounded-sm px-2 py-1.5 text-left hover:bg-accent"
                         >
                           <Check
                             className={cn(
-                              'mr-2 h-3.5 w-3.5',
+                              'mr-2 h-3.5 w-3.5 shrink-0',
                               formData.clientId === client.id ? 'opacity-100' : 'opacity-0'
                             )}
                           />
@@ -606,11 +607,11 @@ export default function BookingModal({
                             <span className="text-xs font-medium">{client.name}</span>
                             <span className="text-[10px] text-muted-foreground">{client.phone}</span>
                           </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
