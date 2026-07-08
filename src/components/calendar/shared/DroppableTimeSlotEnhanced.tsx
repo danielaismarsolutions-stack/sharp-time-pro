@@ -1,9 +1,12 @@
-// Enhanced droppable time slot with 15-minute visual guides, business hours validation, and drop zone feedback
-// Shows time snap indicators and a ghost preview card at the drop target
+// Enhanced droppable time slot with 15-minute visual guides, schedule feedback, and drop zone states
+// Drag snapping happens in 5-minute steps (see useCalendarDragDropEnhanced);
+// the dashed guides stay at 15-minute marks to keep the grid readable.
+// Drops outside opening hours are ALLOWED — they render as an amber warning,
+// while overlapping another booking renders as a red (blocking) error.
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
-import { Ban, Check } from 'lucide-react';
+import { AlertTriangle, Ban, Check, Moon } from 'lucide-react';
 
 interface DroppableTimeSlotEnhancedProps {
   id: string;
@@ -14,8 +17,10 @@ interface DroppableTimeSlotEnhancedProps {
   className?: string;
   isDropTarget?: boolean;
   previewTime?: string | null;
+  /** Blocking: the dragged booking overlaps another booking */
   hasConflict?: boolean;
-  scheduleError?: string;
+  /** Non-blocking: outside business/barber hours, vacation or closure day */
+  scheduleWarning?: string;
   isOutsideBusinessHours?: boolean;
   /** Always-visible: this slot falls outside open hours (business or barber) */
   isClosed?: boolean;
@@ -42,7 +47,7 @@ export function DroppableTimeSlotEnhanced({
   isDropTarget = false,
   previewTime,
   hasConflict = false,
-  scheduleError,
+  scheduleWarning,
   isOutsideBusinessHours = false,
   isClosed = false,
   isDragging = false,
@@ -61,7 +66,7 @@ export function DroppableTimeSlotEnhanced({
   });
 
   const quarterHeight = hourHeight / 4;
-  const hasError = hasConflict || !!scheduleError;
+  const hasWarning = !hasConflict && (!!scheduleWarning || isOutsideBusinessHours);
 
   // Calculate preview line position based on preview time
   const getPreviewLineTop = (): number => {
@@ -88,12 +93,12 @@ export function DroppableTimeSlotEnhanced({
         !isClosed && 'transition-colors duration-200',
         // Always-visible closed/unavailable hours — no hover/active overrides
         isClosed && !isDragging && 'bg-neutral-200/70',
-        // When user is dragging - show zone validity
+        // When user is dragging - closed zones stay droppable but dimmed
         isDragging && isOutsideBusinessHours && 'bg-muted/40',
         // Active hover states during drag
-        isOver && !hasError && !isOutsideBusinessHours && 'bg-emerald-500/10',
-        isOver && hasError && 'bg-destructive/10',
-        isOver && isOutsideBusinessHours && 'bg-destructive/5',
+        isOver && hasConflict && 'bg-destructive/10',
+        isOver && !hasConflict && hasWarning && 'bg-amber-500/10',
+        isOver && !hasConflict && !hasWarning && 'bg-emerald-500/10',
         className
       )}
       style={{ height: hourHeight }}
@@ -128,18 +133,18 @@ export function DroppableTimeSlotEnhanced({
         );
       })}
 
-      {/* Outside business hours overlay */}
+      {/* Outside opening hours overlay — still droppable, drop shows a warning */}
       {isDragging && isOutsideBusinessHours && (
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
           <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-muted/60 text-muted-foreground">
-            <Ban className="w-3 h-3" />
-            <span className="text-[9px] font-medium">Cerrado</span>
+            <Moon className="w-3 h-3" />
+            <span className="text-[9px] font-medium">Fuera de horario</span>
           </div>
         </div>
       )}
 
       {/* Valid drop zone indicator when hovering */}
-      {isOver && !hasError && !isOutsideBusinessHours && (
+      {isOver && !hasConflict && !hasWarning && (
         <div className="absolute top-1 right-1 pointer-events-none z-20">
           <div className="w-4 h-4 rounded-full bg-emerald-500/80 flex items-center justify-center">
             <Check className="w-2.5 h-2.5 text-white" />
@@ -147,8 +152,17 @@ export function DroppableTimeSlotEnhanced({
         </div>
       )}
 
-      {/* Invalid drop zone indicator when hovering */}
-      {isOver && (hasError || isOutsideBusinessHours) && (
+      {/* Warning drop zone indicator (allowed, outside schedule) */}
+      {isOver && !hasConflict && hasWarning && (
+        <div className="absolute top-1 right-1 pointer-events-none z-20">
+          <div className="w-4 h-4 rounded-full bg-amber-500/90 flex items-center justify-center">
+            <AlertTriangle className="w-2.5 h-2.5 text-white" />
+          </div>
+        </div>
+      )}
+
+      {/* Blocked drop zone indicator (conflict with another booking) */}
+      {isOver && hasConflict && (
         <div className="absolute top-1 right-1 pointer-events-none z-20">
           <div className="w-4 h-4 rounded-full bg-destructive/80 flex items-center justify-center">
             <Ban className="w-2.5 h-2.5 text-white" />
@@ -164,9 +178,11 @@ export function DroppableTimeSlotEnhanced({
             className={cn(
               'absolute left-0 right-0 h-0.5 pointer-events-none z-20',
               'transition-all duration-150 ease-out',
-              hasError
+              hasConflict
                 ? 'bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.5)]'
-                : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                : hasWarning
+                  ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+                  : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
             )}
             style={{ top: previewLineTop }}
           >
@@ -175,23 +191,25 @@ export function DroppableTimeSlotEnhanced({
               className={cn(
                 'absolute -top-6 left-2 px-2 py-0.5 rounded text-xs font-bold shadow-md whitespace-nowrap',
                 'transition-colors duration-150',
-                hasError
+                hasConflict
                   ? 'bg-destructive text-destructive-foreground'
-                  : 'bg-emerald-500 text-white'
+                  : hasWarning
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-emerald-500 text-white'
               )}
             >
-              {hasError ? '\u26A0 ' : '\u2713 '}
+              {hasConflict || hasWarning ? '⚠ ' : '✓ '}
               {previewTime}
-              {scheduleError && (
+              {scheduleWarning && !hasConflict && (
                 <span className="ml-1 font-normal text-[10px] opacity-90">
-                  - {scheduleError}
+                  - {scheduleWarning}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Ghost preview card aligned with the snap line */}
-          {!hasError && (
+          {/* Ghost preview card aligned with the snap line (hidden on blocking conflicts) */}
+          {!hasConflict && (
             <div
               className={cn(
                 'absolute left-1 right-1 rounded-lg pointer-events-none z-15 overflow-hidden',

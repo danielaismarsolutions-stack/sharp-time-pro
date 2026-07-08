@@ -7,18 +7,17 @@ interface DragOverlayCardProps {
   previewTime?: string | null;
   hasConflict?: boolean;
   conflictingNames?: string[];
-  scheduleError?: string;
+  scheduleWarning?: string;
 }
 
 export function DragOverlayCard({
   booking,
   previewTime,
   hasConflict = false,
-  scheduleError,
 }: DragOverlayCardProps) {
   const startTime = booking.start_time.substring(0, 5);
   const endTime = booking.end_time.substring(0, 5);
-  const hasError = hasConflict || !!scheduleError;
+  const hasError = hasConflict;
 
   return (
     <div

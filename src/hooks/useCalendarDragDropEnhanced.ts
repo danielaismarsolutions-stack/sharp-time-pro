@@ -1,12 +1,15 @@
-// Enhanced drag-and-drop hook with 15-minute snapping, barber schedule validation, and business hours
+// Enhanced drag-and-drop hook with 5-minute snapping, barber schedule validation, and business hours
 // Supports confirmation dialog flow: drop -> show dialog -> confirm/cancel
 // Supports both bookings and calendar events
+// Moving outside business/barber hours (or onto vacations/closure days) is
+// allowed but surfaces a warning in the drop preview and confirmation dialog.
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { DragEndEvent, DragStartEvent, DragMoveEvent } from '@dnd-kit/core';
 import { parse, format, addMinutes, differenceInMinutes, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Barber, BarberSchedule } from '@/types/barber';
+import { BusinessHours, ClosureDate } from '@/types';
 import { supabaseBookingsApi, supabaseEventBookingsApi, UpdateBookingData } from '@/services/supabaseBookings';
 import { notifyAllAdmins, notifyBookingUsers } from '@/services/supabaseNotifications';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,6 +27,11 @@ interface UseCalendarDragDropEnhancedOptions {
   startHour?: number;
   businessOpenHour?: number;
   businessCloseHour?: number;
+  // Real business hours (per-day shifts from the business_hours table).
+  // When provided, they replace the flat open/close hour fallback above.
+  businessHours?: BusinessHours;
+  // Business-wide closure dates (holidays) from the holidays table
+  closureDates?: ClosureDate[];
   // Event drag support
   events?: ApiCalendarEvent[];
   onEventUpdate?: (eventId: string, updatedEvent: ApiCalendarEvent) => void;
@@ -38,9 +46,11 @@ interface UndoAction {
 interface DropPreview {
   date: string;
   time: string;
+  /** Blocking: overlaps another booking of the same barber */
   hasConflict: boolean;
   conflictingBookings: string[];
-  scheduleError?: string;
+  /** Non-blocking: outside business/barber hours, vacation or closure day */
+  scheduleWarning?: string;
 }
 
 // Day of week mapping (getDay returns 0=Sunday, 1=Monday, etc.)
@@ -54,9 +64,12 @@ const DAY_OF_WEEK_TO_KEY: Record<number, keyof BarberSchedule> = {
   6: 'saturday',
 };
 
-// Snap to nearest 15-minute interval
-export function snapToQuarterHour(minutes: number): number {
-  return Math.round(minutes / 15) * 15;
+// Drag snapping granularity in minutes
+export const DRAG_SNAP_MINUTES = 5;
+
+// Snap to the nearest drag interval (5 minutes)
+export function snapToDragInterval(minutes: number): number {
+  return Math.round(minutes / DRAG_SNAP_MINUTES) * DRAG_SNAP_MINUTES;
 }
 
 // Calculate time from Y position
@@ -67,11 +80,11 @@ export function calculateTimeFromY(
 ): { hours: number; minutes: number; timeString: string } {
   const pixelsPerMinute = hourHeight / 60;
   const totalMinutes = Math.max(0, y / pixelsPerMinute);
-  const snappedMinutes = snapToQuarterHour(totalMinutes);
+  const snappedMinutes = snapToDragInterval(totalMinutes);
 
   const hours = Math.floor(snappedMinutes / 60) + startHour;
   const minutes = snappedMinutes % 60;
-  const clampedHours = Math.min(Math.max(hours, startHour), 20);
+  const clampedHours = Math.min(Math.max(hours, startHour), 23);
 
   return {
     hours: clampedHours,
@@ -87,6 +100,83 @@ export function isWithinBusinessHours(
   businessCloseHour: number = 21
 ): boolean {
   return hour >= businessOpenHour && hour < businessCloseHour;
+}
+
+// Parse a YYYY-MM-DD date string as LOCAL time. `new Date('YYYY-MM-DD')`
+// parses as UTC midnight, which shifts the day of week in negative-offset
+// timezones — never use it for schedule math.
+function parseLocalDate(date: string): Date {
+  return new Date(`${date}T00:00:00`);
+}
+
+// Convert "HH:mm" or "HH:mm:ss" to minutes since midnight
+function timeToMinutes(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+// Check business-wide closure dates (holidays). Non-blocking: returns a
+// warning reason when the business is closed that day.
+export function checkClosureDate(
+  closureDates: ClosureDate[] | undefined,
+  date: string
+): { isClosed: boolean; reason?: string } {
+  const closure = closureDates?.find(c => c.isClosed && c.date === date);
+  if (!closure) return { isClosed: false };
+  return {
+    isClosed: true,
+    reason: closure.name
+      ? `El negocio está cerrado ese día (${closure.name})`
+      : 'El negocio está cerrado ese día',
+  };
+}
+
+// Check if a booking fits within the business opening shifts for that day.
+// Uses the real business_hours data (supports split shifts); falls back to
+// the flat open/close hours when no data is available.
+export function checkBusinessSchedule(
+  businessHours: BusinessHours | undefined,
+  date: string,
+  startTime: string,
+  endTime: string,
+  fallbackOpenHour: number = 8,
+  fallbackCloseHour: number = 21
+): { isWithin: boolean; reason?: string } {
+  const start = timeToMinutes(startTime);
+  const end = timeToMinutes(endTime);
+  const dayKey = DAY_OF_WEEK_TO_KEY[getDay(parseLocalDate(date))];
+  const dayData = businessHours?.[dayKey];
+
+  if (!dayData) {
+    // No business hours loaded — fall back to flat open/close hours
+    if (start < fallbackOpenHour * 60 || end > fallbackCloseHour * 60) {
+      return {
+        isWithin: false,
+        reason: `Fuera del horario del negocio (${fallbackOpenHour}:00-${fallbackCloseHour}:00)`,
+      };
+    }
+    return { isWithin: true };
+  }
+
+  if (!dayData.isOpen || dayData.shifts.length === 0) {
+    return { isWithin: false, reason: 'El negocio no abre este día' };
+  }
+
+  const fitsInShift = dayData.shifts.some(shift =>
+    start >= timeToMinutes(shift.openTime) && end <= timeToMinutes(shift.closeTime)
+  );
+
+  if (!fitsInShift) {
+    const shiftsText = dayData.shifts
+      .map(s => `${s.openTime}-${s.closeTime}`)
+      .join(', ');
+    return {
+      isWithin: false,
+      reason: `Fuera del horario del negocio (${shiftsText})`,
+    };
+  }
+
+  return { isWithin: true };
 }
 
 // Check if barber is available at the given date and time
@@ -108,43 +198,40 @@ export function checkBarberSchedule(
     return { isAvailable: true }; // Barber not found, allow anyway
   }
 
-  const dateObj = new Date(date);
-  const dayOfWeek = getDay(dateObj);
+  const dayOfWeek = getDay(parseLocalDate(date));
   const dayKey = DAY_OF_WEEK_TO_KEY[dayOfWeek];
-  const daySchedule = barber.schedule[dayKey];
+  const daySchedule = barber.schedule?.[dayKey];
 
-  // Check if barber has time off on this date
-  const isOnTimeOff = barber.time_off.some(timeOff => {
-    const startDate = new Date(timeOff.start_date);
-    const endDate = new Date(timeOff.end_date);
-    return dateObj >= startDate && dateObj <= endDate;
-  });
+  // Check if barber has time off on this date. Dates are YYYY-MM-DD strings,
+  // so lexicographic comparison is exact and timezone-safe.
+  const timeOff = (barber.time_off ?? []).find(
+    to => date >= to.start_date && date <= to.end_date
+  );
 
-  if (isOnTimeOff) {
+  if (timeOff) {
     return {
       isAvailable: false,
-      reason: `${barberName} tiene el día libre`,
+      reason: timeOff.reason
+        ? `${barberName} tiene el día libre (${timeOff.reason})`
+        : `${barberName} tiene el día libre`,
     };
   }
 
   // Check if the day is enabled
-  if (!daySchedule.enabled || daySchedule.shifts.length === 0) {
+  if (!daySchedule || !daySchedule.enabled || daySchedule.shifts.length === 0) {
     return {
       isAvailable: false,
       reason: `${barberName} no trabaja este día`,
     };
   }
 
-  // Parse booking times
-  const bookingStart = parse(startTime.substring(0, 5), 'HH:mm', new Date());
-  const bookingEnd = parse(endTime.substring(0, 5), 'HH:mm', new Date());
+  const bookingStart = timeToMinutes(startTime);
+  const bookingEnd = timeToMinutes(endTime);
 
   // Check if the booking fits within any of the barber's shifts
-  const fitsInShift = daySchedule.shifts.some(shift => {
-    const shiftStart = parse(shift.start, 'HH:mm', new Date());
-    const shiftEnd = parse(shift.end, 'HH:mm', new Date());
-    return bookingStart >= shiftStart && bookingEnd <= shiftEnd;
-  });
+  const fitsInShift = daySchedule.shifts.some(shift =>
+    bookingStart >= timeToMinutes(shift.start) && bookingEnd <= timeToMinutes(shift.end)
+  );
 
   if (!fitsInShift) {
     const shiftsText = daySchedule.shifts
@@ -210,6 +297,8 @@ export function useCalendarDragDropEnhanced({
   startHour = 8,
   businessOpenHour = 8,
   businessCloseHour = 21,
+  businessHours,
+  closureDates,
   events = [],
   onEventUpdate,
   onEventsChange,
@@ -275,7 +364,7 @@ export function useCalendarDragDropEnhanced({
     return differenceInMinutes(end, start);
   }, []);
 
-  // Compute the 15-min-snapped start time (HH:MM) from the live drag event.
+  // Compute the 5-min-snapped start time (HH:MM) from the live drag event.
   // Shared between handleDragMove (preview) and handleDragEnd (commit) so the
   // two paths can never disagree.
   //
@@ -297,12 +386,54 @@ export function useCalendarDragDropEnhanced({
       const cardTop = translated?.top
         ?? ((e.activatorEvent as PointerEvent)?.clientY ?? 0) + e.delta.y;
       const relativeY = Math.max(0, Math.min(hourHeight, cardTop - overRect.top));
-      const snapped = snapToQuarterHour((relativeY / hourHeight) * 60);
+      const snapped = snapToDragInterval((relativeY / hourHeight) * 60);
       const minutes = snapped >= 60 ? 0 : snapped;
-      const hours = snapped >= 60 ? Math.min(baseHour + 1, businessCloseHour) : baseHour;
+      const hours = snapped >= 60 ? Math.min(baseHour + 1, 23) : baseHour;
       return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
     },
-    [hourHeight, businessCloseHour],
+    [hourHeight],
+  );
+
+  // Collect NON-BLOCKING schedule warnings for a prospective move: closure
+  // days (holidays), business opening shifts and — for bookings — the
+  // assigned barber's schedule/vacations. The move is still allowed; these
+  // are surfaced in the preview and the confirmation dialog.
+  const collectScheduleWarnings = useCallback(
+    (
+      date: string,
+      newStartTime: string,
+      newEndTime: string,
+      barberName?: string | null,
+    ): string[] => {
+      const warnings: string[] = [];
+
+      const closureCheck = checkClosureDate(closureDates, date);
+      if (closureCheck.isClosed && closureCheck.reason) {
+        warnings.push(closureCheck.reason);
+      }
+
+      const businessCheck = checkBusinessSchedule(
+        businessHours,
+        date,
+        newStartTime,
+        newEndTime,
+        businessOpenHour,
+        businessCloseHour
+      );
+      if (!businessCheck.isWithin && businessCheck.reason) {
+        warnings.push(businessCheck.reason);
+      }
+
+      if (barberName !== undefined) {
+        const barberCheck = checkBarberSchedule(barbers, barberName, date, newStartTime, newEndTime);
+        if (!barberCheck.isAvailable && barberCheck.reason) {
+          warnings.push(barberCheck.reason);
+        }
+      }
+
+      return warnings;
+    },
+    [closureDates, businessHours, businessOpenHour, businessCloseHour, barbers],
   );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -330,28 +461,26 @@ export function useCalendarDragDropEnhanced({
     const newStartTime = computeSnappedStartTime(event, dropData.hour, over.rect);
 
     if (isDraggingEvent) {
-      // Event drag move - simpler validation (no booking conflicts or barber schedule)
+      // Event drag move - no booking conflicts or barber schedule to check
       const evt = activeEvent;
       if (!evt) return;
 
       const duration = getEventDuration(evt);
+      const crossesMidnight = timeToMinutes(newStartTime) + duration > 24 * 60;
       const endDate = addMinutes(parse(newStartTime, 'HH:mm', new Date()), duration);
       const newEndTime = format(endDate, 'HH:mm');
 
-      // Only check business hours for events
-      const endHourNum = parseInt(newEndTime.split(':')[0]);
-      const startHourNum = parseInt(newStartTime.split(':')[0]);
-      let businessHoursError: string | undefined;
-      if (startHourNum < businessOpenHour || endHourNum > businessCloseHour) {
-        businessHoursError = 'Fuera del horario del negocio';
-      }
+      // Business schedule + closure days are warnings, never blockers
+      const warnings = collectScheduleWarnings(dropData.date, newStartTime, newEndTime);
 
       setDropPreview({
         date: dropData.date,
         time: newStartTime,
-        hasConflict: !!businessHoursError,
+        hasConflict: crossesMidnight,
         conflictingBookings: [],
-        scheduleError: businessHoursError,
+        scheduleWarning: crossesMidnight
+          ? 'Terminaría después de medianoche'
+          : warnings.length > 0 ? warnings.join(' · ') : undefined,
       });
     } else {
       // Booking drag move - full validation
@@ -359,10 +488,11 @@ export function useCalendarDragDropEnhanced({
       if (!booking) return;
 
       const duration = getBookingDuration(booking);
+      const crossesMidnight = timeToMinutes(newStartTime) + duration > 24 * 60;
       const endDate = addMinutes(parse(newStartTime, 'HH:mm', new Date()), duration);
       const newEndTime = format(endDate, 'HH:mm');
 
-      // Check for conflicts (same barber only)
+      // Check for conflicts (same barber only) — this is the only blocker
       const { hasConflict, conflictingBookings } = checkConflicts(
         bookings,
         activeId,
@@ -372,31 +502,22 @@ export function useCalendarDragDropEnhanced({
         booking.barber
       );
 
-      // Check barber schedule availability
-      const scheduleCheck = checkBarberSchedule(
-        barbers,
-        booking.barber,
+      // Business/barber schedule, vacations and closure days are warnings
+      const warnings = collectScheduleWarnings(
         dropData.date,
         newStartTime,
-        newEndTime
+        newEndTime,
+        booking.barber
       );
-
-      // Check business hours
-      const endHourNum = parseInt(newEndTime.split(':')[0]);
-      const startHourNum = parseInt(newStartTime.split(':')[0]);
-      let businessHoursError: string | undefined;
-      if (startHourNum < businessOpenHour || endHourNum > businessCloseHour) {
-        businessHoursError = 'Fuera del horario del negocio';
-      }
-
-      const finalScheduleError = scheduleCheck.reason || businessHoursError;
 
       setDropPreview({
         date: dropData.date,
         time: newStartTime,
-        hasConflict: hasConflict || !scheduleCheck.isAvailable || !!businessHoursError,
+        hasConflict: hasConflict || crossesMidnight,
         conflictingBookings: conflictingBookings.map(b => b.client_name),
-        scheduleError: finalScheduleError,
+        scheduleWarning: crossesMidnight
+          ? 'Terminaría después de medianoche'
+          : warnings.length > 0 ? warnings.join(' · ') : undefined,
       });
     }
 
@@ -404,7 +525,7 @@ export function useCalendarDragDropEnhanced({
     if ('vibrate' in navigator && dropPreview?.time !== newStartTime) {
       navigator.vibrate(5);
     }
-  }, [activeId, isDraggingEvent, activeEvent, bookings, barbers, getBookingDuration, getEventDuration, computeSnappedStartTime, dropPreview?.time, businessOpenHour, businessCloseHour]);
+  }, [activeId, isDraggingEvent, activeEvent, bookings, getBookingDuration, getEventDuration, computeSnappedStartTime, collectScheduleWarnings, dropPreview?.time]);
 
   const handleDragCancel = useCallback(() => {
     setActiveId(null);
@@ -449,7 +570,7 @@ export function useCalendarDragDropEnhanced({
 
     if (!dropData?.date || dropData.hour === undefined) return;
 
-    // Always recompute the 15-min-snapped time from the live drop event so the
+    // Always recompute the 5-min-snapped time from the live drop event so the
     // fallback path can never collapse to ":00". Prefer the preview only when
     // it matches the cell the user actually released over.
     const computedStartTime = computeSnappedStartTime(event, dropData.hour, over.rect);
@@ -484,13 +605,11 @@ export function useCalendarDragDropEnhanced({
         return;
       }
 
-      // Check business hours
-      const startHourNum = parseInt(newStartTime.split(':')[0]);
-      const endHourNum = parseInt(newEndTime.split(':')[0]);
-      if (startHourNum < businessOpenHour || endHourNum > businessCloseHour) {
+      // Block moves whose end would roll past midnight (end < start in DB)
+      if (timeToMinutes(newStartTime) + duration > 24 * 60) {
         toast({
-          title: 'Fuera del horario',
-          description: `El negocio opera de ${businessOpenHour}:00 a ${businessCloseHour}:00`,
+          title: 'Horario no válido',
+          description: 'El evento terminaría después de medianoche',
           variant: 'destructive',
         });
         if ('vibrate' in navigator) {
@@ -498,6 +617,13 @@ export function useCalendarDragDropEnhanced({
         }
         return;
       }
+
+      // Outside-schedule drops are allowed — collect warnings for the dialog
+      const warnings = collectScheduleWarnings(
+        newDate,
+        newStartTime.substring(0, 5),
+        newEndTime.substring(0, 5)
+      );
 
       // Show event confirmation dialog
       setPendingEventMove({
@@ -508,6 +634,7 @@ export function useCalendarDragDropEnhanced({
         newDate,
         newStartTime,
         newEndTime,
+        warnings,
       });
       setShowEventConfirmDialog(true);
 
@@ -529,13 +656,11 @@ export function useCalendarDragDropEnhanced({
         return;
       }
 
-      // Check business hours
-      const startHourNum = parseInt(newStartTime.split(':')[0]);
-      const endHourNum = parseInt(newEndTime.split(':')[0]);
-      if (startHourNum < businessOpenHour || endHourNum > businessCloseHour) {
+      // Block moves whose end would roll past midnight (end < start in DB)
+      if (timeToMinutes(newStartTime) + duration > 24 * 60) {
         toast({
-          title: 'Fuera del horario',
-          description: `El negocio opera de ${businessOpenHour}:00 a ${businessCloseHour}:00`,
+          title: 'Horario no válido',
+          description: 'La cita terminaría después de medianoche',
           variant: 'destructive',
         });
         if ('vibrate' in navigator) {
@@ -544,7 +669,7 @@ export function useCalendarDragDropEnhanced({
         return;
       }
 
-      // Check for conflicts (same barber only)
+      // Check for conflicts (same barber only) — the only hard blocker
       const { hasConflict, conflictingBookings } = checkConflicts(
         bookings,
         bookingId,
@@ -566,26 +691,14 @@ export function useCalendarDragDropEnhanced({
         return;
       }
 
-      // Check barber schedule availability
-      const scheduleCheck = checkBarberSchedule(
-        barbers,
-        booking.barber,
+      // Outside-schedule drops (business hours, barber shifts, vacations,
+      // closure days) are allowed — collect warnings for the dialog
+      const warnings = collectScheduleWarnings(
         newDate,
-        newStartTime,
-        newEndTime
+        newStartTime.substring(0, 5),
+        newEndTime.substring(0, 5),
+        booking.barber
       );
-
-      if (!scheduleCheck.isAvailable) {
-        toast({
-          title: 'Horario no disponible',
-          description: scheduleCheck.reason,
-          variant: 'destructive',
-        });
-        if ('vibrate' in navigator) {
-          navigator.vibrate([50, 30, 50]);
-        }
-        return;
-      }
 
       // Show booking confirmation dialog
       setPendingMove({
@@ -596,6 +709,7 @@ export function useCalendarDragDropEnhanced({
         newDate,
         newStartTime,
         newEndTime,
+        warnings,
       });
       setShowConfirmDialog(true);
 
@@ -603,7 +717,7 @@ export function useCalendarDragDropEnhanced({
         navigator.vibrate([10, 50, 10]);
       }
     }
-  }, [bookings, events, barbers, toast, getBookingDuration, getEventDuration, computeSnappedStartTime, dropPreview, businessOpenHour, businessCloseHour]);
+  }, [bookings, events, toast, getBookingDuration, getEventDuration, computeSnappedStartTime, collectScheduleWarnings, dropPreview]);
 
   // Confirm booking move
   const confirmMove = useCallback(async () => {
@@ -649,7 +763,7 @@ export function useCalendarDragDropEnhanced({
           business_id: getBusinessId(),
           type: 'booking_modified',
           title: 'Cita movida',
-          message: `${user?.name || 'Usuario'} movió la cita de ${booking.client_name} (${booking.service_name}) al ${format(new Date(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,
+          message: `${user?.name || 'Usuario'} movió la cita de ${booking.client_name} (${booking.service_name}) al ${format(parseLocalDate(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,
           barber_user_id: booking.user_id,
           performed_by_user_id: user?.id || '',
           metadata: {
@@ -667,10 +781,11 @@ export function useCalendarDragDropEnhanced({
         navigator.vibrate([10, 50, 10]);
       }
 
+      const movedOutOfSchedule = (pendingMove.warnings?.length ?? 0) > 0;
       toast({
-        title: 'Cita movida',
-        description: `${booking.client_name} → ${format(new Date(newDate), 'dd/MM')} a las ${newStartTime.substring(0, 5)}`,
-        duration: 2000,
+        title: movedOutOfSchedule ? 'Cita movida fuera de horario' : 'Cita movida',
+        description: `${booking.client_name} → ${format(parseLocalDate(newDate), 'dd/MM')} a las ${newStartTime.substring(0, 5)}`,
+        duration: movedOutOfSchedule ? 4000 : 2000,
       });
     } catch (error) {
       // Revert on backend error - put booking back
@@ -681,12 +796,11 @@ export function useCalendarDragDropEnhanced({
         variant: 'destructive',
       });
     } finally {
-      setIsUpdating(true);
       setPendingMove(null);
       setShowConfirmDialog(false);
       setIsUpdating(false);
     }
-  }, [pendingMove, bookings, onBookingUpdate, onBookingsChange, toast, user?.id]);
+  }, [pendingMove, bookings, onBookingUpdate, onBookingsChange, toast, user?.id, user?.name]);
 
   // Cancel booking move
   const cancelMove = useCallback(() => {
@@ -737,7 +851,7 @@ export function useCalendarDragDropEnhanced({
           business_id: getBusinessId(),
           type: 'event_modified',
           title: 'Evento movido',
-          message: `${user?.name || 'Usuario'} movió el evento "${evt.name}" al ${format(new Date(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,
+          message: `${user?.name || 'Usuario'} movió el evento "${evt.name}" al ${format(parseLocalDate(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,
           performed_by_user_id: user?.id || '',
           metadata: {
             event_id: evt.id,
@@ -752,10 +866,11 @@ export function useCalendarDragDropEnhanced({
         navigator.vibrate([10, 50, 10]);
       }
 
+      const movedOutOfSchedule = (pendingEventMove.warnings?.length ?? 0) > 0;
       toast({
-        title: 'Evento movido',
-        description: `${evt.name} → ${format(new Date(newDate), 'dd/MM')} a las ${newStartTime.substring(0, 5)}`,
-        duration: 2000,
+        title: movedOutOfSchedule ? 'Evento movido fuera de horario' : 'Evento movido',
+        description: `${evt.name} → ${format(parseLocalDate(newDate), 'dd/MM')} a las ${newStartTime.substring(0, 5)}`,
+        duration: movedOutOfSchedule ? 4000 : 2000,
       });
     } catch (error) {
       // Revert on backend error
@@ -770,7 +885,7 @@ export function useCalendarDragDropEnhanced({
       setPendingEventMove(null);
       setShowEventConfirmDialog(false);
     }
-  }, [pendingEventMove, events, onEventUpdate, onEventsChange, toast, user?.id]);
+  }, [pendingEventMove, events, onEventUpdate, onEventsChange, toast, user?.id, user?.name]);
 
   // Cancel event move
   const cancelEventMove = useCallback(() => {

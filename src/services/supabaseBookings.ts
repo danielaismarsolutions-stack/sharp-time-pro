@@ -400,6 +400,18 @@ export function validateEventData(data: CreateEventBookingData): string | null {
     return 'La hora de inicio debe ser anterior a la hora de fin';
   }
 
+  // Compare as local YYYY-MM-DD strings — new Date('YYYY-MM-DD') parses as
+  // UTC and would mislabel "today" near midnight in non-UTC timezones
+  const now = new Date();
+  const todayStr = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-');
+  if (data.booking_date < todayStr) {
+    return 'No se pueden crear eventos en fechas pasadas';
+  }
+
   return null;
 }
 
