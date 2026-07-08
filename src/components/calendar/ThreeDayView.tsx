@@ -18,7 +18,7 @@ interface DropPreview {
   time: string;
   hasConflict: boolean;
   conflictingBookings: string[];
-  scheduleError?: string;
+  scheduleWarning?: string;
 }
 
 interface ThreeDayViewProps {
@@ -608,8 +608,8 @@ export function ThreeDayView({
                     isDropTarget={dropPreview?.date === dateStr && dropPreview?.time?.startsWith(hour.toString().padStart(2, '0'))}
                     previewTime={dropPreview?.date === dateStr ? dropPreview?.time : null}
                     hasConflict={dropPreview?.hasConflict}
-                    scheduleError={dropPreview?.scheduleError}
-                    isOutsideBusinessHours={!isWithinBusinessHours(hour, businessOpenHour, businessCloseHour)}
+                    scheduleWarning={dropPreview?.scheduleWarning}
+                    isOutsideBusinessHours={isHourClosed ? isHourClosed(hour, day) : !isWithinBusinessHours(hour, businessOpenHour, businessCloseHour)}
                     isClosed={isHourClosed ? isHourClosed(hour, day) : undefined}
                     isDragging={isDragging}
                     draggedBookingDuration={draggedBookingDuration}

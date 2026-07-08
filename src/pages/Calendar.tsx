@@ -65,7 +65,7 @@ import { getBusinessId } from '@/config/session';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useCalendarDragDropEnhanced, snapToQuarterHour, isWithinBusinessHours } from '@/hooks/useCalendarDragDropEnhanced';
+import { useCalendarDragDropEnhanced } from '@/hooks/useCalendarDragDropEnhanced';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useAutoScrollToNow } from '@/hooks/useAutoScrollToNow';
 import { useAutoScrollOnDrag } from '@/hooks/useAutoScrollOnDrag';
@@ -99,7 +99,7 @@ import {
   getBookingPosition,
   getEventPosition,
 } from '@/components/calendar/shared';
-import { createSnapTo15MinModifier } from '@/components/calendar/shared/snapModifier';
+import { createSnapToTimeStepModifier } from '@/components/calendar/shared/snapModifier';
 
 type ViewMode = 'day' | '3day' | 'week' | 'month' | 'agenda';
 
@@ -386,7 +386,7 @@ export default function Calendar() {
   // Current hour height based on view mode
   const currentHourHeight = viewMode === 'day' ? HOUR_HEIGHT_DAY : HOUR_HEIGHT_WEEK;
 
-  // Enhanced drag and drop setup with 15-min snapping
+  // Enhanced drag and drop setup with 5-min snapping
   const {
     activeId,
     activeBooking,
@@ -417,6 +417,10 @@ export default function Calendar() {
     onBookingsChange: setBookings,
     hourHeight: currentHourHeight,
     startHour: START_HOUR,
+    businessOpenHour: BUSINESS_OPEN_HOUR,
+    businessCloseHour: BUSINESS_CLOSE_HOUR,
+    businessHours: queryBusinessHours,
+    closureDates: queryClosureDates,
     events: calendarEvents,
     onEventUpdate: (id, updated) => {
       setLocalEvents(prev => (prev ?? queryEvents).map(e => e.id === id ? updated : e));
@@ -496,10 +500,10 @@ export default function Calendar() {
     return () => window.removeEventListener('resize', measure);
   }, [viewMode]);
 
-  // Snap modifier: snaps drag movement to 15-min grid (Y) and day columns (X)
+  // Snap modifier: snaps drag movement to 5-min grid (Y) and day columns (X)
   const snapModifier = useMemo(
-    () => createSnapTo15MinModifier(
-      currentHourHeight / 4,
+    () => createSnapToTimeStepModifier(
+      currentHourHeight / 12,
       viewMode !== 'day' && viewMode !== 'month' && viewMode !== 'agenda' ? calendarColumnWidth : undefined
     ),
     [currentHourHeight, calendarColumnWidth, viewMode]
@@ -1330,8 +1334,8 @@ export default function Calendar() {
                       isDropTarget={dropPreview?.date === dateStr && dropPreview?.time?.startsWith(hour.toString().padStart(2, '0'))}
                       previewTime={dropPreview?.date === dateStr ? dropPreview?.time : null}
                       hasConflict={dropPreview?.hasConflict}
-                      scheduleError={dropPreview?.scheduleError}
-                      isOutsideBusinessHours={!isWithinBusinessHours(hour, BUSINESS_OPEN_HOUR, BUSINESS_CLOSE_HOUR)}
+                      scheduleWarning={dropPreview?.scheduleWarning}
+                      isOutsideBusinessHours={isHourClosed(hour, currentDate)}
                       isClosed={isHourClosed(hour, currentDate)}
                       isDragging={!!activeId}
                       draggedBookingDuration={activeBookingDuration}
@@ -1525,8 +1529,8 @@ export default function Calendar() {
                     isDropTarget={dropPreview?.date === dateStr && dropPreview?.time?.startsWith(hour.toString().padStart(2, '0'))}
                     previewTime={dropPreview?.date === dateStr ? dropPreview?.time : null}
                     hasConflict={dropPreview?.hasConflict}
-                    scheduleError={dropPreview?.scheduleError}
-                    isOutsideBusinessHours={!isWithinBusinessHours(hour, BUSINESS_OPEN_HOUR, BUSINESS_CLOSE_HOUR)}
+                    scheduleWarning={dropPreview?.scheduleWarning}
+                    isOutsideBusinessHours={isHourClosed(hour, day)}
                     isClosed={isHourClosed(hour, day)}
                     isDragging={!!activeId}
                     draggedBookingDuration={activeBookingDuration}

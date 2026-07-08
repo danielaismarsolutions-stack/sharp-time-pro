@@ -3,6 +3,7 @@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
+  AlertTriangle,
   ArrowRight,
   Calendar,
   Clock,
@@ -30,6 +31,8 @@ export interface MoveEventDetails {
   newDate: string;
   newStartTime: string;
   newEndTime: string;
+  /** Non-blocking schedule warnings (outside business hours, closure days) */
+  warnings?: string[];
 }
 
 interface MoveEventConfirmDialogProps {
@@ -67,8 +70,9 @@ export function MoveEventConfirmDialog({
   const staffTerms = useStaffTerms();
   if (!details) return null;
 
-  const { event, oldDate, oldStartTime, oldEndTime, newDate, newStartTime, newEndTime } = details;
+  const { event, oldDate, oldStartTime, oldEndTime, newDate, newStartTime, newEndTime, warnings = [] } = details;
   const dateChanged = !isSameDate(oldDate, newDate);
+  const hasWarnings = warnings.length > 0;
   const eventHex = event.color
     || (event.barber ? getBarberHexColor(event.barber) : DEFAULT_EVENT_HEX);
 
@@ -166,6 +170,30 @@ export function MoveEventConfirmDialog({
               </div>
             </div>
           </div>
+
+          {/* Out-of-schedule warnings */}
+          {hasWarnings && (
+            <div className="p-3 rounded-lg border border-amber-500/40 bg-amber-500/10">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+                <div className="min-w-0 space-y-1">
+                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-500">
+                    Fuera de horario
+                  </p>
+                  <ul className="space-y-0.5">
+                    {warnings.map((w, i) => (
+                      <li key={i} className="text-xs text-amber-700/90 dark:text-amber-500/90">
+                        {w}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-[11px] text-amber-700/70 dark:text-amber-500/70">
+                    Puedes mover el evento igualmente si lo confirmas.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer buttons */}
