@@ -12,6 +12,7 @@ import { BookingCard } from '@/components/calendar/shared/BookingCard';
 import { EventCard } from '@/components/calendar/shared/EventCard';
 import { DroppableTimeSlotEnhanced } from '@/components/calendar/shared/DroppableTimeSlotEnhanced';
 import { isWithinBusinessHours } from '@/hooks/useCalendarDragDropEnhanced';
+import { yToStartTime, yToEndTime } from '@/components/calendar/shared/slotTimeUtils';
 
 interface DropPreview {
   date: string;
@@ -267,14 +268,16 @@ export function ThreeDayView({
   }, [bookings]);
 
   // Calculate Y position to time
-  const yToTime = useCallback((y: number): string => {
-    const hourFloat = START_HOUR + (y / hourHeight);
-    const hours = Math.floor(hourFloat);
-    const minutes = Math.round((hourFloat - hours) * 60 / 15) * 15;
-    const adjustedMinutes = minutes >= 60 ? 0 : minutes;
-    const adjustedHours = minutes >= 60 ? hours + 1 : hours;
-    return `${adjustedHours.toString().padStart(2, '0')}:${adjustedMinutes.toString().padStart(2, '0')}`;
-  }, [hourHeight]);
+  const yToTime = useCallback(
+    (y: number): string => yToStartTime(y, hourHeight, START_HOUR),
+    [hourHeight]
+  );
+
+  // End of a drag selection may reach midnight (mapped to 23:59)
+  const yToSelectionEnd = useCallback(
+    (y: number): string => yToEndTime(y, hourHeight, START_HOUR),
+    [hourHeight]
+  );
 
   // Handle slot click - only if not dragging a booking card
   const handleSlotClick = (date: Date, e: React.MouseEvent<HTMLDivElement>) => {
@@ -320,7 +323,7 @@ export function ThreeDayView({
   const handleMouseUp = () => {
     if (isSelecting && selectionStart && selectionEnd !== null) {
       const startTime = yToTime(Math.min(selectionStart.y, selectionEnd));
-      const endTime = yToTime(Math.max(selectionStart.y, selectionEnd));
+      const endTime = yToSelectionEnd(Math.max(selectionStart.y, selectionEnd));
       if (startTime !== endTime) {
         dragJustCompletedRef.current = true;
         onSlotClick(selectionStart.date, startTime, endTime);
@@ -408,7 +411,7 @@ export function ThreeDayView({
     if (touchTimerRef.current) { clearTimeout(touchTimerRef.current); touchTimerRef.current = null; }
     if (touchModeRef.current === 'selecting' && selectionStart && selectionEnd !== null) {
       const startTime = yToTime(Math.min(selectionStart.y, selectionEnd));
-      const endTime = yToTime(Math.max(selectionStart.y, selectionEnd));
+      const endTime = yToSelectionEnd(Math.max(selectionStart.y, selectionEnd));
       if (startTime !== endTime) {
         e.preventDefault(); // Prevent subsequent click event from firing
         onSlotClick(selectionStart.date, startTime, endTime);
@@ -420,7 +423,7 @@ export function ThreeDayView({
     setSelectionStart(null);
     setSelectionEnd(null);
     setIsSelecting(false);
-  }, [selectionStart, selectionEnd, yToTime, onSlotClick]);
+  }, [selectionStart, selectionEnd, yToTime, yToSelectionEnd, onSlotClick]);
 
   // Current time position
   const currentTimePosition = useMemo(() => {
@@ -708,7 +711,7 @@ export function ThreeDayView({
                     style={getSelectionStyle()!}
                   >
                     <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded whitespace-nowrap">
-                      {yToTime(Math.min(selectionStart.y, selectionEnd!))} - {yToTime(Math.max(selectionStart.y, selectionEnd!))}
+                      {yToTime(Math.min(selectionStart.y, selectionEnd!))} - {yToSelectionEnd(Math.max(selectionStart.y, selectionEnd!))}
                     </div>
                   </div>
                 )}
