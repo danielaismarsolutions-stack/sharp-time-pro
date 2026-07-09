@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAutoScrollOnDrag } from './useAutoScrollOnDrag';
+import { yToStartTime, yToEndTime } from '@/components/calendar/shared/slotTimeUtils';
 
 interface SelectionStart {
   date: Date;
@@ -78,15 +79,16 @@ export function useSlotSelection({
   }, [isSelecting, effectiveScrollRef]);
 
   // Convert Y position to time string
-  const yToTime = useCallback((y: number): string => {
-    const hourFloat = startHour + (y / hourHeight);
-    const hours = Math.floor(hourFloat);
-    const minutes = Math.round((hourFloat - hours) * 60 / 15) * 15;
-    const adjustedMinutes = minutes >= 60 ? 0 : minutes;
-    const adjustedHours = minutes >= 60 ? hours + 1 : hours;
-    const clampedHours = Math.max(0, Math.min(23, adjustedHours));
-    return `${clampedHours.toString().padStart(2, '0')}:${adjustedMinutes.toString().padStart(2, '0')}`;
-  }, [hourHeight, startHour]);
+  const yToTime = useCallback(
+    (y: number): string => yToStartTime(y, hourHeight, startHour),
+    [hourHeight, startHour]
+  );
+
+  // End of a drag selection may reach midnight (mapped to 23:59)
+  const yToSelectionEnd = useCallback(
+    (y: number): string => yToEndTime(y, hourHeight, startHour),
+    [hourHeight, startHour]
+  );
 
   // Click handler
   const handleSlotClick = useCallback((date: Date, e: React.MouseEvent<HTMLDivElement>) => {
@@ -129,7 +131,7 @@ export function useSlotSelection({
   const handleMouseUp = useCallback(() => {
     if (isSelecting && selectionStart && selectionEnd !== null) {
       const startTime = yToTime(Math.min(selectionStart.y, selectionEnd));
-      const endTime = yToTime(Math.max(selectionStart.y, selectionEnd));
+      const endTime = yToSelectionEnd(Math.max(selectionStart.y, selectionEnd));
       if (startTime !== endTime) {
         dragJustCompletedRef.current = true;
         onSlotSelect(selectionStart.date, startTime, endTime);
@@ -139,7 +141,7 @@ export function useSlotSelection({
     setSelectionStart(null);
     setSelectionEnd(null);
     setIsSelecting(false);
-  }, [isSelecting, selectionStart, selectionEnd, yToTime, onSlotSelect]);
+  }, [isSelecting, selectionStart, selectionEnd, yToTime, yToSelectionEnd, onSlotSelect]);
 
   // Touch start (mobile) - 200ms hold delay
   const handleTouchStart = useCallback((date: Date, e: React.TouchEvent<HTMLDivElement>) => {
@@ -207,7 +209,7 @@ export function useSlotSelection({
     if (touchTimerRef.current) { clearTimeout(touchTimerRef.current); touchTimerRef.current = null; }
     if (touchModeRef.current === 'selecting' && selectionStart && selectionEnd !== null) {
       const startTime = yToTime(Math.min(selectionStart.y, selectionEnd));
-      const endTime = yToTime(Math.max(selectionStart.y, selectionEnd));
+      const endTime = yToSelectionEnd(Math.max(selectionStart.y, selectionEnd));
       if (startTime !== endTime) {
         e.preventDefault();
         onSlotSelect(selectionStart.date, startTime, endTime);
@@ -219,7 +221,7 @@ export function useSlotSelection({
     setSelectionStart(null);
     setSelectionEnd(null);
     setIsSelecting(false);
-  }, [selectionStart, selectionEnd, yToTime, onSlotSelect]);
+  }, [selectionStart, selectionEnd, yToTime, yToSelectionEnd, onSlotSelect]);
 
   // Selection overlay style
   const getSelectionStyle = useCallback(() => {
@@ -232,8 +234,8 @@ export function useSlotSelection({
   // Get time range text for the selection overlay label
   const getSelectionTimeRange = useCallback(() => {
     if (!selectionStart || selectionEnd === null) return '';
-    return `${yToTime(Math.min(selectionStart.y, selectionEnd))} - ${yToTime(Math.max(selectionStart.y, selectionEnd))}`;
-  }, [selectionStart, selectionEnd, yToTime]);
+    return `${yToTime(Math.min(selectionStart.y, selectionEnd))} - ${yToSelectionEnd(Math.max(selectionStart.y, selectionEnd))}`;
+  }, [selectionStart, selectionEnd, yToTime, yToSelectionEnd]);
 
   return {
     isSelecting,

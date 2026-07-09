@@ -107,4 +107,14 @@ describe('validateEventData', () => {
     const result = validateEventData({ ...validData, booking_date: today });
     expect(result).toBeNull();
   });
+
+  it('accepts an event starting at midnight', () => {
+    const result = validateEventData({ ...validData, start_time: '00:00', end_time: '01:00' });
+    expect(result).toBeNull();
+  });
+
+  it('accepts an event in the last slot of the day (23:45 → 23:59)', () => {
+    const result = validateEventData({ ...validData, start_time: '23:45', end_time: '23:59' });
+    expect(result).toBeNull();
+  });
 });

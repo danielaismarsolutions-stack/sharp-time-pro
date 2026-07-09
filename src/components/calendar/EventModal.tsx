@@ -32,6 +32,7 @@ import { ApiCalendarEvent, ApiEventRepeat } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
 import { getBarberHexColor, DEFAULT_EVENT_HEX } from '@/components/calendar/shared/colorUtils';
+import { END_OF_DAY } from '@/components/calendar/shared/slotTimeUtils';
 
 // ==================== Constants ====================
 
@@ -49,26 +50,35 @@ const generateTimeSlots = () => {
 
 const TIME_SLOTS = generateTimeSlots();
 
+// End-time options: an event can't end at 00:00 but can run until 23:59
+const END_TIME_SLOTS = [...TIME_SLOTS.slice(1), END_OF_DAY];
+
 const SLOT_MINUTES = 15;
 const SLOTS_PER_HOUR = 60 / SLOT_MINUTES;
+const LAST_SLOT_START_MINUTES = 23 * 60 + 45;
 
 const formatSlot = (hour: number, minute: number) =>
   `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 
-// Round up to the next 15-minute slot, handling hour rollover
+// Round up to the next 15-minute slot, clamped to the day's last slot (23:45)
+// so times near midnight don't wrap around to 00:00
 const roundUpToSlot = (date: Date): string => {
-  const totalMins =
-    date.getHours() * 60 + Math.ceil(date.getMinutes() / SLOT_MINUTES) * SLOT_MINUTES;
-  const h = Math.floor(totalMins / 60) % 24;
+  const totalMins = Math.min(
+    date.getHours() * 60 + Math.ceil(date.getMinutes() / SLOT_MINUTES) * SLOT_MINUTES,
+    LAST_SLOT_START_MINUTES
+  );
+  const h = Math.floor(totalMins / 60);
   const m = totalMins % 60;
   return formatSlot(h, m);
 };
 
-// Add one hour to a slot string, falling back to the last available slot
+// Add one hour to a slot string; when that would pass midnight (or the slot is
+// off-grid), end at 23:59 so the result is always after the start
 const addHourClamped = (slot: string): string => {
   const idx = TIME_SLOTS.indexOf(slot);
-  if (idx === -1) return TIME_SLOTS[TIME_SLOTS.length - 1];
-  return TIME_SLOTS[Math.min(idx + SLOTS_PER_HOUR, TIME_SLOTS.length - 1)];
+  const target = idx + SLOTS_PER_HOUR;
+  if (idx === -1 || target >= TIME_SLOTS.length) return END_OF_DAY;
+  return TIME_SLOTS[target];
 };
 
 const EVENT_COLORS: { label: string; value: string; tw: string }[] = [
@@ -184,11 +194,28 @@ export function EventModal({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Filtered end time slots (must be after start)
+  // Start slots, including the incoming time when it's off the 15-min grid
+  // (e.g. an event dragged to a 5-min offset keeps its time when edited).
+  // Derived from props — not form state — so the extra option is registered
+  // before the Select value points at it (otherwise Radix resets the value).
+  const startTimeSlots = useMemo(() => {
+    const extra = event ? event.start_time.substring(0, 5) : selectedTime;
+    if (extra && !TIME_SLOTS.includes(extra)) {
+      return [...TIME_SLOTS, extra].sort();
+    }
+    return TIME_SLOTS;
+  }, [event, selectedTime]);
+
+  // Filtered end time slots (must be after start; 23:59 is always available)
   const endTimeSlots = useMemo(() => {
-    if (!formData.startTime) return TIME_SLOTS;
-    return TIME_SLOTS.filter((t) => t > formData.startTime);
-  }, [formData.startTime]);
+    const extra = event ? event.end_time.substring(0, 5) : selectedEndTime;
+    const base =
+      extra && !END_TIME_SLOTS.includes(extra)
+        ? [...END_TIME_SLOTS, extra].sort()
+        : END_TIME_SLOTS;
+    if (!formData.startTime) return base;
+    return base.filter((t) => t > formData.startTime);
+  }, [event, selectedEndTime, formData.startTime]);
 
   const selectedBarber = barbers.find((b) => b.id === formData.barberId);
   // Color the "Auto" chip displays — matches what the event will render as
@@ -326,7 +353,7 @@ export function EventModal({
                   <SelectValue placeholder="Inicio" />
                 </SelectTrigger>
                 <SelectContent>
-                  {TIME_SLOTS.map((time) => (
+                  {startTimeSlots.map((time) => (
                     <SelectItem key={time} value={time}>
                       {time}
                     </SelectItem>
