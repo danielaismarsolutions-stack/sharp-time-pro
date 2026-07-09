@@ -383,25 +383,46 @@ export function getNotificationIconColor(type: NotificationType): string {
   }
 }
 
-// Helper to get navigation path for a notification
+// Build a path with query params, skipping empty/non-string values
+function buildPath(base: string, params: Record<string, unknown>): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === 'string' && value) {
+      search.set(key, value);
+    }
+  }
+  const qs = search.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
+// Helper to get navigation path for a notification.
+// Uses the notification metadata (booking_id, event_id, client_id, ...) to
+// deep-link to the specific item instead of just the section.
 export function getNotificationPath(notification: Notification): string | null {
+  const data = notification.data ?? {};
   switch (notification.type) {
     case 'booking_created':
     case 'booking_cancelled':
     case 'booking_modified':
-    case 'booking_deleted':
     case 'booking_status_changed':
     case 'booking_reminder':
+      return buildPath('/calendar', { booking: data.booking_id, date: data.booking_date });
+    case 'booking_deleted':
+      // The booking no longer exists — just go to its day in the calendar
+      return buildPath('/calendar', { date: data.booking_date });
     case 'event_created':
     case 'event_modified':
+      return buildPath('/calendar', { event: data.event_id, date: data.event_date });
     case 'event_deleted':
-      return '/calendar';
+      return buildPath('/calendar', { date: data.event_date });
     case 'client_created':
     case 'client_modified':
+      return typeof data.client_id === 'string' && data.client_id ? `/clients/${data.client_id}` : '/clients';
     case 'client_deleted':
-      return notification.data?.client_id ? `/clients/${notification.data.client_id}` : '/clients';
+      return '/clients';
     case 'consultation_created':
     case 'consultation_updated':
+      return buildPath('/consultations', { consultation: data.consultation_id });
     case 'consultation_deleted':
       return '/consultations';
     case 'service_created':

@@ -70,7 +70,7 @@ import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useAutoScrollToNow } from '@/hooks/useAutoScrollToNow';
 import { useAutoScrollOnDrag } from '@/hooks/useAutoScrollOnDrag';
 import { useSlotSelection } from '@/hooks/useSlotSelection';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
@@ -103,6 +103,23 @@ import { createSnapToTimeStepModifier } from '@/components/calendar/shared/snapM
 
 type ViewMode = 'day' | '3day' | 'week' | 'month' | 'agenda';
 
+// Map an event-type booking row to a calendar event
+const mapBookingToCalendarEvent = (b: ApiBooking): ApiCalendarEvent => ({
+  id: b.id,
+  business_id: b.business_id,
+  name: b.event_name || b.client_name || '',
+  event_date: b.booking_date,
+  start_time: b.start_time,
+  end_time: b.end_time,
+  repeat: (b.recurrence_rule as { frequency?: string } | null)?.frequency as ApiCalendarEvent['repeat'] || 'none',
+  location: b.location || null,
+  notes: b.notes || null,
+  barber: b.barber || null,
+  color: b.color || '',
+  created_at: b.created_at,
+  updated_at: b.updated_at,
+});
+
 const HOUR_HEIGHT_DAY = 140;
 const HOUR_HEIGHT_WEEK = 100;
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // 0:00 - 23:00
@@ -118,6 +135,7 @@ export default function Calendar() {
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState<ViewMode>('3day');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -189,21 +207,7 @@ export default function Calendar() {
 
     for (const b of allBookingsData) {
       if (b.booking_type === 'event') {
-        eventBookings.push({
-          id: b.id,
-          business_id: b.business_id,
-          name: b.event_name || b.client_name || '',
-          event_date: b.booking_date,
-          start_time: b.start_time,
-          end_time: b.end_time,
-          repeat: (b.recurrence_rule as { frequency?: string } | null)?.frequency as ApiCalendarEvent['repeat'] || 'none',
-          location: b.location || null,
-          notes: b.notes || null,
-          barber: b.barber || null,
-          color: b.color || '',
-          created_at: b.created_at,
-          updated_at: b.updated_at,
-        });
+        eventBookings.push(mapBookingToCalendarEvent(b));
       } else {
         regularBookings.push(b);
       }
@@ -251,6 +255,92 @@ export default function Calendar() {
   const [selectedEvent, setSelectedEvent] = useState<ApiCalendarEvent | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+
+  // Deep link from notifications: /calendar?booking=<id> | ?event=<id> | ?date=<yyyy-MM-dd>
+  // Navigates the calendar to the item's day and opens its detail modal.
+  const deepLinkHandledRef = useRef<string | null>(null);
+  useEffect(() => {
+    const bookingParam = searchParams.get('booking');
+    const eventParam = searchParams.get('event');
+    const dateParam = searchParams.get('date');
+
+    if (!bookingParam && !eventParam && !dateParam) {
+      // Params consumed — allow a future notification click to re-trigger
+      deepLinkHandledRef.current = null;
+      return;
+    }
+    if (isLoading) return;
+
+    const key = `${bookingParam}|${eventParam}|${dateParam}`;
+    if (deepLinkHandledRef.current === key) return;
+    deepLinkHandledRef.current = key;
+
+    const clearParams = () => setSearchParams({}, { replace: true });
+
+    const goToDate = (dateStr?: string | null) => {
+      if (!dateStr) return;
+      const parsed = new Date(`${dateStr}T00:00:00`);
+      if (!isNaN(parsed.getTime())) setCurrentDate(parsed);
+    };
+
+    const openBookingFromLink = (booking: ApiBooking) => {
+      goToDate(booking.booking_date);
+      setSelectedBooking(booking);
+      setIsDetailOpen(true);
+    };
+
+    const openEventFromLink = (event: ApiCalendarEvent) => {
+      goToDate(event.event_date);
+      setSelectedEvent(event);
+      setIsEventDetailOpen(true);
+    };
+
+    const notFoundToast = (isEvent: boolean) => {
+      goToDate(dateParam);
+      toast({
+        title: isEvent ? 'Evento no disponible' : 'Cita no disponible',
+        description: isEvent
+          ? 'El evento de esta notificación ya no existe.'
+          : 'La cita de esta notificación ya no existe.',
+        variant: 'destructive',
+      });
+    };
+
+    if (bookingParam || eventParam) {
+      const targetId = (bookingParam || eventParam) as string;
+      const isEvent = !bookingParam;
+
+      // Try the already-loaded window first, then fall back to fetching by ID
+      // (the item may be outside the ±2 month window currently in cache)
+      const loadedBooking = !isEvent ? bookings.find((b) => b.id === targetId) : undefined;
+      const loadedEvent = isEvent ? calendarEvents.find((e) => e.id === targetId) : undefined;
+
+      if (loadedBooking) {
+        openBookingFromLink(loadedBooking);
+        clearParams();
+      } else if (loadedEvent) {
+        openEventFromLink(loadedEvent);
+        clearParams();
+      } else {
+        supabaseBookingsApi
+          .getById(targetId)
+          .then((fetched) => {
+            if (!fetched) {
+              notFoundToast(isEvent);
+            } else if (fetched.booking_type === 'event') {
+              openEventFromLink(mapBookingToCalendarEvent(fetched));
+            } else {
+              openBookingFromLink(fetched);
+            }
+          })
+          .catch(() => goToDate(dateParam))
+          .finally(clearParams);
+      }
+    } else {
+      goToDate(dateParam);
+      clearParams();
+    }
+  }, [searchParams, setSearchParams, isLoading, bookings, calendarEvents, toast]);
 
   // Set view mode based on screen size
   useEffect(() => {

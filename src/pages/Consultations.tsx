@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { MessageSquare, Inbox, AlertTriangle } from 'lucide-react';
@@ -65,6 +66,33 @@ export default function Consultations() {
   const [deleting, setDeleting] = useState(false);
 
   const invalidateConsultations = () => queryClient.invalidateQueries({ queryKey: queryKeys.consultations });
+
+  // Deep link from notifications: /consultations?consultation=<id>
+  // Opens the detail modal for that consultation once data is loaded.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkHandledRef = useRef<string | null>(null);
+  useEffect(() => {
+    const targetId = searchParams.get('consultation');
+    if (!targetId) {
+      deepLinkHandledRef.current = null;
+      return;
+    }
+    if (loading) return;
+    if (deepLinkHandledRef.current === targetId) return;
+    deepLinkHandledRef.current = targetId;
+
+    const found = consultations.find((c) => c.id === targetId);
+    if (found) {
+      setSelectedConsultation(found);
+    } else {
+      toast({
+        title: 'Consulta no disponible',
+        description: 'La consulta de esta notificación ya no existe.',
+        variant: 'destructive',
+      });
+    }
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams, loading, consultations, toast]);
 
   // Real-time subscription with notification support
   useEffect(() => {

@@ -26,12 +26,18 @@ self.addEventListener('notificationclick', (event) => {
   if (event.action === 'close') return;
   
   const url = event.notification.data?.url || '/';
-  
+
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Reuse an open tab of the app and navigate it to the deep link
       for (const client of clientList) {
-        if (client.url.includes(url) && 'focus' in client) {
-          return client.focus();
+        if ('focus' in client) {
+          return client.focus().then((focusedClient) => {
+            const target = focusedClient || client;
+            if ('navigate' in target) {
+              return target.navigate(url);
+            }
+          });
         }
       }
       if (clients.openWindow) {
