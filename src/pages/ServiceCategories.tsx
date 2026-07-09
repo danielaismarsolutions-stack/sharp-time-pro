@@ -105,7 +105,7 @@ function SortableCategoryRow({ category, serviceCount, onEdit, onDelete }: Sorta
               <Button
                 variant="outline"
                 size="sm"
-                className="h-9 px-3"
+                className="h-10 min-w-[40px] px-3"
                 onClick={() => onEdit(category)}
               >
                 <Pencil className="h-3.5 w-3.5 sm:mr-1" />
@@ -114,7 +114,7 @@ function SortableCategoryRow({ category, serviceCount, onEdit, onDelete }: Sorta
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="h-10 min-w-[40px] px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
                 onClick={() => onDelete(category)}
               >
                 <Trash2 className="h-3.5 w-3.5" />

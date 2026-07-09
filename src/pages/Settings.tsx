@@ -768,21 +768,21 @@ export default function Settings() {
                                 type="time"
                                 value={shift.openTime}
                                 onChange={(e) => updateShift(day, shiftIndex, { openTime: e.target.value })}
-                                className="w-full md:w-32 min-w-[100px]"
+                                className="w-full md:w-32 min-w-0"
                               />
                               <span className="text-muted-foreground shrink-0">a</span>
                               <Input
                                 type="time"
                                 value={shift.closeTime}
                                 onChange={(e) => updateShift(day, shiftIndex, { closeTime: e.target.value })}
-                                className="w-full md:w-32 min-w-[100px]"
+                                className="w-full md:w-32 min-w-0"
                               />
                               {dayData.shifts.length > 1 && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => removeShift(day, shiftIndex)}
-                                  className="h-8 w-8 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  className="h-10 w-10 md:h-8 md:w-8 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -881,7 +881,7 @@ export default function Settings() {
                           size="icon"
                           onClick={() => removeClosureDate(closure.id, label)}
                           disabled={removingClosureId === closure.id}
-                          className="h-8 w-8 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className="h-10 w-10 md:h-8 md:w-8 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                           aria-label={`Eliminar ${label}`}
                         >
                           {removingClosureId === closure.id ? (

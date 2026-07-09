@@ -30,11 +30,11 @@ export default function Reports() {
           <p className="text-muted-foreground text-sm">Resumen del rendimiento del negocio</p>
         </div>
         <Tabs value={period} onValueChange={(v) => setPeriod(v as Period)}>
-          <TabsList className="h-10">
-            <TabsTrigger value="week" className="text-xs md:text-sm px-2 md:px-3 min-h-[36px]">Semana</TabsTrigger>
-            <TabsTrigger value="month" className="text-xs md:text-sm px-2 md:px-3 min-h-[36px]">Mes</TabsTrigger>
-            <TabsTrigger value="quarter" className="text-xs md:text-sm px-2 md:px-3 min-h-[36px]">Trim.</TabsTrigger>
-            <TabsTrigger value="year" className="text-xs md:text-sm px-2 md:px-3 min-h-[36px]">Año</TabsTrigger>
+          <TabsList className="h-11">
+            <TabsTrigger value="week" className="text-xs md:text-sm px-2 md:px-3 min-h-[40px]">Semana</TabsTrigger>
+            <TabsTrigger value="month" className="text-xs md:text-sm px-2 md:px-3 min-h-[40px]">Mes</TabsTrigger>
+            <TabsTrigger value="quarter" className="text-xs md:text-sm px-2 md:px-3 min-h-[40px]">Trim.</TabsTrigger>
+            <TabsTrigger value="year" className="text-xs md:text-sm px-2 md:px-3 min-h-[40px]">Año</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>

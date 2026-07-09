@@ -335,7 +335,7 @@ export function SetmoreHeader({
           </div>
         )}
 
-        <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)} className="min-w-0 overflow-hidden">
+        <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)} className="min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <TabsList className="h-9">
             <TabsTrigger value="agenda" className="text-xs px-1.5 md:px-3 min-h-[40px]">
               <List className="h-4 w-4 mr-1" />

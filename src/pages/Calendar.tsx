@@ -1449,10 +1449,10 @@ export default function Calendar() {
 
   // Render Week View
   const renderWeekView = () => (
-    <div className="relative">
+    <div className="flex flex-col relative w-max min-w-full">
       {/* Sticky Day Headers */}
       <div className="flex sticky top-0 z-30 bg-card">
-        <div className="w-14 md:w-16 shrink-0 border-r border-b border-border" />
+        <div className="w-14 md:w-16 shrink-0 border-r border-b border-border sticky left-0 z-40 bg-card" />
         <div className="flex-1 flex">
           {weekDays.map((day) => {
             const isCurrentDay = isToday(day);
@@ -1480,7 +1480,7 @@ export default function Calendar() {
       {/* Time Grid */}
       <div className="flex flex-1">
         {/* Time column */}
-        <div className="w-14 md:w-16 shrink-0 border-r border-border">
+        <div className="w-14 md:w-16 shrink-0 border-r border-border sticky left-0 z-30 bg-card">
           {HOURS.map((hour) => (
             <div
               key={hour}
@@ -1493,7 +1493,7 @@ export default function Calendar() {
         </div>
 
       {/* Days columns */}
-      <div className="flex-1 flex overflow-x-auto">
+      <div className="flex-1 flex">
         {weekDays.map((day) => {
           const dayBookings = getBookingsForDay(day);
           const isCurrentDay = isToday(day);
@@ -1662,7 +1662,7 @@ export default function Calendar() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-120px)]">
+      <div className="flex items-center justify-center h-[calc(100dvh-120px)]">
         <div className="text-center space-y-3">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
           <p className="text-muted-foreground">Cargando calendario...</p>
@@ -1739,8 +1739,8 @@ export default function Calendar() {
           <div ref={scrollContainerRef} className={cn(
             "flex-1",
             viewMode === 'agenda' && 'overflow-hidden',
-            viewMode === 'day' && 'overflow-auto',
-            viewMode !== 'agenda' && viewMode !== 'day' && 'overflow-y-auto overflow-x-hidden',
+            (viewMode === 'day' || viewMode === 'week') && 'overflow-auto',
+            viewMode !== 'agenda' && viewMode !== 'day' && viewMode !== 'week' && 'overflow-y-auto overflow-x-hidden',
           )}>
             {viewMode === 'day' && renderDayView()}
             {viewMode === '3day' && (

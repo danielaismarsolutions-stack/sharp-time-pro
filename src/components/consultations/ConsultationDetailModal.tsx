@@ -64,7 +64,7 @@ export function ConsultationDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between pr-6">
             <span>Detalle de Consulta</span>
@@ -92,7 +92,7 @@ export function ConsultationDetailModal({
           )}
 
           {/* Client Info */}
-          <div className="grid gap-3 grid-cols-2">
+          <div className="grid gap-3 grid-cols-1 min-[400px]:grid-cols-2">
             <div className="space-y-1.5">
               <div className="flex items-center gap-1.5 text-xs">
                 <User className="h-3 w-3 text-muted-foreground" />
@@ -114,9 +114,9 @@ export function ConsultationDetailModal({
               )}
             </div>
             <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5 text-xs">
-                <MessageCircle className="h-3 w-3 text-muted-foreground" />
-                <span>{consultation.service_name}</span>
+              <div className="flex items-center gap-1.5 text-xs min-w-0">
+                <MessageCircle className="h-3 w-3 text-muted-foreground shrink-0" />
+                <span className="truncate">{consultation.service_name}</span>
               </div>
               <div className="flex items-center gap-1.5 text-xs">
                 <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -154,7 +154,7 @@ export function ConsultationDetailModal({
             />
             <Button
               size="sm"
-              className="h-7 text-[11px]"
+              className="h-7 min-h-[40px] md:min-h-0 text-[11px]"
               onClick={handleSaveNotes}
               disabled={savingNotes || notes === (consultation.staff_notes || '')}
             >
@@ -172,7 +172,7 @@ export function ConsultationDetailModal({
             />
 
             {canConvertToBooking && onConvertToBooking && (
-              <Button size="sm" className="h-7 text-[11px]" onClick={onConvertToBooking}>
+              <Button size="sm" className="h-7 min-h-[40px] md:min-h-0 text-[11px]" onClick={onConvertToBooking}>
                 Convertir a reserva
               </Button>
             )}
@@ -183,14 +183,14 @@ export function ConsultationDetailModal({
               rel="noopener noreferrer"
               className="inline-flex"
             >
-              <Button variant="outline" size="sm" className="gap-1.5 text-green-600 hover:text-green-700 h-7 text-[11px]">
+              <Button variant="outline" size="sm" className="gap-1.5 text-green-600 hover:text-green-700 h-7 min-h-[40px] md:min-h-0 text-[11px]">
                 <MessageCircle className="h-3 w-3" />
                 WhatsApp
               </Button>
             </a>
 
             <a href={`tel:${consultation.client_phone}`}>
-              <Button variant="outline" size="sm" className="gap-1.5 h-7 text-[11px]">
+              <Button variant="outline" size="sm" className="gap-1.5 h-7 min-h-[40px] md:min-h-0 text-[11px]">
                 <Phone className="h-3 w-3" />
                 Llamar
               </Button>
@@ -200,7 +200,7 @@ export function ConsultationDetailModal({
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5 h-7 text-[11px] text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
+                className="gap-1.5 h-7 min-h-[40px] md:min-h-0 text-[11px] text-destructive hover:text-destructive hover:bg-destructive/10 ml-auto"
                 onClick={onDelete}
               >
                 <Trash2 className="h-3 w-3" />

@@ -312,7 +312,7 @@ export function ConsultationBookingModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-1.5">
             <CalendarIcon className="h-4 w-4 text-primary" />
@@ -351,7 +351,7 @@ export function ConsultationBookingModal({
                 value={formData.serviceId}
                 onValueChange={(value) => setFormData({ ...formData, serviceId: value })}
               >
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-8 min-h-[40px] md:min-h-0 text-xs">
                   <SelectValue placeholder="Selecciona un servicio" />
                 </SelectTrigger>
                 <SelectContent>
@@ -381,7 +381,7 @@ export function ConsultationBookingModal({
                     value={formData.customDuration.toString()}
                     onValueChange={(value) => setFormData({ ...formData, customDuration: parseInt(value) })}
                   >
-                    <SelectTrigger className="h-8 text-xs">
+                    <SelectTrigger className="h-8 min-h-[40px] md:min-h-0 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -405,7 +405,7 @@ export function ConsultationBookingModal({
                     value={formData.customPrice}
                     onChange={(e) => setFormData({ ...formData, customPrice: parseFloat(e.target.value) || 0 })}
                     placeholder="0.00"
-                    className="h-8 text-xs"
+                    className="h-8 min-h-[40px] md:min-h-0 text-xs"
                   />
                 </div>
               </div>
@@ -420,7 +420,7 @@ export function ConsultationBookingModal({
                 value={formData.barberId || 'none'}
                 onValueChange={(value) => setFormData({ ...formData, barberId: value === 'none' ? '' : value })}
               >
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-8 min-h-[40px] md:min-h-0 text-xs">
                   <SelectValue placeholder={`Selecciona un ${staffTerms.singular} (opcional)`} />
                 </SelectTrigger>
                 <SelectContent>
@@ -443,7 +443,7 @@ export function ConsultationBookingModal({
                     <Button
                       variant="outline"
                       className={cn(
-                        'w-full justify-start text-left font-normal h-8 text-xs',
+                        'w-full justify-start text-left font-normal h-8 min-h-[40px] md:min-h-0 text-xs',
                         !date && 'text-muted-foreground'
                       )}
                     >
@@ -475,7 +475,7 @@ export function ConsultationBookingModal({
                   onValueChange={(value) => setFormData({ ...formData, time: value })}
                   disabled={isLoadingSlots}
                 >
-                  <SelectTrigger className={cn("h-8 text-xs", !formData.time && 'text-muted-foreground')}>
+                  <SelectTrigger className={cn("h-8 min-h-[40px] md:min-h-0 text-xs", !formData.time && 'text-muted-foreground')}>
                     <SelectValue placeholder="Hora" />
                   </SelectTrigger>
                   <SelectContent>
@@ -555,10 +555,10 @@ export function ConsultationBookingModal({
 
             {/* Actions */}
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" size="sm" className="text-xs h-8" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" size="sm" className="text-xs h-8 min-h-[40px] md:min-h-0" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" size="sm" className="text-xs h-8" disabled={isLoading || !formData.serviceId || !formData.time}>
+              <Button type="submit" size="sm" className="text-xs h-8 min-h-[40px] md:min-h-0" disabled={isLoading || !formData.serviceId || !formData.time}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />

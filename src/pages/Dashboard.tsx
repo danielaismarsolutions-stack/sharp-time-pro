@@ -392,7 +392,7 @@ export default function Dashboard() {
                   )} />
                 </div>
                 <div className={cn(
-                  "font-bold",
+                  "font-bold truncate",
                   isMobile ? "text-xl" : "text-2xl md:text-3xl",
                   stat.color
                 )}>{stat.value}</div>
@@ -496,7 +496,7 @@ export default function Dashboard() {
                   <Button 
                     variant={hasActiveFilters ? "default" : "outline"} 
                     size="icon" 
-                    className="h-9 w-9 relative touch-manipulation"
+                    className="h-10 w-10 relative touch-manipulation"
                     onClick={() => setFiltersOpen(!filtersOpen)}
                   >
                     <Filter className="h-4 w-4" />
@@ -508,7 +508,7 @@ export default function Dashboard() {
                 <Button 
                   variant="ghost" 
                   size={isMobile ? "icon" : "sm"} 
-                  className={cn("touch-manipulation", isMobile ? "h-9 w-9" : "h-9 px-2")}
+                  className={cn("touch-manipulation", isMobile ? "h-10 w-10" : "h-9 px-2")}
                   onClick={() => navigate('/calendar')}
                 >
                   {!isMobile && <span>Ver Agenda</span>}
@@ -813,7 +813,7 @@ export default function Dashboard() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className={cn("touch-manipulation", isMobile ? "h-8 w-8" : "h-9 w-9")}
+                    className={cn("touch-manipulation", isMobile ? "h-10 w-10" : "h-9 w-9")}
                     onClick={() => goToPage(currentPage - 1)}
                     disabled={currentPage === 1}
                   >
@@ -833,7 +833,7 @@ export default function Dashboard() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className={cn("touch-manipulation", isMobile ? "h-8 w-8" : "h-9 w-9")}
+                    className={cn("touch-manipulation", isMobile ? "h-10 w-10" : "h-9 w-9")}
                     onClick={() => goToPage(currentPage + 1)}
                     disabled={currentPage >= totalPages}
                   >

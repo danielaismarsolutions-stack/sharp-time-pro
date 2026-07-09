@@ -64,7 +64,7 @@ export default function TimeSummaryCards({ entries }: TimeSummaryCardsProps) {
         <Card key={c.label}>
           <CardContent className="p-3 md:p-4 text-center">
             <c.icon className={`h-5 w-5 mx-auto mb-1 ${c.color}`} />
-            <p className="text-lg md:text-xl font-bold">{c.value}</p>
+            <p className="text-base min-[400px]:text-lg md:text-xl font-bold whitespace-nowrap">{c.value}</p>
             <p className="text-xs text-muted-foreground">{c.label}</p>
           </CardContent>
         </Card>

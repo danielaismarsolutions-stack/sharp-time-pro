@@ -533,7 +533,7 @@ export function ThreeDayView({
             >
               <div className="flex flex-col items-center gap-1">
                 {legendRows.map((row, rowIndex) => (
-                  <div key={rowIndex} className="flex items-center justify-center gap-3">
+                  <div key={rowIndex} className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
                     {row.map(({ name, colors }) => (
                       <div key={name} className="flex items-center gap-1">
                         <span className={cn('w-2.5 h-2.5 rounded-full shrink-0', colors.bg)} />

@@ -465,7 +465,7 @@ export default function BookingModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:w-full sm:max-w-md">
+      <DialogContent className="bg-card border-border max-h-[90dvh] overflow-y-auto w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:w-full sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-1.5">
             <CalendarIcon className="h-4 w-4 text-primary" />
