@@ -117,7 +117,7 @@ export default function TimeEntryTable({ entries, showEmployee = false, isAdmin 
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7"
+                          className="h-9 w-9"
                           onClick={() => setCorrectionEntry(entry)}
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -125,7 +125,7 @@ export default function TimeEntryTable({ entries, showEmployee = false, isAdmin 
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-destructive"
+                          className="h-9 w-9 text-destructive"
                           onClick={() => handleDelete(entry)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />

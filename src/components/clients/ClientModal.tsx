@@ -136,7 +136,7 @@ export default function ClientModal({
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Juan García"
-              className="h-8 text-xs"
+              className="h-8 min-h-[40px] md:min-h-0 text-xs"
             />
           </div>
 
@@ -149,7 +149,7 @@ export default function ClientModal({
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               placeholder="+34 612 345 678"
-              className="h-8 text-xs"
+              className="h-8 min-h-[40px] md:min-h-0 text-xs"
             />
           </div>
 
@@ -163,7 +163,7 @@ export default function ClientModal({
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="juan@ejemplo.com"
-              className="h-8 text-xs"
+              className="h-8 min-h-[40px] md:min-h-0 text-xs"
             />
           </div>
 
@@ -182,10 +182,10 @@ export default function ClientModal({
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" size="sm" className="text-xs h-8" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" size="sm" className="text-xs h-8 min-h-[40px] md:min-h-0" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" size="sm" className="text-xs h-8" disabled={isLoading}>
+            <Button type="submit" size="sm" className="text-xs h-8 min-h-[40px] md:min-h-0" disabled={isLoading}>
               {isLoading ? 'Guardando...' : client ? 'Actualizar' : 'Crear Cliente'}
             </Button>
           </div>

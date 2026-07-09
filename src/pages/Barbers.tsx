@@ -450,7 +450,7 @@ export default function Barbers() {
       {/* Schedule - Drawer on mobile, Sheet on desktop */}
       {isMobile ? (
         <Drawer open={scheduleSheetOpen} onOpenChange={setScheduleSheetOpen}>
-          <DrawerContent className="max-h-[90vh]">
+          <DrawerContent className="max-h-[90dvh]">
             <DrawerHeader className="pb-2">
               <DrawerTitle className="text-lg">
                 Horario de {editingBarber?.name}

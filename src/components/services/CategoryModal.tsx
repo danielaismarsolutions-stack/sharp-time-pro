@@ -166,7 +166,7 @@ export default function CategoryModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !isLoading && !isUploading && onOpenChange(v)}>
-      <DialogContent className="bg-card border-border max-h-[85vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-1.5">
             <Tag className="h-4 w-4 text-primary" />

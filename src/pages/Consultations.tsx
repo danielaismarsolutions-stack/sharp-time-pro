@@ -310,7 +310,7 @@ export default function Consultations() {
             key={option.value}
             onClick={() => setActiveFilter(option.value)}
             className={cn(
-              'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs md:text-sm font-medium transition-colors min-h-[36px]',
+              'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs md:text-sm font-medium transition-colors min-h-[40px]',
               activeFilter === option.value
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-muted hover:bg-muted/80 text-foreground'

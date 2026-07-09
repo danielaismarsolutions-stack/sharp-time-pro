@@ -21,7 +21,7 @@ export function StatusDropdown({ currentStatus, onStatusChange, disabled }: Stat
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" disabled={disabled} className="gap-1">
+        <Button variant="outline" size="sm" disabled={disabled} className="gap-1 min-h-[40px] md:min-h-0">
           Estado
           <ChevronDown className="h-3 w-3" />
         </Button>

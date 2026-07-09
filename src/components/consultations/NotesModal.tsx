@@ -35,7 +35,7 @@ export function NotesModal({ open, onOpenChange, currentNotes, clientName, onSav
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Notas - {clientName}</DialogTitle>
         </DialogHeader>
@@ -53,10 +53,10 @@ export function NotesModal({ open, onOpenChange, currentNotes, clientName, onSav
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" size="sm" className="text-xs h-8 min-h-[40px] md:min-h-0" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button size="sm" className="text-xs h-8" onClick={handleSave} disabled={saving}>
+          <Button size="sm" className="text-xs h-8 min-h-[40px] md:min-h-0" onClick={handleSave} disabled={saving}>
             {saving && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
             Guardar
           </Button>

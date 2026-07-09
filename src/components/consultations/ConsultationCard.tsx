@@ -114,14 +114,14 @@ export function ConsultationCard({
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
           >
-            <Button size="sm" variant="outline" className="gap-1.5 text-green-600 hover:text-green-700 h-9">
+            <Button size="sm" variant="outline" className="gap-1.5 text-green-600 hover:text-green-700 h-10 min-w-[40px]">
               <MessageCircle className="h-4 w-4" />
               WhatsApp
             </Button>
           </a>
 
           <a href={`tel:${consultation.client_phone}`} onClick={(e) => e.stopPropagation()}>
-            <Button size="sm" variant="outline" className="gap-1.5 h-9">
+            <Button size="sm" variant="outline" className="gap-1.5 h-10 min-w-[40px]">
               <Phone className="h-4 w-4" />
               Llamar
             </Button>
@@ -138,7 +138,7 @@ export function ConsultationCard({
             <Button
               size="sm"
               variant="outline"
-              className="gap-1.5 h-9"
+              className="gap-1.5 h-10 min-w-[40px]"
               onClick={(e) => {
                 e.stopPropagation();
                 onViewPhoto();
@@ -152,7 +152,7 @@ export function ConsultationCard({
           <Button
             size="sm"
             variant="outline"
-            className="gap-1.5 h-9"
+            className="gap-1.5 h-10 min-w-[40px]"
             onClick={(e) => {
               e.stopPropagation();
               onAddNotes();
@@ -165,7 +165,7 @@ export function ConsultationCard({
           <Button
             size="sm"
             variant="outline"
-            className="gap-1.5 h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+            className="gap-1.5 h-10 min-w-[40px] text-destructive hover:text-destructive hover:bg-destructive/10"
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
