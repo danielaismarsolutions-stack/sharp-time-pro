@@ -5,7 +5,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import BookingModal from './BookingModal';
-import type { Booking, Client } from '@/types';
+import type { Booking, Client, Service } from '@/types';
+import { DEFAULT_SCHEDULE, type Barber } from '@/types/barber';
 
 vi.mock('@/services/supabaseBookings', () => ({
   supabaseBookingsApi: { getByDateRange: vi.fn().mockResolvedValue([]) },
@@ -41,6 +42,37 @@ const clients = [
   makeClient('2', 'Miguel García', '615481969'),
   makeClient('3', 'Alfredo Pérez', '617650912'),
 ];
+
+const makeService = (id: string, name: string, overrides: Partial<Service> = {}): Service => ({
+  id,
+  name,
+  description: '',
+  duration: 30,
+  price: 15,
+  color: '#000000',
+  isActive: true,
+  bufferBefore: 0,
+  bufferAfter: 0,
+  isConsultation: false,
+  ...overrides,
+});
+
+const makeBarber = (id: string, name: string): Barber => ({
+  id,
+  business_id: 'biz1',
+  name,
+  email: null,
+  phone: null,
+  avatar_url: null,
+  bio: null,
+  role: 'barber',
+  schedule: DEFAULT_SCHEDULE,
+  time_off: [],
+  is_active: true,
+  appointment_color: null,
+  created_at: '2026-01-01',
+  updated_at: '2026-01-01',
+});
 
 const baseProps = {
   open: true,
@@ -101,6 +133,87 @@ describe('BookingModal client assignment (create)', () => {
     await waitFor(() => {
       expect(screen.getByText('No se encontraron clientes')).toBeInTheDocument();
     });
+  });
+});
+
+// Preselections used when creating from the client profile ("Nueva Cita"):
+// client, last service and last barber come preselected, and the time picker
+// is restricted to the barber's available slots.
+describe('BookingModal preselections (create from client profile)', () => {
+  const services = [makeService('s1', 'Corte'), makeService('s2', 'Afeitado', { isActive: false })];
+  const barbers = [makeBarber('b1', 'Juan Barbero')];
+
+  it('preselects client, service and barber, and picks an available time slot', async () => {
+    render(
+      <BookingModal
+        {...baseProps}
+        services={services}
+        barbers={barbers}
+        preselectedClientId="2"
+        preselectedServiceId="s1"
+        preselectedBarberId="b1"
+      />
+    );
+
+    // Client chip replaces the search bar
+    expect(screen.getByText(/Miguel García - 615481969/)).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(SEARCH_PLACEHOLDER)).not.toBeInTheDocument();
+    // Service and barber selects show the preselected values
+    expect(screen.getAllByText('Corte').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Juan Barbero').length).toBeGreaterThan(0);
+    // First available slot within the barber's schedule is auto-selected
+    // (DEFAULT_SCHEDULE starts every working day at 09:00)
+    await waitFor(() => {
+      expect(screen.getAllByText('09:00').length).toBeGreaterThan(0);
+    });
+  });
+
+  it('ignores an inactive preselected service', () => {
+    render(
+      <BookingModal
+        {...baseProps}
+        services={services}
+        barbers={barbers}
+        preselectedClientId="2"
+        preselectedServiceId="s2"
+        preselectedBarberId="b1"
+      />
+    );
+
+    expect(screen.getAllByText('Selecciona un servicio').length).toBeGreaterThan(0);
+    // Barber preselection still applies
+    expect(screen.getAllByText('Juan Barbero').length).toBeGreaterThan(0);
+  });
+
+  it('drops the preselected barber when not assigned to the preselected service', () => {
+    const restricted = [makeService('s1', 'Corte', { barberIds: ['other-barber'] })];
+    render(
+      <BookingModal
+        {...baseProps}
+        services={restricted}
+        barbers={barbers}
+        preselectedServiceId="s1"
+        preselectedBarberId="b1"
+      />
+    );
+
+    expect(screen.getAllByText('Corte').length).toBeGreaterThan(0);
+    // The barber select falls back to "Sin asignar" instead of Juan Barbero
+    expect(screen.getAllByText('Sin asignar').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Juan Barbero')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the search bar when the preselected client is unknown', () => {
+    render(
+      <BookingModal
+        {...baseProps}
+        services={services}
+        barbers={barbers}
+        preselectedClientId="missing-id"
+      />
+    );
+
+    expect(screen.getByPlaceholderText(SEARCH_PLACEHOLDER)).toBeInTheDocument();
   });
 });
 

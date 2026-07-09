@@ -27,6 +27,9 @@ interface DbBooking {
   id: string;
   business_id: string;
   client_id: string;
+  service_id: string | null;
+  user_id: string | null;
+  barber: string | null;
   service_name: string;
   service_price: number;
   service_duration: number;
@@ -62,7 +65,9 @@ function mapDbToBooking(db: DbBooking): Booking {
     clientName: '', // Will be filled from client data
     clientPhone: '',
     clientEmail: '',
-    serviceId: '', // Not stored in this simplified schema
+    serviceId: db.service_id || '',
+    barberId: db.user_id || null,
+    barber: db.barber || null,
     serviceName: db.service_name,
     serviceDuration: db.service_duration,
     servicePrice: Number(db.service_price),
