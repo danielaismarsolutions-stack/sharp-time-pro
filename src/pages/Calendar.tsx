@@ -1206,7 +1206,10 @@ export default function Calendar() {
         {/* Date header — shows which day is currently being viewed.
             Sticky on both axes so it remains visible during scroll. */}
         <div className="sticky top-0 z-40 bg-card border-b border-border h-10">
-          <div className="sticky left-0 h-10 flex items-center gap-2 px-3 md:pl-6 bg-card">
+          {/* w-fit is required for the horizontal sticky to work: a full-width
+              block cannot be offset within its container, so the date would
+              scroll away when panning across barber columns. */}
+          <div className="sticky left-0 w-fit max-w-[100vw] h-10 flex items-center gap-2 px-3 md:pl-6 bg-card">
             <span className="text-sm md:text-base font-medium capitalize text-foreground">
               {format(currentDate, "EEEE, d 'de' MMMM", { locale: es })}
             </span>
