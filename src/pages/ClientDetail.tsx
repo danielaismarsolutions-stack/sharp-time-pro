@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -8,12 +8,14 @@ import {
   Phone,
   Mail,
   Calendar,
+  ChevronRight,
   DollarSign,
   Scissors,
   Edit,
   Trash2,
   Plus,
   Clock,
+  Loader2,
   Tag,
   X,
   RefreshCw,
@@ -24,14 +26,28 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Client, Booking } from '@/types';
+import { Client, Booking, BookingStatus, BookingSource } from '@/types';
+import { ApiBooking, ApiBookingStatus, ApiPaymentMethod } from '@/types/api';
 import { supabaseClientsApi, ClientWithBookings } from '@/services/supabaseClients';
+import { supabaseBookingsApi } from '@/services/supabaseBookings';
+import { notifyBookingUsers } from '@/services/supabaseNotifications';
+import { getBusinessId } from '@/config/session';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useClientDetail, useInvalidateQuery } from '@/hooks/useQueryHooks';
+import {
+  useClientDetail,
+  useClients,
+  useServices,
+  useBarbers,
+  useInvalidateQuery,
+} from '@/hooks/useQueryHooks';
 import { cn } from '@/lib/utils';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import ClientModal from '@/components/clients/ClientModal';
+import BookingModal from '@/components/bookings/BookingModal';
+import { BookingDetailModal } from '@/components/calendar';
+import type { BookingStatus as StatusBadgeStatus } from '@/components/calendar/StatusBadge';
 
 const statusConfig: Record<string, { label: string; class: string }> = {
   pending: { label: 'Pendiente', class: 'bg-yellow-500/20 text-yellow-500' },
@@ -42,16 +58,315 @@ const statusConfig: Record<string, { label: string; class: string }> = {
   'no_show': { label: 'No asistió', class: 'bg-gray-500/20 text-gray-500' },
 };
 
+const bookingStatusLabels: Record<ApiBookingStatus, string> = {
+  pending: 'pendiente',
+  confirmed: 'confirmada',
+  completed: 'completada',
+  cancelled: 'cancelada',
+  no_show: 'no presentado',
+};
+
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const { data: clientData, isLoading, refetch: loadClientData } = useClientDetail(id);
-  const { invalidateClients } = useInvalidateQuery();
+  const { invalidateClients, invalidateBookings } = useInvalidateQuery();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTag, setNewTag] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
+
+  // Booking data needed by the booking modals (cached, shared with Calendar)
+  const { data: allClients = [], isLoading: isLoadingClients } = useClients();
+  const { data: services = [], isLoading: isLoadingServices } = useServices();
+  const { data: barbers = [], isLoading: isLoadingBarbers } = useBarbers(false);
+  const isBookingDataReady = !isLoadingClients && !isLoadingServices && !isLoadingBarbers;
+
+  // Booking detail / create / edit state
+  const [selectedApiBooking, setSelectedApiBooking] = useState<ApiBooking | null>(null);
+  const [isBookingDetailOpen, setIsBookingDetailOpen] = useState(false);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<ApiBooking | null>(null);
+  const [openingBookingId, setOpeningBookingId] = useState<string | null>(null);
+
+  // Most recent booking that wasn't cancelled — used to preselect the
+  // client's last service and barber when creating a new appointment.
+  // clientData.bookings is already ordered by date desc, time desc.
+  const lastRelevantBooking = useMemo(() => {
+    if (!clientData) return null;
+    return (
+      clientData.bookings.find((b) => String(b.status) !== 'cancelled') ||
+      clientData.bookings[0] ||
+      null
+    );
+  }, [clientData]);
+
+  const preselectedServiceId = useMemo(() => {
+    if (!lastRelevantBooking) return undefined;
+    const byId = services.find(
+      (s) => s.isActive && lastRelevantBooking.serviceId && s.id === lastRelevantBooking.serviceId
+    );
+    if (byId) return byId.id;
+    // Fallback for legacy bookings without a stored service_id
+    return services.find((s) => s.isActive && s.name === lastRelevantBooking.serviceName)?.id;
+  }, [lastRelevantBooking, services]);
+
+  const preselectedBarberId = useMemo(() => {
+    if (!lastRelevantBooking) return undefined;
+    const byId = barbers.find(
+      (b) => lastRelevantBooking.barberId && b.id === lastRelevantBooking.barberId
+    );
+    if (byId) return byId.id;
+    // Fallback: match by the stored barber display name
+    return barbers.find((b) => lastRelevantBooking.barber && b.name === lastRelevantBooking.barber)?.id;
+  }, [lastRelevantBooking, barbers]);
+
+  // Open the detail modal for a booking from the history list. The history
+  // rows carry a reduced shape, so fetch the full booking first.
+  const handleBookingClick = async (bookingId: string) => {
+    if (openingBookingId) return;
+    setOpeningBookingId(bookingId);
+    try {
+      const fullBooking = await supabaseBookingsApi.getById(bookingId);
+      if (!fullBooking || fullBooking.booking_type === 'event') {
+        toast({
+          title: 'Cita no disponible',
+          description: 'Esta cita ya no existe.',
+          variant: 'destructive',
+        });
+        invalidateClients();
+        return;
+      }
+      setSelectedApiBooking(fullBooking);
+      setIsBookingDetailOpen(true);
+    } catch {
+      toast({ title: 'Error al cargar la cita', variant: 'destructive' });
+    } finally {
+      setOpeningBookingId(null);
+    }
+  };
+
+  const closeBookingDetail = () => {
+    setIsBookingDetailOpen(false);
+    // Delay clearing so the dialog close animation keeps its content
+    setTimeout(() => setSelectedApiBooking(null), 250);
+  };
+
+  const handleBookingStatusChange = async (
+    bookingId: string,
+    status: StatusBadgeStatus | ApiBookingStatus
+  ) => {
+    const apiStatus: ApiBookingStatus = (
+      status === 'no-show' ? 'no_show' : status
+    ) as ApiBookingStatus;
+
+    const confirmed = await confirm({
+      title: 'Cambiar estado de cita',
+      description: `¿Estás seguro de marcar esta cita como "${bookingStatusLabels[apiStatus]}"?`,
+      confirmLabel: 'Confirmar',
+      variant: apiStatus === 'cancelled' ? 'destructive' : 'default',
+    });
+    if (!confirmed) return;
+
+    try {
+      const updated = await supabaseBookingsApi.updateStatus(bookingId, apiStatus);
+      setSelectedApiBooking((prev) => (prev && prev.id === bookingId ? updated : prev));
+
+      try {
+        await notifyBookingUsers({
+          business_id: getBusinessId(),
+          type: 'booking_status_changed',
+          title: 'Estado de cita cambiado',
+          message: `${user?.name || 'Usuario'} cambió la cita de ${updated.client_name || 'cliente'} a "${bookingStatusLabels[apiStatus]}"`,
+          barber_user_id: updated.user_id,
+          performed_by_user_id: user?.id || '',
+          metadata: {
+            booking_id: bookingId,
+            client_name: updated.client_name,
+            new_status: apiStatus,
+            changed_by: user?.name,
+          },
+        });
+      } catch { /* ignored */ }
+
+      invalidateClients();
+      invalidateBookings();
+      toast({ title: `Cita marcada como ${bookingStatusLabels[apiStatus]}` });
+    } catch {
+      toast({ title: 'Error al actualizar', variant: 'destructive' });
+    }
+  };
+
+  const handleBookingPaymentChange = async (
+    bookingId: string,
+    method: ApiPaymentMethod | null
+  ) => {
+    try {
+      const updated = method
+        ? await supabaseBookingsApi.updatePayment(bookingId, method)
+        : await supabaseBookingsApi.clearPayment(bookingId);
+      setSelectedApiBooking((prev) => (prev && prev.id === bookingId ? updated : prev));
+      invalidateBookings();
+      const methodLabels: Record<string, string> = { cash: 'efectivo', card: 'tarjeta', bizum: 'Bizum' };
+      toast({
+        title: method ? `Pago registrado (${methodLabels[method]})` : 'Pago desmarcado',
+      });
+    } catch {
+      toast({ title: 'Error al actualizar el pago', variant: 'destructive' });
+    }
+  };
+
+  const handleBookingDelete = async (bookingId: string) => {
+    const confirmed = await confirm({
+      title: '¿Eliminar cita?',
+      description: 'Se eliminará permanentemente esta cita. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
+
+    const deletedBooking = selectedApiBooking;
+    try {
+      await supabaseBookingsApi.delete(bookingId);
+      closeBookingDetail();
+
+      if (deletedBooking) {
+        try {
+          await notifyBookingUsers({
+            business_id: getBusinessId(),
+            type: 'booking_deleted',
+            title: 'Cita eliminada',
+            message: `${user?.name || 'Usuario'} eliminó la cita de ${deletedBooking.client_name} (${deletedBooking.service_name})`,
+            barber_user_id: deletedBooking.user_id,
+            performed_by_user_id: user?.id || '',
+            metadata: {
+              booking_id: bookingId,
+              client_name: deletedBooking.client_name,
+              service_name: deletedBooking.service_name,
+              deleted_by: user?.name,
+            },
+          });
+        } catch { /* ignored */ }
+      }
+
+      invalidateClients();
+      invalidateBookings();
+      toast({ title: 'Cita eliminada correctamente' });
+    } catch {
+      toast({ title: 'Error al eliminar la cita', variant: 'destructive' });
+    }
+  };
+
+  const handleBookingEdit = (booking: ApiBooking) => {
+    setEditingBooking(booking);
+    setIsBookingDetailOpen(false);
+    setSelectedApiBooking(null);
+    setIsBookingModalOpen(true);
+  };
+
+  const openNewBooking = () => {
+    setEditingBooking(null);
+    setIsBookingModalOpen(true);
+  };
+
+  // Create/update an appointment from the booking modal. Errors propagate so
+  // the modal shows its own error toast and stays open.
+  const handleSaveBooking = async (data: Partial<Booking>) => {
+    const selectedService = services.find((s) => s.id === data.serviceId);
+    const duration = selectedService?.duration || data.serviceDuration || 30;
+
+    const [hours, minutes] = (data.time || '09:00').split(':').map(Number);
+    const endHours = hours + Math.floor((minutes + duration) / 60);
+    const endMinutes = (minutes + duration) % 60;
+    const computedEndTime = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}:00`;
+    // When editing, honor a user-customized end time if provided.
+    const endTime = data.endTime ? `${data.endTime}:00` : computedEndTime;
+
+    if (editingBooking) {
+      await supabaseBookingsApi.update(editingBooking.id, {
+        booking_date: data.date,
+        start_time: `${data.time}:00`,
+        end_time: endTime,
+        status: (data.status?.replace('-', '_') || 'confirmed') as ApiBookingStatus,
+        notes: data.notes || null,
+        user_id: data.barberId || null,
+        barber: data.barber || null,
+        client_id: data.clientId || editingBooking.client_id,
+        client_name: data.clientName || editingBooking.client_name,
+        client_phone: data.clientPhone || editingBooking.client_phone,
+        client_email: data.clientEmail || null,
+        service_id: data.serviceId || editingBooking.service_id,
+        service_name: data.serviceName || editingBooking.service_name,
+        service_duration: duration,
+        service_price: data.servicePrice || editingBooking.service_price,
+      });
+
+      try {
+        await notifyBookingUsers({
+          business_id: getBusinessId(),
+          type: 'booking_modified',
+          title: 'Reserva modificada',
+          message: `${user?.name || 'Usuario'} modificó la cita de ${data.clientName} (${data.serviceName}) al ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
+          barber_user_id: data.barberId || editingBooking.user_id,
+          performed_by_user_id: user?.id || '',
+          metadata: {
+            booking_id: editingBooking.id,
+            client_name: data.clientName,
+            service_name: data.serviceName,
+            booking_date: data.date,
+            start_time: data.time,
+            modified_by: user?.name,
+          },
+        });
+      } catch { /* ignored */ }
+    } else {
+      const newBooking = await supabaseBookingsApi.create({
+        // null (not '') when the appointment has no client: the client_id
+        // column is a nullable uuid and '' is not a valid uuid.
+        client_id: data.clientId || null,
+        service_id: data.serviceId || '',
+        user_id: data.barberId || null,
+        booking_date: data.date || '',
+        start_time: `${data.time}:00`,
+        end_time: endTime,
+        status: 'confirmed',
+        source: ((data.source || 'phone').replace('-', '_')) as 'online' | 'phone' | 'walk_in',
+        client_name: data.clientName || '',
+        client_phone: data.clientPhone || '',
+        client_email: data.clientEmail || null,
+        service_name: data.serviceName || '',
+        service_duration: duration,
+        service_price: data.servicePrice || 0,
+        notes: data.notes || null,
+        barber: data.barber || null,
+      });
+
+      try {
+        await notifyBookingUsers({
+          business_id: getBusinessId(),
+          type: 'booking_created',
+          title: `Nueva reserva - ${data.barber || 'Sin asignar'}`,
+          message: `${user?.name || 'Usuario'} creó una cita para ${data.clientName} (${data.serviceName}) con ${data.barber || 'Sin asignar'} el ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
+          barber_user_id: data.barberId || newBooking.user_id,
+          performed_by_user_id: user?.id || '',
+          metadata: {
+            booking_id: newBooking.id,
+            client_name: data.clientName,
+            service_name: data.serviceName,
+            booking_date: data.date,
+            start_time: data.time,
+            created_by: user?.name,
+          },
+        });
+      } catch { /* ignored */ }
+    }
+
+    setEditingBooking(null);
+    invalidateClients();
+    invalidateBookings();
+  };
 
   const handleSaveClient = async (updates: Partial<Client>) => {
     const confirmed = await confirm({
@@ -396,7 +711,7 @@ export default function ClientDetail() {
               <CardTitle className="text-base">
                 Historial de Citas ({clientData.bookings.length} visitas)
               </CardTitle>
-              <Button size="sm" onClick={() => navigate('/calendar')}>
+              <Button size="sm" onClick={openNewBooking} disabled={!isBookingDataReady}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nueva Cita
               </Button>
@@ -406,7 +721,7 @@ export default function ClientDetail() {
                 <div className="text-center py-12">
                   <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">Sin citas todavía</p>
-                  <Button variant="outline" className="mt-4" onClick={() => navigate('/calendar')}>
+                  <Button variant="outline" className="mt-4" onClick={openNewBooking} disabled={!isBookingDataReady}>
                     Reservar Primera Cita
                   </Button>
                 </div>
@@ -414,10 +729,26 @@ export default function ClientDetail() {
                 <div className="space-y-4">
                   {clientData.bookings.map((booking) => {
                     const status = statusConfig[booking.status] || { label: booking.status, class: 'bg-muted text-muted-foreground' };
+                    const isOpeningBooking = openingBookingId === booking.id;
                     return (
                       <div
                         key={booking.id}
-                        className="flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Ver detalles de la cita de ${booking.serviceName}`}
+                        aria-busy={isOpeningBooking}
+                        onClick={() => handleBookingClick(booking.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleBookingClick(booking.id);
+                          }
+                        }}
+                        className={cn(
+                          'flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                          isOpeningBooking && 'opacity-70'
+                        )}
                       >
                         <div className="w-12 h-12 shrink-0 rounded-lg bg-card flex flex-col items-center justify-center border border-border">
                           <span className="text-xs text-muted-foreground">
@@ -447,8 +778,13 @@ export default function ClientDetail() {
                             </p>
                           )}
                         </div>
-                        <div className="text-right shrink-0">
+                        <div className="flex items-center gap-1 md:gap-2 shrink-0">
                           <p className="font-bold">€{Number(booking.servicePrice).toFixed(2)}</p>
+                          {isOpeningBooking ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          )}
                         </div>
                       </div>
                     );
@@ -466,6 +802,53 @@ export default function ClientDetail() {
         onOpenChange={setIsModalOpen}
         client={clientData}
         onSave={handleSaveClient}
+      />
+
+      {/* Booking Detail Modal (opened from the appointment history) */}
+      <BookingDetailModal
+        booking={selectedApiBooking}
+        open={isBookingDetailOpen}
+        onClose={closeBookingDetail}
+        onStatusChange={handleBookingStatusChange}
+        onPaymentChange={handleBookingPaymentChange}
+        onEdit={handleBookingEdit}
+        onDelete={handleBookingDelete}
+      />
+
+      {/* Booking Modal: create with this client + last service/barber
+          preselected, or edit an existing appointment */}
+      <BookingModal
+        open={isBookingModalOpen}
+        onOpenChange={(open) => {
+          setIsBookingModalOpen(open);
+          if (!open) setEditingBooking(null);
+        }}
+        booking={editingBooking ? {
+          id: editingBooking.id,
+          clientId: editingBooking.client_id,
+          clientName: editingBooking.client_name,
+          clientPhone: editingBooking.client_phone,
+          clientEmail: editingBooking.client_email || '',
+          serviceId: editingBooking.service_id,
+          serviceName: editingBooking.service_name,
+          serviceDuration: editingBooking.service_duration,
+          servicePrice: editingBooking.service_price,
+          barber: editingBooking.barber,
+          date: editingBooking.booking_date,
+          time: editingBooking.start_time.substring(0, 5),
+          endTime: editingBooking.end_time.substring(0, 5),
+          status: editingBooking.status.replace('_', '-') as BookingStatus,
+          source: editingBooking.source.replace('_', '-') as BookingSource,
+          notes: editingBooking.notes || '',
+          createdAt: editingBooking.created_at,
+        } : null}
+        clients={allClients}
+        services={services}
+        barbers={barbers}
+        onSave={handleSaveBooking}
+        preselectedClientId={clientData.id}
+        preselectedServiceId={preselectedServiceId}
+        preselectedBarberId={preselectedBarberId}
       />
 
       {/* Generic Confirmation Dialog */}

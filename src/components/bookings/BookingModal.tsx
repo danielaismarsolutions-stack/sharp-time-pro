@@ -50,6 +50,12 @@ interface BookingModalProps {
   isSlotCreation?: boolean;
   /** Barber name from the calendar filter (null = "Todos") */
   preselectedBarberName?: string | null;
+  /** Client to preselect when creating (e.g. from the client profile) */
+  preselectedClientId?: string;
+  /** Service to preselect when creating (e.g. the client's last service) */
+  preselectedServiceId?: string;
+  /** Barber to preselect when creating outside the calendar slot flow */
+  preselectedBarberId?: string;
 }
 
 // Day of week mapping for schedule lookup
@@ -155,6 +161,9 @@ export default function BookingModal({
   selectedTime,
   isSlotCreation = false,
   preselectedBarberName,
+  preselectedClientId,
+  preselectedServiceId,
+  preselectedBarberId,
 }: BookingModalProps) {
   const { toast } = useToast();
   const staffTerms = useStaffTerms();
@@ -346,16 +355,46 @@ export default function BookingModal({
       });
     } else {
       setDate(selectedDate || new Date());
-      // Pre-select barber when creating from a slot drag
-      let preselectedBarberId = '';
+      // Pre-select barber: from the slot drag column, or from an explicit id
+      // (e.g. the client's last barber when creating from their profile).
+      let initialBarberId = '';
       if (isSlotCreation && preselectedBarberName) {
         const found = barbers.find((b) => b.name === preselectedBarberName);
-        if (found) preselectedBarberId = found.id;
+        if (found) initialBarberId = found.id;
+      } else if (preselectedBarberId && barbers.some((b) => b.id === preselectedBarberId)) {
+        initialBarberId = preselectedBarberId;
       }
+
+      // Pre-select service (e.g. the client's last service). Only active
+      // services are offered in the picker, so ignore anything else.
+      let initialServiceId = '';
+      if (preselectedServiceId) {
+        const service = services.find((s) => s.id === preselectedServiceId && s.isActive);
+        if (service) {
+          initialServiceId = service.id;
+          // Drop the barber if they are not assigned to this service, matching
+          // the validation applied when the user picks a service manually.
+          const validBarberIds = service.barberIds;
+          if (
+            initialBarberId &&
+            validBarberIds &&
+            validBarberIds.length > 0 &&
+            !validBarberIds.includes(initialBarberId)
+          ) {
+            initialBarberId = '';
+          }
+        }
+      }
+
+      const initialClientId =
+        preselectedClientId && clients.some((c) => c.id === preselectedClientId)
+          ? preselectedClientId
+          : '';
+
       setFormData({
-        clientId: '',
-        serviceId: '',
-        barberId: preselectedBarberId,
+        clientId: initialClientId,
+        serviceId: initialServiceId,
+        barberId: initialBarberId,
         time: selectedTime || '',
         endTime: '',
         status: 'confirmed',
@@ -363,12 +402,12 @@ export default function BookingModal({
         notes: '',
       });
     }
-    // `clients` is intentionally omitted: it is read only to resolve the
-    // preselected client on open. Including it would re-run this effect (and
-    // wipe in-progress edits) whenever the list changes, e.g. after creating
-    // a client inline.
+    // `clients` and `services` are intentionally omitted: they are read only
+    // to resolve the preselected client/service on open. Including them would
+    // re-run this effect (and wipe in-progress edits) whenever the lists
+    // change, e.g. after creating a client inline.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [booking, selectedDate, selectedTime, isSlotCreation, preselectedBarberName, open, barbers]);
+  }, [booking, selectedDate, selectedTime, isSlotCreation, preselectedBarberName, preselectedClientId, preselectedServiceId, preselectedBarberId, open, barbers]);
 
   // Reset time when date or barber changes (only for new bookings via + button)
   useEffect(() => {
