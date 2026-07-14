@@ -19,6 +19,7 @@ import {
   Moon,
   Sun,
   Check,
+  Languages,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,6 +58,8 @@ import { notifyAllAdmins } from '@/services/supabaseNotifications';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useBusinessBrand } from '@/contexts/BusinessBrandContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { translate, type Language } from '@/i18n';
 
 const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const dayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -72,6 +75,25 @@ export default function Settings() {
   const defaultTab = isAdmin ? 'business' : 'notifications';
   const { brand, updateLogoUrl } = useBusinessBrand();
   const { theme, setTheme } = useTheme();
+  const { language, setLanguage, isSavingLanguage, t } = useLanguage();
+
+  const handleLanguageChange = async (next: Language) => {
+    if (next === language || isSavingLanguage) return;
+    try {
+      await setLanguage(next);
+      // Use the new language explicitly: the `t` in this closure is stale.
+      toast({
+        title: translate(next, 'settings.language.changed'),
+        description: translate(next, 'settings.language.changedDescription'),
+      });
+    } catch {
+      toast({
+        title: translate(language, 'common.error'),
+        description: translate(language, 'settings.language.changeError'),
+        variant: 'destructive',
+      });
+    }
+  };
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1258,6 +1280,58 @@ export default function Settings() {
                   );
                 })}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border mt-4 md:mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Languages className="h-5 w-5" />
+                {t('settings.language.title')}
+              </CardTitle>
+              <CardDescription>{t('settings.language.description')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md">
+                {([
+                  { value: 'es', label: t('settings.language.spanish'), description: t('settings.language.spanishDescription'), flag: '🇪🇸' },
+                  { value: 'en', label: t('settings.language.english'), description: t('settings.language.englishDescription'), flag: '🇬🇧' },
+                ] as const).map((option) => {
+                  const isSelected = language === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => handleLanguageChange(option.value)}
+                      disabled={!isAdmin || isSavingLanguage}
+                      aria-pressed={isSelected}
+                      className={`relative flex items-center gap-3 rounded-lg border p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                        isSelected
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          : 'border-border hover:bg-accent'
+                      }`}
+                    >
+                      <span
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-xl ${
+                          isSelected ? 'bg-primary/10' : 'bg-muted'
+                        }`}
+                      >
+                        {option.flag}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block font-medium">{option.label}</span>
+                        <span className="block text-sm text-muted-foreground">{option.description}</span>
+                      </span>
+                      {isSelected && (
+                        <Check className="absolute top-3 right-3 h-4 w-4 text-primary" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {!isAdmin && (
+                <p className="text-sm text-muted-foreground">{t('settings.language.adminOnly')}</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
