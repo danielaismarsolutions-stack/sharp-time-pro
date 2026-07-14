@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Client } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface ClientModalProps {
   open: boolean;
@@ -27,6 +28,7 @@ export default function ClientModal({
   onSave,
 }: ClientModalProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
   const [formData, setFormData] = useState({
@@ -83,8 +85,8 @@ export default function ClientModal({
     e.preventDefault();
     if (!formData.name || !formData.phone) {
       toast({
-        title: 'Campos incompletos',
-        description: 'El nombre y teléfono son obligatorios',
+        title: t('clients.modal.incompleteFieldsTitle'),
+        description: t('clients.modal.incompleteFieldsDescription'),
         variant: 'destructive',
       });
       return;
@@ -102,8 +104,8 @@ export default function ClientModal({
       onOpenChange(false);
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'No se pudo guardar el cliente',
+        title: t('common.error'),
+        description: t('clients.modal.saveFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -122,7 +124,7 @@ export default function ClientModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-1.5">
             <User className="h-4 w-4 text-primary" />
-            {client ? 'Editar Cliente' : 'Nuevo Cliente'}
+            {client ? t('clients.modal.editTitle') : t('clients.modal.newTitle')}
           </DialogTitle>
         </DialogHeader>
 
@@ -130,12 +132,12 @@ export default function ClientModal({
           <div className="space-y-1">
             <Label className="flex items-center gap-1.5 text-xs">
               <User className="h-3 w-3" />
-              Nombre completo *
+              {t('common.fullName')} *
             </Label>
             <Input
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Juan García"
+              placeholder={t('clients.modal.namePlaceholder')}
               className="h-8 min-h-[40px] md:min-h-0 text-xs"
             />
           </div>
@@ -143,12 +145,12 @@ export default function ClientModal({
           <div className="space-y-1">
             <Label className="flex items-center gap-1.5 text-xs">
               <Phone className="h-3 w-3" />
-              Teléfono *
+              {t('common.phone')} *
             </Label>
             <Input
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="+34 612 345 678"
+              placeholder={t('clients.modal.phonePlaceholder')}
               className="h-8 min-h-[40px] md:min-h-0 text-xs"
             />
           </div>
@@ -156,13 +158,13 @@ export default function ClientModal({
           <div className="space-y-1">
             <Label className="flex items-center gap-1.5 text-xs">
               <Mail className="h-3 w-3" />
-              Correo electrónico
+              {t('clients.modal.emailLabel')}
             </Label>
             <Input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="juan@ejemplo.com"
+              placeholder={t('clients.modal.emailPlaceholder')}
               className="h-8 min-h-[40px] md:min-h-0 text-xs"
             />
           </div>
@@ -170,12 +172,12 @@ export default function ClientModal({
           <div className="space-y-1">
             <Label className="flex items-center gap-1.5 text-xs">
               <MessageSquare className="h-3 w-3" />
-              Notas
+              {t('common.notes')}
             </Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Preferencias, alergias, solicitudes especiales..."
+              placeholder={t('clients.modal.notesPlaceholder')}
               rows={2}
               className="text-xs"
             />
@@ -183,10 +185,10 @@ export default function ClientModal({
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" size="sm" className="text-xs h-8 min-h-[40px] md:min-h-0" onClick={() => onOpenChange(false)}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button type="submit" size="sm" className="text-xs h-8 min-h-[40px] md:min-h-0" disabled={isLoading}>
-              {isLoading ? 'Guardando...' : client ? 'Actualizar' : 'Crear Cliente'}
+              {isLoading ? t('common.saving') : client ? t('common.update') : t('clients.modal.createClient')}
             </Button>
           </div>
         </form>

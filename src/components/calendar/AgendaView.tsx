@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { format, addDays } from 'date-fns';
-import { es } from 'date-fns/locale';
+import type { Locale } from 'date-fns';
 import { Eye } from 'lucide-react';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { getBarberPastelColorByName, getBarberHexColor, DEFAULT_EVENT_HEX, useBarberColorVersion } from './shared/colorUtils';
 
 interface AgendaViewProps {
@@ -31,10 +32,10 @@ function formatTime12h(time: string): string {
   return `${displayHour}:${minutes.toString().padStart(2, '0')}${period}`;
 }
 
-// Format date header in Spanish
-function formatDateHeader(date: Date): string {
-  // "Lunes, 2 de febrero" format
-  return format(date, "EEEE, d 'de' MMMM", { locale: es });
+// Format date header in the active language
+function formatDateHeader(date: Date, pattern: string, locale: Locale): string {
+  // e.g. "Lunes, 2 de febrero"
+  return format(date, pattern, { locale });
 }
 
 export function AgendaView({
@@ -46,6 +47,7 @@ export function AgendaView({
   getEventsForDay,
   onEventClick,
 }: AgendaViewProps) {
+  const { t, dateLocale, intlLocale } = useTranslation();
   // Subscribe to per-barber color overrides so the cards re-render when
   // an admin changes a barber's color.
   useBarberColorVersion();
@@ -92,13 +94,13 @@ export function AgendaView({
           <div key={group.dateStr} className="px-4 py-3">
             {/* Date Header */}
             <h3 className="text-base font-normal text-foreground capitalize mb-3">
-              {formatDateHeader(group.date)}
+              {formatDateHeader(group.date, t('calendar.dateFormats.weekdayDayMonth'), dateLocale)}
             </h3>
 
             {/* Appointments & Events or Empty State */}
             {group.bookings.length === 0 && (!getEventsForDay || getEventsForDay(group.date).length === 0) ? (
               <p className="text-sm text-muted-foreground italic pl-1">
-                Nada planificado
+                {t('calendar.emptyState.nothingPlanned')}
               </p>
             ) : (
               <div className="space-y-2">
@@ -128,10 +130,10 @@ export function AgendaView({
       >
         <div className="flex items-center gap-2 text-muted-foreground">
           <Eye className="h-4 w-4" />
-          <span className="text-sm">Ingresos de los próximos 7 días</span>
+          <span className="text-sm">{t('calendar.agenda.weeklyIncome')}</span>
         </div>
         <span className="text-base font-semibold text-foreground">
-          {new Intl.NumberFormat('es-ES', {
+          {new Intl.NumberFormat(intlLocale, {
             style: 'currency',
             currency: 'EUR',
           }).format(weeklyIncome)}

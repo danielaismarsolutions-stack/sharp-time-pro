@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Bell, Search, Command, Check, Trash2, Settings, HelpCircle, User, Loader2, Menu, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +25,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useBusinessBrand } from '@/contexts/BusinessBrandContext';
+import { useTranslation } from '@/contexts/LanguageContext';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 
 interface TopBarProps {
@@ -37,6 +37,7 @@ interface TopBarProps {
 export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarProps) {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const { user, logout, isAdmin } = useAuth();
+  const { t, dateLocale } = useTranslation();
   const { brand } = useBusinessBrand();
   const navigate = useNavigate();
   const { 
@@ -76,7 +77,7 @@ export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarPr
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar clientes, reservas..."
+              placeholder={t('nav.searchPlaceholder')}
               className="pl-9 pr-12 h-10 bg-muted/50 border-transparent focus:border-border focus:bg-background"
               onClick={onSearchOpen}
               readOnly
@@ -92,8 +93,8 @@ export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarPr
       <div className="flex items-center gap-2 md:gap-4">
         {/* Current date/time - hidden on mobile */}
         <div className="hidden md:block text-right">
-          <p className="text-sm font-medium capitalize">{format(new Date(), 'EEEE', { locale: es })}</p>
-          <p className="text-xs text-muted-foreground">{format(new Date(), "d 'de' MMM yyyy", { locale: es })}</p>
+          <p className="text-sm font-medium capitalize">{format(new Date(), 'EEEE', { locale: dateLocale })}</p>
+          <p className="text-xs text-muted-foreground">{format(new Date(), t('nav.headerDateFormat'), { locale: dateLocale })}</p>
         </div>
 
         {/* Notifications */}
@@ -114,7 +115,7 @@ export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarPr
           <DropdownMenuContent align="end" className="w-80 max-w-[calc(100vw-2rem)]">
             <div className="flex items-center justify-between px-2">
               <DropdownMenuLabel className="flex items-center gap-2">
-                Notificaciones
+                {t('notifications.title')}
                 {isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
               </DropdownMenuLabel>
               {notifications.length > 0 && (
@@ -130,7 +131,7 @@ export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarPr
                       }}
                     >
                       <Check className="h-3 w-3 mr-1" />
-                      Marcar leídas
+                      {t('notifications.markAllRead')}
                     </Button>
                   )}
                   <Button
@@ -151,7 +152,7 @@ export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarPr
             <ScrollArea className="h-[300px]">
               {notifications.length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground text-sm">
-                  {isLoading ? 'Cargando...' : 'No hay notificaciones'}
+                  {isLoading ? t('common.loading') : t('notifications.empty')}
                 </div>
               ) : (
                 notifications.map((notif) => {
@@ -223,7 +224,7 @@ export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarPr
                 onClick={() => navigate('/settings')}
               >
                 <Settings className="h-4 w-4 mr-2" />
-                Ajustes
+                {t('nav.settings')}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
@@ -231,25 +232,25 @@ export default function TopBar({ onSearchOpen, isMobile, onMenuClick }: TopBarPr
               onClick={() => navigate('/settings?tab=account')}
             >
               <User className="h-4 w-4 mr-2" />
-              Mi perfil
+              {t('nav.myProfile')}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="min-h-[44px] cursor-pointer"
               onClick={() => setChangePasswordOpen(true)}
             >
               <KeyRound className="h-4 w-4 mr-2" />
-              Cambiar contraseña
+              {t('auth.changePasswordTitle')}
             </DropdownMenuItem>
             <DropdownMenuItem className="min-h-[44px] cursor-pointer">
               <HelpCircle className="h-4 w-4 mr-2" />
-              Ayuda y soporte
+              {t('nav.helpSupport')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={logout} 
               className="text-destructive focus:text-destructive min-h-[44px] cursor-pointer"
             >
-              Cerrar sesión
+              {t('auth.signOut')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

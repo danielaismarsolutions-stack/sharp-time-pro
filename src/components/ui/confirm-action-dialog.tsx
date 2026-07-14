@@ -1,5 +1,6 @@
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
 import type { ConfirmActionDialogProps } from '@/hooks/useConfirmAction';
 import {
   AlertDialog,
@@ -16,12 +17,14 @@ export function ConfirmActionDialog({
   open,
   title,
   description,
-  confirmLabel = 'Confirmar',
-  cancelLabel = 'Cancelar',
+  confirmLabel,
+  cancelLabel,
   variant = 'default',
   onConfirm,
   onCancel,
 }: ConfirmActionDialogProps) {
+  const { t } = useTranslation();
+
   return (
     <AlertDialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onCancel(); }}>
       <AlertDialogContent className="max-w-[360px] sm:max-w-md p-0 overflow-hidden">
@@ -44,7 +47,7 @@ export function ConfirmActionDialog({
             onClick={onCancel}
             className="flex-1 h-11 text-sm font-medium mt-0"
           >
-            {cancelLabel}
+            {cancelLabel ?? t('common.cancel')}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
@@ -55,7 +58,7 @@ export function ConfirmActionDialog({
                 : 'bg-primary hover:bg-primary/90'
             )}
           >
-            {confirmLabel}
+            {confirmLabel ?? t('common.confirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

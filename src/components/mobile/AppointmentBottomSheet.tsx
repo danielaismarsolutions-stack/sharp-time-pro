@@ -13,6 +13,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { StatusBadge, BookingStatus } from '@/components/calendar/StatusBadge';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
+import type { TranslationKey } from '@/i18n';
 
 export type AppointmentAction = 
   | 'edit' 
@@ -39,22 +41,23 @@ interface AppointmentBottomSheetProps {
   onAction: (action: AppointmentAction, appointmentId: string) => void;
 }
 
-const actionButtons = [
-  { action: 'edit' as const, icon: Edit, label: 'Editar', color: 'text-blue-400' },
-  { action: 'reschedule' as const, icon: Calendar, label: 'Reagendar', color: 'text-purple-400' },
-  { action: 'message' as const, icon: MessageCircle, label: 'Mensaje', color: 'text-green-400' },
-  { action: 'complete' as const, icon: Check, label: 'Completar', color: 'text-emerald-400' },
-  { action: 'call' as const, icon: Phone, label: 'Llamar', color: 'text-cyan-400' },
-  { action: 'view-client' as const, icon: User, label: 'Ver cliente', color: 'text-amber-400' },
+const actionButtons: { action: AppointmentAction; icon: typeof Edit; labelKey: TranslationKey; color: string }[] = [
+  { action: 'edit', icon: Edit, labelKey: 'common.edit', color: 'text-blue-400' },
+  { action: 'reschedule', icon: Calendar, labelKey: 'bookings.actions.reschedule', color: 'text-purple-400' },
+  { action: 'message', icon: MessageCircle, labelKey: 'bookings.actions.message', color: 'text-green-400' },
+  { action: 'complete', icon: Check, labelKey: 'bookings.actions.complete', color: 'text-emerald-400' },
+  { action: 'call', icon: Phone, labelKey: 'bookings.actions.call', color: 'text-cyan-400' },
+  { action: 'view-client', icon: User, labelKey: 'bookings.actions.viewClient', color: 'text-amber-400' },
 ];
 
 export function AppointmentBottomSheet({ 
   isOpen, 
   onClose, 
   appointment, 
-  onAction 
+  onAction
 }: AppointmentBottomSheetProps) {
-  
+  const { t } = useTranslation();
+
   const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // Close if dragged down more than 100px or with velocity
     if (info.offset.y > 100 || info.velocity.y > 500) {
@@ -168,7 +171,7 @@ export function AppointmentBottomSheet({
 
               {/* Actions Grid */}
               <div className="grid grid-cols-3 gap-3 mb-6">
-                {actionButtons.map(({ action, icon: Icon, label, color }) => (
+                {actionButtons.map(({ action, icon: Icon, labelKey, color }) => (
                   <button
                     key={action}
                     onClick={() => handleAction(action)}
@@ -181,7 +184,7 @@ export function AppointmentBottomSheet({
                   >
                     <Icon className={cn("w-6 h-6", color)} />
                     <span className="text-xs font-medium text-foreground">
-                      {label}
+                      {t(labelKey)}
                     </span>
                   </button>
                 ))}
@@ -198,7 +201,7 @@ export function AppointmentBottomSheet({
                   "active:scale-[0.98] transition-all"
                 )}
               >
-                Cancelar cita
+                {t('bookings.actions.cancelAppointment')}
               </Button>
             </div>
           </motion.div>

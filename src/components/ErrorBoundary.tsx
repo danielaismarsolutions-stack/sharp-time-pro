@@ -1,4 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+// Class components cannot use hooks — use the global translator (active language).
+import { t } from '@/i18n';
 
 interface Props {
   children: ReactNode;
@@ -47,10 +49,10 @@ export default class ErrorBoundary extends Component<Props, State> {
         <div className="flex flex-1 items-center justify-center p-8">
           <div className="max-w-md text-center">
             <h2 className="mb-2 text-xl font-semibold text-foreground">
-              Algo salió mal
+              {t('nav.errorTitle')}
             </h2>
             <p className="mb-4 text-sm text-muted-foreground">
-              Ocurrió un error inesperado en esta sección.
+              {t('nav.errorSectionMessage')}
             </p>
             {this.state.error && (
               <p className="mb-4 rounded bg-muted p-2 text-xs text-muted-foreground font-mono break-all">
@@ -62,13 +64,13 @@ export default class ErrorBoundary extends Component<Props, State> {
                 onClick={this.handleRetry}
                 className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               >
-                Reintentar
+                {t('common.retry')}
               </button>
               <button
                 onClick={this.handleGoHome}
                 className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
               >
-                Ir al inicio
+                {t('nav.goHome')}
               </button>
             </div>
           </div>
@@ -81,10 +83,10 @@ export default class ErrorBoundary extends Component<Props, State> {
         <div className="max-w-md text-center">
           <h1 className="mb-2 text-4xl font-bold text-foreground">Error</h1>
           <h2 className="mb-2 text-xl font-semibold text-foreground">
-            Algo salió mal
+            {t('nav.errorTitle')}
           </h2>
           <p className="mb-4 text-muted-foreground">
-            Ocurrió un error inesperado. Por favor, recarga la página.
+            {t('nav.errorPageMessage')}
           </p>
           {this.state.error && (
             <p className="mb-6 rounded bg-background p-3 text-xs text-muted-foreground font-mono break-all">
@@ -96,13 +98,13 @@ export default class ErrorBoundary extends Component<Props, State> {
               onClick={this.handleReload}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
-              Recargar página
+              {t('nav.reloadPage')}
             </button>
             <button
               onClick={this.handleGoHome}
               className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
             >
-              Ir al inicio
+              {t('nav.goHome')}
             </button>
           </div>
         </div>

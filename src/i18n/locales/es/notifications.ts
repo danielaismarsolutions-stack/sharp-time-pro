@@ -1,3 +1,6 @@
 export const notifications = {
-  // Las claves de este namespace se rellenan durante la traducción por dominios.
+  title: 'Notificaciones',
+  markAllRead: 'Marcar leídas',
+  empty: 'No hay notificaciones',
+  loadError: 'Error al cargar notificaciones',
 } as const;

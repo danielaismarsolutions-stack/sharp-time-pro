@@ -2,9 +2,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Barber, DAY_NAMES } from '@/types/barber';
+import { Barber, DAY_NAME_KEYS } from '@/types/barber';
 import { Edit, Calendar, Mail, Phone, Clock, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface BarberCardProps {
   barber: Barber;
@@ -13,6 +14,7 @@ interface BarberCardProps {
 }
 
 export default function BarberCard({ barber, onEdit, onManageSchedule }: BarberCardProps) {
+  const { t } = useTranslation();
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -25,7 +27,7 @@ export default function BarberCard({ barber, onEdit, onManageSchedule }: BarberC
   const getWorkingDays = () => {
     const days = Object.entries(barber.schedule)
       .filter(([_, schedule]) => schedule.enabled)
-      .map(([day]) => DAY_NAMES[day as keyof typeof DAY_NAMES].slice(0, 3));
+      .map(([day]) => t(DAY_NAME_KEYS[day as keyof typeof DAY_NAME_KEYS]).slice(0, 3));
     return days.join(', ');
   };
 
@@ -70,7 +72,7 @@ export default function BarberCard({ barber, onEdit, onManageSchedule }: BarberC
                     </Badge>
                   )}
                   {!barber.is_active && (
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Inactivo</Badge>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{t('barbers.card.inactive')}</Badge>
                   )}
                 </div>
 
@@ -100,11 +102,11 @@ export default function BarberCard({ barber, onEdit, onManageSchedule }: BarberC
             <div className="flex items-center justify-between px-3 py-2 bg-muted/50 rounded-lg text-sm">
               <span className="flex items-center gap-1.5 text-muted-foreground">
                 <Calendar className="h-4 w-4" />
-                <span className="font-medium">{getWorkingDays() || 'Sin días'}</span>
+                <span className="font-medium">{getWorkingDays() || t('barbers.card.noDays')}</span>
               </span>
               <span className="flex items-center gap-1.5 text-muted-foreground">
                 <Clock className="h-4 w-4" />
-                <span className="font-medium">{getTotalHours()}h/sem</span>
+                <span className="font-medium">{t('barbers.card.hoursPerWeekShort', { hours: getTotalHours() })}</span>
               </span>
             </div>
 
@@ -117,7 +119,7 @@ export default function BarberCard({ barber, onEdit, onManageSchedule }: BarberC
                 onClick={onEdit}
               >
                 <Edit className="h-4 w-4 mr-2" />
-                Editar Perfil
+                {t('barbers.card.editProfile')}
               </Button>
               <Button 
                 variant="default"
@@ -126,7 +128,7 @@ export default function BarberCard({ barber, onEdit, onManageSchedule }: BarberC
                 onClick={onManageSchedule}
               >
                 <Calendar className="h-4 w-4 mr-2" />
-                Horario
+                {t('barbers.card.schedule')}
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
@@ -150,7 +152,7 @@ export default function BarberCard({ barber, onEdit, onManageSchedule }: BarberC
                   </Badge>
                 )}
                 {!barber.is_active && (
-                  <Badge variant="secondary" className="text-xs">Inactivo</Badge>
+                  <Badge variant="secondary" className="text-xs">{t('barbers.card.inactive')}</Badge>
                 )}
               </div>
 
@@ -176,11 +178,11 @@ export default function BarberCard({ barber, onEdit, onManageSchedule }: BarberC
               <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3.5 w-3.5" />
-                  {getWorkingDays() || 'Sin días'}
+                  {getWorkingDays() || t('barbers.card.noDays')}
                 </span>
                 <span className="flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" />
-                  {getTotalHours()}h/semana
+                  {t('barbers.card.hoursPerWeek', { hours: getTotalHours() })}
                 </span>
               </div>
             </div>
@@ -188,11 +190,11 @@ export default function BarberCard({ barber, onEdit, onManageSchedule }: BarberC
             <div className="flex flex-col gap-2">
               <Button variant="outline" size="sm" onClick={onEdit}>
                 <Edit className="h-4 w-4 mr-1" />
-                Editar
+                {t('common.edit')}
               </Button>
               <Button variant="ghost" size="sm" onClick={onManageSchedule}>
                 <Calendar className="h-4 w-4 mr-1" />
-                Horario
+                {t('barbers.card.schedule')}
               </Button>
             </div>
           </div>

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown, Check } from 'lucide-react';
 import { ConsultationStatus, STATUS_CONFIG } from '@/types/consultation';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface StatusDropdownProps {
   currentStatus: ConsultationStatus;
@@ -18,11 +19,12 @@ interface StatusDropdownProps {
 const statuses: ConsultationStatus[] = ['new', 'contacted', 'scheduled', 'completed', 'cancelled'];
 
 export function StatusDropdown({ currentStatus, onStatusChange, disabled }: StatusDropdownProps) {
+  const { t } = useTranslation();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" disabled={disabled} className="gap-1 min-h-[40px] md:min-h-0">
-          Estado
+          {t('common.status')}
           <ChevronDown className="h-3 w-3" />
         </Button>
       </DropdownMenuTrigger>
@@ -47,7 +49,7 @@ export function StatusDropdown({ currentStatus, onStatusChange, disabled }: Stat
                   status === 'cancelled' && 'bg-gray-400'
                 )}
               />
-              {config.label}
+              {t(config.labelKey)}
               {isActive && <Check className="h-4 w-4 ml-auto" />}
             </DropdownMenuItem>
           );

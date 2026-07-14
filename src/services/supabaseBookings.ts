@@ -4,6 +4,7 @@
 import { SUPABASE_CONFIG } from '@/config/api';
 import { getAuthHeaders } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
+import { t } from '@/i18n';
 import { ApiBooking, ApiBookingStatus, ApiBookingSource, ApiBookingType, ApiPaymentStatus, ApiPaymentMethod } from '@/types/api';
 
 // ==================== Types ====================
@@ -384,20 +385,20 @@ export function normalizeTime(time: string): string {
 
 export function validateEventData(data: CreateEventBookingData): string | null {
   if (!data.event_name?.trim()) {
-    return 'El nombre del evento es requerido';
+    return t('bookings.events.nameRequired');
   }
   if (!data.booking_date) {
-    return 'La fecha es requerida';
+    return t('bookings.events.dateRequired');
   }
   if (!data.start_time || !data.end_time) {
-    return 'Las horas de inicio y fin son requeridas';
+    return t('bookings.events.timesRequired');
   }
 
   const startTime = normalizeTime(data.start_time);
   const endTime = normalizeTime(data.end_time);
 
   if (startTime >= endTime) {
-    return 'La hora de inicio debe ser anterior a la hora de fin';
+    return t('bookings.events.startBeforeEnd');
   }
 
   // Compare as local YYYY-MM-DD strings — new Date('YYYY-MM-DD') parses as
@@ -409,7 +410,7 @@ export function validateEventData(data: CreateEventBookingData): string | null {
     String(now.getDate()).padStart(2, '0'),
   ].join('-');
   if (data.booking_date < todayStr) {
-    return 'No se pueden crear eventos en fechas pasadas';
+    return t('bookings.events.noPastDates');
   }
 
   return null;
@@ -484,7 +485,7 @@ export const supabaseEventBookingsApi = {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error('No se pudo crear el evento. Inténtalo de nuevo.');
+      throw new Error(t('bookings.events.createError'));
     }
 
     const rows: DbBooking[] = await response.json();
@@ -500,7 +501,7 @@ export const supabaseEventBookingsApi = {
       const startTime = normalizeTime(data.start_time);
       const endTime = normalizeTime(data.end_time);
       if (startTime >= endTime) {
-        throw new Error('La hora de inicio debe ser anterior a la hora de fin');
+        throw new Error(t('bookings.events.startBeforeEnd'));
       }
     }
 
@@ -534,11 +535,11 @@ export const supabaseEventBookingsApi = {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error('No se pudo actualizar el evento.');
+      throw new Error(t('bookings.events.updateError'));
     }
 
     const rows: DbBooking[] = await response.json();
-    if (rows.length === 0) throw new Error('Evento no encontrado');
+    if (rows.length === 0) throw new Error(t('bookings.events.notFound'));
 
     return mapDbToApiBooking(rows[0]);
   },
@@ -558,7 +559,7 @@ export const supabaseEventBookingsApi = {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error('No se pudo eliminar el evento.');
+      throw new Error(t('bookings.events.deleteError'));
     }
 
   },

@@ -1,3 +1,5 @@
+import { t } from '@/i18n';
+
 export interface ValidationError {
   field: 'type' | 'size';
   message: string;
@@ -20,7 +22,7 @@ export const imageValidation = {
       if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
         return {
           field: 'type',
-          message: 'Formato no permitido. Usa JPG, PNG o WebP',
+          message: t('nav.imageInvalidFormat'),
         };
       }
     }
@@ -30,7 +32,7 @@ export const imageValidation = {
       const sizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
       return {
         field: 'size',
-        message: `La imagen debe ser menor a ${sizeMB}MB`,
+        message: t('nav.imageTooLarge', { size: sizeMB }),
       };
     }
 

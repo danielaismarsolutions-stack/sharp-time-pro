@@ -155,10 +155,24 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
+// Fallback for components rendered outside the provider (e.g. unit tests):
+// Spanish defaults, saving is a no-op. Keeps rendering robust instead of throwing.
+const FALLBACK_CONTEXT: LanguageContextType = {
+  language: 'es',
+  setLanguage: async () => {},
+  isSavingLanguage: false,
+  t: (key, params) => translate('es', key, params),
+  dateLocale: getDateFnsLocale('es'),
+  intlLocale: getIntlLocale('es'),
+};
+
 export function useLanguage(): LanguageContextType {
   const context = useContext(LanguageContext);
   if (context === undefined) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
+    if (import.meta.env.DEV) {
+      console.warn('useLanguage used outside LanguageProvider — falling back to Spanish defaults');
+    }
+    return FALLBACK_CONTEXT;
   }
   return context;
 }

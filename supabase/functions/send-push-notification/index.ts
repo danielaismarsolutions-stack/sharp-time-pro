@@ -303,7 +303,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { user_id, title, message, url } = await req.json();
+    const { user_id, title, message, url, lang } = await req.json();
 
     if (!user_id || !title) {
       return new Response(JSON.stringify({ error: "user_id and title are required" }), {
@@ -339,7 +339,13 @@ Deno.serve(async (req) => {
     }
 
     // Send push to all subscriptions
-    const payload = { title, body: message || "", url: url || "/" };
+    const payload = {
+      title,
+      body: message || "",
+      url: url || "/",
+      // Idioma del negocio para que el service worker localice sus textos
+      lang: lang === "en" ? "en" : "es",
+    };
     const results = await Promise.allSettled(
       subscriptions.map((sub) => sendPushToSubscription(sub, payload))
     );

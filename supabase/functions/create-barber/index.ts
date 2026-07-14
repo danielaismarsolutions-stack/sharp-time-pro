@@ -13,17 +13,85 @@ function jsonResponse(status: number, body: Record<string, unknown>) {
   });
 }
 
+type Language = "es" | "en";
+
+// El frontend envía ?lang=en|es (idioma del negocio). Sin parámetro → 'es'
+// para mantener el comportamiento histórico.
+function resolveLanguage(req: Request): Language {
+  try {
+    const lang = new URL(req.url).searchParams.get("lang");
+    return lang === "en" ? "en" : "es";
+  } catch {
+    return "es";
+  }
+}
+
+const MESSAGES: Record<Language, {
+  authRequired: string;
+  sessionExpired: string;
+  profileNotFound: string;
+  noPermission: string;
+  missingFields: string;
+  passwordTooShort: string;
+  invalidRole: string;
+  invalidColor: string;
+  wrongBusiness: string;
+  emailExists: string;
+  passwordError: (msg: string) => string;
+  authCreateFailed: string;
+  dbEmailExists: string;
+  dbCreateFailed: string;
+  internal: string;
+}> = {
+  es: {
+    authRequired: "Token de autorización requerido",
+    sessionExpired: "Sesión expirada. Inicia sesión de nuevo.",
+    profileNotFound: "No se encontró tu perfil de usuario",
+    noPermission: "No tienes permisos para crear usuarios",
+    missingFields: "Faltan campos obligatorios: nombre, email y contraseña",
+    passwordTooShort: "La contraseña debe tener al menos 6 caracteres",
+    invalidRole: "El rol debe ser 'barber' o 'admin'",
+    invalidColor: "El color de cita debe ser un valor hexadecimal #RRGGBB",
+    wrongBusiness: "No puedes crear usuarios en otro negocio",
+    emailExists: "Ya existe un usuario con ese email",
+    passwordError: (msg) => `Error en la contraseña: ${msg}`,
+    authCreateFailed: "No se pudo crear el usuario de autenticación",
+    dbEmailExists: "Ya existe un usuario con ese email en el sistema",
+    dbCreateFailed: "No se pudo crear el registro del usuario",
+    internal: "Error interno. Inténtalo de nuevo.",
+  },
+  en: {
+    authRequired: "Authorisation token required",
+    sessionExpired: "Your session has expired. Please sign in again.",
+    profileNotFound: "Your user profile could not be found",
+    noPermission: "You don't have permission to create users",
+    missingFields: "Required fields missing: name, email and password",
+    passwordTooShort: "The password must be at least 6 characters long",
+    invalidRole: "The role must be 'barber' or 'admin'",
+    invalidColor: "The appointment colour must be a #RRGGBB hex value",
+    wrongBusiness: "You can't create users in another business",
+    emailExists: "A user with that email already exists",
+    passwordError: (msg) => `Password error: ${msg}`,
+    authCreateFailed: "The authentication user could not be created",
+    dbEmailExists: "A user with that email already exists in the system",
+    dbCreateFailed: "The user record could not be created",
+    internal: "Internal error. Please try again.",
+  },
+};
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const msg = MESSAGES[resolveLanguage(req)];
+
   try {
     // 1. Extract JWT from Authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return jsonResponse(401, { error: "Token de autorización requerido" });
+      return jsonResponse(401, { error: msg.authRequired });
     }
     const token = authHeader.replace("Bearer ", "");
 
@@ -41,7 +109,7 @@ Deno.serve(async (req) => {
 
     if (authErr || !authCaller) {
       return jsonResponse(401, {
-        error: "Sesión expirada. Inicia sesión de nuevo.",
+        error: msg.sessionExpired,
       });
     }
 
@@ -54,13 +122,13 @@ Deno.serve(async (req) => {
 
     if (profileErr || !callerProfile) {
       return jsonResponse(403, {
-        error: "No se encontró tu perfil de usuario",
+        error: msg.profileNotFound,
       });
     }
 
     if (!["owner", "admin"].includes(callerProfile.role)) {
       return jsonResponse(403, {
-        error: "No tienes permisos para crear usuarios",
+        error: msg.noPermission,
       });
     }
 
@@ -70,19 +138,19 @@ Deno.serve(async (req) => {
 
     if (!name?.trim() || !email?.trim() || !password) {
       return jsonResponse(400, {
-        error: "Faltan campos obligatorios: nombre, email y contraseña",
+        error: msg.missingFields,
       });
     }
 
     if (password.length < 6) {
       return jsonResponse(400, {
-        error: "La contraseña debe tener al menos 6 caracteres",
+        error: msg.passwordTooShort,
       });
     }
 
     if (!["barber", "admin"].includes(role)) {
       return jsonResponse(400, {
-        error: "El rol debe ser 'barber' o 'admin'",
+        error: msg.invalidRole,
       });
     }
 
@@ -91,7 +159,7 @@ Deno.serve(async (req) => {
     if (appointment_color !== undefined && appointment_color !== null && appointment_color !== "") {
       if (typeof appointment_color !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(appointment_color)) {
         return jsonResponse(400, {
-          error: "El color de cita debe ser un valor hexadecimal #RRGGBB",
+          error: msg.invalidColor,
         });
       }
       normalizedColor = appointment_color;
@@ -100,7 +168,7 @@ Deno.serve(async (req) => {
     // Enforce business isolation: admin can only create users in their own business
     if (business_id !== callerProfile.business_id) {
       return jsonResponse(403, {
-        error: "No puedes crear usuarios en otro negocio",
+        error: msg.wrongBusiness,
       });
     }
 
@@ -113,23 +181,23 @@ Deno.serve(async (req) => {
       });
 
     if (createAuthErr) {
-      const msg = createAuthErr.message || "";
+      const errMsg = createAuthErr.message || "";
       if (
-        msg.includes("already been registered") ||
-        msg.includes("already exists")
+        errMsg.includes("already been registered") ||
+        errMsg.includes("already exists")
       ) {
         return jsonResponse(409, {
-          error: "Ya existe un usuario con ese email",
+          error: msg.emailExists,
         });
       }
-      if (msg.includes("password")) {
+      if (errMsg.includes("password")) {
         return jsonResponse(400, {
-          error: `Error en la contraseña: ${msg}`,
+          error: msg.passwordError(errMsg),
         });
       }
       console.error("Auth createUser error:", createAuthErr);
       return jsonResponse(500, {
-        error: "No se pudo crear el usuario de autenticación",
+        error: msg.authCreateFailed,
       });
     }
 
@@ -165,12 +233,12 @@ Deno.serve(async (req) => {
 
       if (dbErr.code === "23505") {
         return jsonResponse(409, {
-          error: "Ya existe un usuario con ese email en el sistema",
+          error: msg.dbEmailExists,
         });
       }
 
       return jsonResponse(500, {
-        error: "No se pudo crear el registro del usuario",
+        error: msg.dbCreateFailed,
       });
     }
 
@@ -178,6 +246,6 @@ Deno.serve(async (req) => {
     return jsonResponse(201, { user: dbUser });
   } catch (err) {
     console.error("Unexpected error in create-barber:", err);
-    return jsonResponse(500, { error: "Error interno. Inténtalo de nuevo." });
+    return jsonResponse(500, { error: msg.internal });
   }
 });

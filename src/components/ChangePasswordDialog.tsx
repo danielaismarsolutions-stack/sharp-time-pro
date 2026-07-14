@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface ChangePasswordDialogProps {
   open: boolean;
@@ -25,6 +26,7 @@ export default function ChangePasswordDialog({ open, onOpenChange }: ChangePassw
 
   const { updatePassword } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const resetForm = () => {
     setPassword('');
@@ -36,8 +38,8 @@ export default function ChangePasswordDialog({ open, onOpenChange }: ChangePassw
 
     if (!password || !confirmPassword) {
       toast({
-        title: 'Campos requeridos',
-        description: 'Por favor, completa ambos campos.',
+        title: t('auth.requiredFieldsTitle'),
+        description: t('auth.requiredFieldsDesc'),
         variant: 'destructive',
       });
       return;
@@ -45,8 +47,8 @@ export default function ChangePasswordDialog({ open, onOpenChange }: ChangePassw
 
     if (password.length < 8) {
       toast({
-        title: 'Contraseña muy corta',
-        description: 'La contraseña debe tener al menos 8 caracteres.',
+        title: t('auth.passwordTooShortTitle'),
+        description: t('auth.passwordTooShortDesc'),
         variant: 'destructive',
       });
       return;
@@ -54,8 +56,8 @@ export default function ChangePasswordDialog({ open, onOpenChange }: ChangePassw
 
     if (password !== confirmPassword) {
       toast({
-        title: 'Las contraseñas no coinciden',
-        description: 'Por favor, asegúrate de que ambas contraseñas sean iguales.',
+        title: t('auth.passwordMismatchTitle'),
+        description: t('auth.passwordMismatchDesc'),
         variant: 'destructive',
       });
       return;
@@ -66,13 +68,13 @@ export default function ChangePasswordDialog({ open, onOpenChange }: ChangePassw
     try {
       await updatePassword(password);
       toast({
-        title: 'Contraseña actualizada',
-        description: 'Tu contraseña ha sido actualizada correctamente.',
+        title: t('auth.passwordUpdatedTitle'),
+        description: t('auth.passwordUpdatedDesc'),
       });
       resetForm();
       onOpenChange(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo actualizar la contraseña.';
+      const message = error instanceof Error ? error.message : t('auth.passwordUpdateError');
       toast({
         title: 'Error',
         description: message,
@@ -87,15 +89,15 @@ export default function ChangePasswordDialog({ open, onOpenChange }: ChangePassw
     <Dialog open={open} onOpenChange={(value) => { if (!value) resetForm(); onOpenChange(value); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Cambiar contraseña</DialogTitle>
+          <DialogTitle>{t('auth.changePasswordTitle')}</DialogTitle>
           <DialogDescription>
-            Introduce tu nueva contraseña. Debe tener al menos 8 caracteres.
+            {t('auth.changePasswordDesc')}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="new-password">Nueva contraseña</Label>
+            <Label htmlFor="new-password">{t('auth.newPassword')}</Label>
             <Input
               id="new-password"
               type="password"
@@ -108,7 +110,7 @@ export default function ChangePasswordDialog({ open, onOpenChange }: ChangePassw
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirm-new-password">Confirmar contraseña</Label>
+            <Label htmlFor="confirm-new-password">{t('auth.confirmPassword')}</Label>
             <Input
               id="confirm-new-password"
               type="password"
@@ -126,16 +128,16 @@ export default function ChangePasswordDialog({ open, onOpenChange }: ChangePassw
               variant="outline"
               onClick={() => { resetForm(); onOpenChange(false); }}
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Actualizando...
+                  {t('auth.updatingPassword')}
                 </>
               ) : (
-                'Actualizar contraseña'
+                t('auth.updatePassword')
               )}
             </Button>
           </div>
