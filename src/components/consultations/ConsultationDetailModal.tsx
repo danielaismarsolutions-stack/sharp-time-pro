@@ -12,8 +12,8 @@ import { StatusDropdown } from './StatusDropdown';
 import { StatusBadge } from './StatusBadge';
 import { Consultation, ConsultationStatus } from '@/types/consultation';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Phone, Mail, MessageCircle, Calendar, User, FileText, Loader2, ImageIcon, Trash2 } from 'lucide-react';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface ConsultationDetailModalProps {
   open: boolean;
@@ -34,6 +34,7 @@ export function ConsultationDetailModal({
   onConvertToBooking,
   onDelete,
 }: ConsultationDetailModalProps) {
+  const { t, dateLocale } = useTranslation();
   const [notes, setNotes] = useState(consultation.staff_notes || '');
   const [savingNotes, setSavingNotes] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -57,7 +58,7 @@ export function ConsultationDetailModal({
   };
 
   const formatDate = (date: string) => {
-    return format(new Date(date), "dd/MM/yyyy HH:mm", { locale: es });
+    return format(new Date(date), "dd/MM/yyyy HH:mm", { locale: dateLocale });
   };
 
   const canConvertToBooking = consultation.status === 'new' || consultation.status === 'contacted' || consultation.status === 'scheduled';
@@ -67,7 +68,7 @@ export function ConsultationDetailModal({
       <DialogContent className="max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between pr-6">
-            <span>Detalle de Consulta</span>
+            <span>{t('consultations.detail.title')}</span>
             <StatusBadge status={consultation.status} />
           </DialogTitle>
         </DialogHeader>
@@ -78,7 +79,7 @@ export function ConsultationDetailModal({
             <div className="rounded-lg overflow-hidden border">
               <img
                 src={consultation.photo_url}
-                alt={`Foto de ${consultation.client_name}`}
+                alt={t('consultations.detail.photoAlt', { name: consultation.client_name })}
                 className="w-full h-36 object-cover"
               />
             </div>
@@ -86,7 +87,7 @@ export function ConsultationDetailModal({
             <div className="h-24 bg-muted rounded-lg flex items-center justify-center border">
               <div className="text-center text-muted-foreground">
                 <ImageIcon className="h-8 w-8 mx-auto mb-1 opacity-50" />
-                <p className="text-[10px]">Sin foto adjunta</p>
+                <p className="text-[10px]">{t('consultations.detail.noPhoto')}</p>
               </div>
             </div>
           )}
@@ -130,7 +131,7 @@ export function ConsultationDetailModal({
             <div className="space-y-1">
               <Label className="flex items-center gap-1.5 text-xs">
                 <FileText className="h-3 w-3" />
-                Descripción del cliente
+                {t('consultations.detail.clientDescription')}
               </Label>
               <div className="p-2 bg-muted rounded-lg text-[11px] whitespace-pre-wrap">
                 {consultation.client_notes}
@@ -142,13 +143,13 @@ export function ConsultationDetailModal({
           <div className="space-y-1">
             <Label htmlFor="detail-notes" className="flex items-center gap-1.5 text-xs">
               <FileText className="h-3 w-3" />
-              Notas del staff
+              {t('consultations.detail.staffNotes')}
             </Label>
             <Textarea
               id="detail-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Añade notas internas..."
+              placeholder={t('consultations.detail.staffNotesPlaceholder')}
               rows={2}
               className="text-xs"
             />
@@ -159,7 +160,7 @@ export function ConsultationDetailModal({
               disabled={savingNotes || notes === (consultation.staff_notes || '')}
             >
               {savingNotes && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-              Guardar notas
+              {t('consultations.detail.saveNotes')}
             </Button>
           </div>
 
@@ -173,12 +174,15 @@ export function ConsultationDetailModal({
 
             {canConvertToBooking && onConvertToBooking && (
               <Button size="sm" className="h-7 min-h-[40px] md:min-h-0 text-[11px]" onClick={onConvertToBooking}>
-                Convertir a reserva
+                {t('consultations.detail.convertToBooking')}
               </Button>
             )}
 
             <a
-              href={`https://wa.me/34${consultation.client_phone.replace(/\D/g, '')}?text=Hola ${consultation.client_name}, te contactamos desde Rioja Barber Studio sobre tu consulta de ${consultation.service_name}`}
+              href={`https://wa.me/34${consultation.client_phone.replace(/\D/g, '')}?text=${t('consultations.whatsappMessage', {
+                name: consultation.client_name,
+                service: consultation.service_name,
+              })}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex"
@@ -192,7 +196,7 @@ export function ConsultationDetailModal({
             <a href={`tel:${consultation.client_phone}`}>
               <Button variant="outline" size="sm" className="gap-1.5 h-7 min-h-[40px] md:min-h-0 text-[11px]">
                 <Phone className="h-3 w-3" />
-                Llamar
+                {t('consultations.actions.call')}
               </Button>
             </a>
 
@@ -204,7 +208,7 @@ export function ConsultationDetailModal({
                 onClick={onDelete}
               >
                 <Trash2 className="h-3 w-3" />
-                Eliminar
+                {t('common.delete')}
               </Button>
             )}
           </div>

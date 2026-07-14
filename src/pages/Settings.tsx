@@ -843,7 +843,7 @@ export default function Settings() {
               })}
               <Button onClick={saveHoursSettings} disabled={isSaving} className="mt-4">
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Guardar Horario
+                {t('settings.hours.saveButton')}
               </Button>
             </CardContent>
           </Card>
@@ -851,15 +851,15 @@ export default function Settings() {
           {/* Closure Dates (Festivos / Días cerrados) */}
           <Card className="border-border mt-4 md:mt-6">
             <CardHeader>
-              <CardTitle>Días Cerrados (festivos y cierres puntuales)</CardTitle>
+              <CardTitle>{t('settings.closures.title')}</CardTitle>
               <CardDescription>
-                Marca fechas concretas en las que el negocio estará cerrado, como festivos o vacaciones.
+                {t('settings.closures.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-2 md:gap-3 items-end">
                 <div className="space-y-2">
-                  <Label htmlFor="closure-date">Fecha</Label>
+                  <Label htmlFor="closure-date">{t('common.date')}</Label>
                   <Input
                     id="closure-date"
                     type="date"
@@ -870,11 +870,11 @@ export default function Settings() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="closure-name">Motivo (opcional)</Label>
+                  <Label htmlFor="closure-name">{t('settings.closures.reasonLabel')}</Label>
                   <Input
                     id="closure-name"
                     type="text"
-                    placeholder="Ej: Navidad, vacaciones, festivo local"
+                    placeholder={t('settings.closures.reasonPlaceholder')}
                     value={newClosureName}
                     maxLength={120}
                     onChange={(e) => setNewClosureName(e.target.value)}
@@ -890,13 +890,13 @@ export default function Settings() {
                   ) : (
                     <Plus className="h-4 w-4 mr-2" />
                   )}
-                  Añadir
+                  {t('common.add')}
                 </Button>
               </div>
 
               {closureDates.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No hay fechas de cierre registradas.
+                  {t('settings.closures.empty')}
                 </p>
               ) : (
                 <ul className="space-y-2">
@@ -919,7 +919,7 @@ export default function Settings() {
                           onClick={() => removeClosureDate(closure.id, label)}
                           disabled={removingClosureId === closure.id}
                           className="h-10 w-10 md:h-8 md:w-8 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          aria-label={`Eliminar ${label}`}
+                          aria-label={t('settings.closures.removeAria', { date: label })}
                         >
                           {removingClosureId === closure.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -940,15 +940,15 @@ export default function Settings() {
         {isAdmin && <TabsContent value="booking">
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Configuración de Reservas</CardTitle>
-              <CardDescription>Configura cómo los clientes pueden reservar citas</CardDescription>
+              <CardTitle>{t('settings.booking.title')}</CardTitle>
+              <CardDescription>{t('settings.booking.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Habilitar Reservas Online</Label>
+                  <Label>{t('settings.booking.onlineLabel')}</Label>
                   <p className="text-sm text-muted-foreground">
-                    Permitir que los clientes reserven citas online
+                    {t('settings.booking.onlineDescription')}
                   </p>
                 </div>
                 <Switch
@@ -961,7 +961,7 @@ export default function Settings() {
               <Separator />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Antelación Mínima</Label>
+                  <Label>{t('settings.booking.minNotice')}</Label>
                   <Select
                     value={bookingSettings.minAdvanceBooking.toString()}
                     onValueChange={(value) =>

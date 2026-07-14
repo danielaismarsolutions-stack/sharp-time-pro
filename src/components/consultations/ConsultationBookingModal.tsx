@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Clock, User, Scissors, Loader2 } from 'lucide-react';
-import { es } from 'date-fns/locale';
 import {
   Dialog,
   DialogContent,

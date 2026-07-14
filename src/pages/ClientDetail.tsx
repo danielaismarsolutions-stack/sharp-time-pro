@@ -575,7 +575,7 @@ export default function ClientDetail() {
                 </a>
                 <div className="flex items-center gap-3">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>Cliente desde {format(new Date(clientData.createdAt), 'MMM yyyy', { locale: es })}</span>
+                  <span>{t('clients.detail.clientSince', { date: format(new Date(clientData.createdAt), 'MMM yyyy', { locale: dateLocale }) })}</span>
                 </div>
               </div>
             </CardContent>
@@ -584,13 +584,13 @@ export default function ClientDetail() {
           {/* Stats Card */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle className="text-base">Estadísticas</CardTitle>
+              <CardTitle className="text-base">{t('clients.detail.statistics')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Scissors className="h-4 w-4" />
-                  <span>Total Visitas</span>
+                  <span>{t('clients.detail.totalVisits')}</span>
                 </div>
                 <span className="font-bold">{clientData.totalVisits}</span>
               </div>
@@ -598,7 +598,7 @@ export default function ClientDetail() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <DollarSign className="h-4 w-4" />
-                  <span>Total Gastado</span>
+                  <span>{t('clients.detail.totalSpent')}</span>
                 </div>
                 <span className="font-bold">€{Number(clientData.totalSpent).toFixed(2)}</span>
               </div>
@@ -606,19 +606,19 @@ export default function ClientDetail() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  <span>Última Visita</span>
+                  <span>{t('clients.detail.lastVisit')}</span>
                 </div>
                 <span className="font-bold">
-                  {clientData.lastVisit 
-                    ? format(new Date(clientData.lastVisit), 'd MMM', { locale: es }) 
-                    : 'Nunca'}
+                  {clientData.lastVisit
+                    ? format(new Date(clientData.lastVisit), 'd MMM', { locale: dateLocale })
+                    : t('clients.never')}
                 </span>
               </div>
               <Separator />
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <DollarSign className="h-4 w-4" />
-                  <span>Prom. por Visita</span>
+                  <span>{t('clients.detail.avgPerVisit')}</span>
                 </div>
                 <span className="font-bold">
                   €{clientData.totalVisits > 0 
@@ -633,7 +633,7 @@ export default function ClientDetail() {
           {sortedServices.length > 0 && (
             <Card className="border-border">
               <CardHeader>
-                <CardTitle className="text-base">Servicios Favoritos</CardTitle>
+                <CardTitle className="text-base">{t('clients.detail.favouriteServices')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -652,7 +652,7 @@ export default function ClientDetail() {
           {clientData.notes && (
             <Card className="border-border">
               <CardHeader>
-                <CardTitle className="text-base">Notas</CardTitle>
+                <CardTitle className="text-base">{t('common.notes')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">{clientData.notes}</p>
@@ -663,7 +663,7 @@ export default function ClientDetail() {
           {/* Tags */}
           <Card className="border-border">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">Etiquetas</CardTitle>
+              <CardTitle className="text-base">{t('clients.detail.tags')}</CardTitle>
               {!isAddingTag && (
                 <Button 
                   variant="ghost" 
@@ -672,7 +672,7 @@ export default function ClientDetail() {
                   className="h-8"
                 >
                   <Plus className="h-4 w-4 mr-1" />
-                  Añadir
+                  {t('common.add')}
                 </Button>
               )}
             </CardHeader>
@@ -680,7 +680,7 @@ export default function ClientDetail() {
               {isAddingTag && (
                 <div className="flex gap-2 mb-3">
                   <Input
-                    placeholder="Nueva etiqueta..."
+                    placeholder={t('clients.detail.newTagPlaceholder')}
                     value={newTag}
                     onChange={(e) => setNewTag(e.target.value)}
                     onKeyDown={(e) => {
@@ -724,7 +724,7 @@ export default function ClientDetail() {
                   ))
                 ) : (
                   !isAddingTag && (
-                    <p className="text-sm text-muted-foreground">Sin etiquetas</p>
+                    <p className="text-sm text-muted-foreground">{t('clients.detail.noTags')}</p>
                   )
                 )}
               </div>
@@ -737,20 +737,25 @@ export default function ClientDetail() {
           <Card className="border-border h-full">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">
-                Historial de Citas ({clientData.bookings.length} visitas)
+                {t(
+                  clientData.bookings.length === 1
+                    ? 'clients.detail.appointmentHistoryOne'
+                    : 'clients.detail.appointmentHistoryOther',
+                  { count: clientData.bookings.length }
+                )}
               </CardTitle>
               <Button size="sm" onClick={openNewBooking} disabled={!isBookingDataReady}>
                 <Plus className="h-4 w-4 mr-2" />
-                Nueva Cita
+                {t('clients.detail.newAppointment')}
               </Button>
             </CardHeader>
             <CardContent>
               {clientData.bookings.length === 0 ? (
                 <div className="text-center py-12">
                   <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Sin citas todavía</p>
+                  <p className="text-muted-foreground">{t('clients.detail.noAppointmentsYet')}</p>
                   <Button variant="outline" className="mt-4" onClick={openNewBooking} disabled={!isBookingDataReady}>
-                    Reservar Primera Cita
+                    {t('clients.detail.bookFirstAppointment')}
                   </Button>
                 </div>
               ) : (
@@ -763,7 +768,7 @@ export default function ClientDetail() {
                         key={booking.id}
                         role="button"
                         tabIndex={0}
-                        aria-label={`Ver detalles de la cita de ${booking.serviceName}`}
+                        aria-label={t('clients.detail.viewAppointmentAria', { service: booking.serviceName })}
                         aria-busy={isOpeningBooking}
                         onClick={() => handleBookingClick(booking.id)}
                         onKeyDown={(e) => {
@@ -780,7 +785,7 @@ export default function ClientDetail() {
                       >
                         <div className="w-12 h-12 shrink-0 rounded-lg bg-card flex flex-col items-center justify-center border border-border">
                           <span className="text-xs text-muted-foreground">
-                            {format(new Date(booking.date), 'MMM', { locale: es })}
+                            {format(new Date(booking.date), 'MMM', { locale: dateLocale })}
                           </span>
                           <span className="font-bold">
                             {format(new Date(booking.date), 'd')}
@@ -802,7 +807,7 @@ export default function ClientDetail() {
                           </div>
                           {booking.notes && (
                             <p className="text-xs text-muted-foreground mt-1 truncate">
-                              Nota: {booking.notes}
+                              {t('clients.detail.notePrefix', { note: booking.notes })}
                             </p>
                           )}
                         </div>
