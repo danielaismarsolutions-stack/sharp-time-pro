@@ -217,6 +217,95 @@ describe('BookingModal preselections (create from client profile)', () => {
   });
 });
 
+// Inline client creation: a "Crear nuevo cliente" button (only when the
+// parent provides onClientCreate) swaps the search bar for a small form;
+// the created client gets auto-selected for the booking.
+describe('BookingModal inline client creation', () => {
+  it('hides the create button when onClientCreate is not provided', () => {
+    render(<BookingModal {...baseProps} />);
+
+    expect(screen.queryByText('Crear nuevo cliente')).not.toBeInTheDocument();
+  });
+
+  it('creates a client from the inline form and selects it', async () => {
+    const user = userEvent.setup();
+    const created = makeClient('99', 'Pedro Nuevo', '699111222');
+    const onClientCreate = vi.fn().mockResolvedValue(created);
+    const { rerender } = render(
+      <BookingModal {...baseProps} onClientCreate={onClientCreate} />
+    );
+
+    await user.click(screen.getByText('Crear nuevo cliente'));
+
+    await user.type(screen.getByPlaceholderText('Nombre completo *'), 'Pedro Nuevo');
+    await user.type(screen.getByPlaceholderText('Teléfono *'), '699111222');
+    await user.click(screen.getByRole('button', { name: 'Crear cliente' }));
+
+    await waitFor(() => {
+      expect(onClientCreate).toHaveBeenCalledWith({
+        name: 'Pedro Nuevo',
+        phone: '699111222',
+        email: '',
+      });
+    });
+
+    // Parent appends the created client to the list (as Calendar.tsx does);
+    // the modal then shows it as the selected chip.
+    rerender(
+      <BookingModal
+        {...baseProps}
+        clients={[...clients, created]}
+        onClientCreate={onClientCreate}
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByText(/Pedro Nuevo - 699111222/)).toBeInTheDocument();
+    });
+    expect(screen.queryByPlaceholderText('Nombre completo *')).not.toBeInTheDocument();
+  });
+
+  it('prefills the form name from the search query', async () => {
+    const user = userEvent.setup();
+    const onClientCreate = vi.fn();
+    render(<BookingModal {...baseProps} onClientCreate={onClientCreate} />);
+
+    await user.type(screen.getByPlaceholderText(SEARCH_PLACEHOLDER), 'Cliente Inexistente');
+    await user.click(screen.getByText('Crear nuevo cliente'));
+
+    expect(screen.getByPlaceholderText('Nombre completo *')).toHaveValue('Cliente Inexistente');
+  });
+
+  it('selects the existing client instead of creating a duplicate phone', async () => {
+    const user = userEvent.setup();
+    const onClientCreate = vi.fn();
+    render(<BookingModal {...baseProps} onClientCreate={onClientCreate} />);
+
+    await user.click(screen.getByText('Crear nuevo cliente'));
+    await user.type(screen.getByPlaceholderText('Nombre completo *'), 'Otro Miguel');
+    await user.type(screen.getByPlaceholderText('Teléfono *'), '615 481 969');
+    await user.click(screen.getByRole('button', { name: 'Crear cliente' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Miguel García - 615481969/)).toBeInTheDocument();
+    });
+    expect(onClientCreate).not.toHaveBeenCalled();
+  });
+
+  it('does not create when required fields are missing', async () => {
+    const user = userEvent.setup();
+    const onClientCreate = vi.fn();
+    render(<BookingModal {...baseProps} onClientCreate={onClientCreate} />);
+
+    await user.click(screen.getByText('Crear nuevo cliente'));
+    await user.type(screen.getByPlaceholderText('Nombre completo *'), 'Solo Nombre');
+    await user.click(screen.getByRole('button', { name: 'Crear cliente' }));
+
+    expect(onClientCreate).not.toHaveBeenCalled();
+    // The form stays open for the user to complete it
+    expect(screen.getByPlaceholderText('Teléfono *')).toBeInTheDocument();
+  });
+});
+
 describe('BookingModal client display (edit)', () => {
   const editedBooking: Booking = {
     id: 'b1',
