@@ -3,14 +3,15 @@ import { useSyncExternalStore } from 'react';
 import { ApiBooking } from '@/types/api';
 import { Service } from '@/types';
 import { ColorClasses } from './types';
+import type { TranslationKey } from '@/i18n';
 
 // Single source of truth for the barber color palette.
 // Keep entries aligned: classes + hex must describe the SAME color so the
 // calendar (which mixes Tailwind classes for appointments and inline hex for
 // events) renders consistently for a given barber.
 export interface BarberColorOption {
-  /** Display label (Spanish) used by the picker UI. */
-  label: string;
+  /** Clave i18n del nombre del color usada por el picker. */
+  labelKey: TranslationKey;
   /** Canonical hex (#RRGGBB) stored on the user row when chosen. */
   hex: string;
   /** Tailwind class set used by BookingCard. */
@@ -18,14 +19,14 @@ export interface BarberColorOption {
 }
 
 export const BARBER_COLOR_PALETTE: BarberColorOption[] = [
-  { label: 'Azul',     hex: '#3b82f6', classes: { bg: 'bg-blue-100',    hover: 'hover:bg-blue-200',    text: 'text-blue-900',    border: 'border-l-blue-500' } },
-  { label: 'Verde',    hex: '#10b981', classes: { bg: 'bg-emerald-100', hover: 'hover:bg-emerald-200', text: 'text-emerald-900', border: 'border-l-emerald-500' } },
-  { label: 'Ámbar',    hex: '#f59e0b', classes: { bg: 'bg-amber-100',   hover: 'hover:bg-amber-200',   text: 'text-amber-900',   border: 'border-l-amber-500' } },
-  { label: 'Rosa',     hex: '#f43f5e', classes: { bg: 'bg-rose-100',    hover: 'hover:bg-rose-200',    text: 'text-rose-900',    border: 'border-l-rose-500' } },
-  { label: 'Violeta',  hex: '#8b5cf6', classes: { bg: 'bg-violet-100',  hover: 'hover:bg-violet-200',  text: 'text-violet-900',  border: 'border-l-violet-500' } },
-  { label: 'Magenta',  hex: '#ec4899', classes: { bg: 'bg-pink-100',    hover: 'hover:bg-pink-200',    text: 'text-pink-900',    border: 'border-l-pink-500' } },
-  { label: 'Cian',     hex: '#06b6d4', classes: { bg: 'bg-cyan-100',    hover: 'hover:bg-cyan-200',    text: 'text-cyan-900',    border: 'border-l-cyan-500' } },
-  { label: 'Lima',     hex: '#84cc16', classes: { bg: 'bg-lime-100',    hover: 'hover:bg-lime-200',    text: 'text-lime-900',    border: 'border-l-lime-500' } },
+  { labelKey: 'barbers.colors.blue',     hex: '#3b82f6', classes: { bg: 'bg-blue-100',    hover: 'hover:bg-blue-200',    text: 'text-blue-900',    border: 'border-l-blue-500' } },
+  { labelKey: 'barbers.colors.green',    hex: '#10b981', classes: { bg: 'bg-emerald-100', hover: 'hover:bg-emerald-200', text: 'text-emerald-900', border: 'border-l-emerald-500' } },
+  { labelKey: 'barbers.colors.amber',    hex: '#f59e0b', classes: { bg: 'bg-amber-100',   hover: 'hover:bg-amber-200',   text: 'text-amber-900',   border: 'border-l-amber-500' } },
+  { labelKey: 'barbers.colors.rose',     hex: '#f43f5e', classes: { bg: 'bg-rose-100',    hover: 'hover:bg-rose-200',    text: 'text-rose-900',    border: 'border-l-rose-500' } },
+  { labelKey: 'barbers.colors.violet',  hex: '#8b5cf6', classes: { bg: 'bg-violet-100',  hover: 'hover:bg-violet-200',  text: 'text-violet-900',  border: 'border-l-violet-500' } },
+  { labelKey: 'barbers.colors.magenta',  hex: '#ec4899', classes: { bg: 'bg-pink-100',    hover: 'hover:bg-pink-200',    text: 'text-pink-900',    border: 'border-l-pink-500' } },
+  { labelKey: 'barbers.colors.cyan',     hex: '#06b6d4', classes: { bg: 'bg-cyan-100',    hover: 'hover:bg-cyan-200',    text: 'text-cyan-900',    border: 'border-l-cyan-500' } },
+  { labelKey: 'barbers.colors.lime',     hex: '#84cc16', classes: { bg: 'bg-lime-100',    hover: 'hover:bg-lime-200',    text: 'text-lime-900',    border: 'border-l-lime-500' } },
 ];
 
 // Derived arrays kept for backward compatibility with existing callers.

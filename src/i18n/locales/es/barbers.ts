@@ -110,4 +110,14 @@ export const barbers = {
   errors: {
     createUserFailed: 'No se pudo crear el usuario',
   },
+  colors: {
+    blue: 'Azul',
+    green: 'Verde',
+    amber: 'Ámbar',
+    rose: 'Rosa',
+    violet: 'Violeta',
+    magenta: 'Magenta',
+    cyan: 'Cian',
+    lime: 'Lima',
+  },
 } as const;

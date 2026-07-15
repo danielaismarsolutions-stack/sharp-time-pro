@@ -4,7 +4,7 @@
 import { SUPABASE_CONFIG } from '@/config/api';
 import { getAuthHeaders } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
-import { t } from '@/i18n';
+import { t, getActiveLanguage } from '@/i18n';
 
 export interface PaymentRecord {
   id: string;
@@ -30,7 +30,7 @@ export interface BillingInfo {
 async function callEdgeFunction<T>(fnName: string): Promise<T> {
   const headers = await getAuthHeaders();
   const res = await fetch(
-    `${SUPABASE_CONFIG.url}/functions/v1/${fnName}`,
+    `${SUPABASE_CONFIG.url}/functions/v1/${fnName}?lang=${getActiveLanguage()}`,
     {
       method: 'POST',
       headers,

@@ -261,8 +261,8 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
                     )}
                     style={{ backgroundColor: opt.hex }}
                     aria-pressed={selected}
-                    aria-label={opt.label}
-                    title={opt.label}
+                    aria-label={t(opt.labelKey)}
+                    title={t(opt.labelKey)}
                   >
                     {selected && <Check className="w-3.5 h-3.5 text-white drop-shadow" />}
                   </button>

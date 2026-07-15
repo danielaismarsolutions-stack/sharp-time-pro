@@ -113,4 +113,14 @@ export const barbers: LocaleShape<typeof esBarbers> = {
   errors: {
     createUserFailed: 'Could not create the user',
   },
+  colors: {
+    blue: 'Blue',
+    green: 'Green',
+    amber: 'Amber',
+    rose: 'Rose',
+    violet: 'Violet',
+    magenta: 'Magenta',
+    cyan: 'Cyan',
+    lime: 'Lime',
+  },
 } as const;
