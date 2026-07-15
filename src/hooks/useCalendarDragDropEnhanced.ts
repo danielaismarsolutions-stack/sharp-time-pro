@@ -12,6 +12,8 @@ import { BusinessHours, ClosureDate } from '@/types';
 import { supabaseBookingsApi, supabaseEventBookingsApi, UpdateBookingData } from '@/services/supabaseBookings';
 import { notifyAllAdmins, notifyBookingUsers } from '@/services/supabaseNotifications';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/LanguageContext';
+import { t as translateGlobal } from '@/i18n';
 import { getBusinessId } from '@/config/session';
 import { useToast } from '@/hooks/use-toast';
 import type { MoveBookingDetails } from '@/components/calendar/MoveBookingConfirmDialog';
@@ -125,8 +127,8 @@ export function checkClosureDate(
   return {
     isClosed: true,
     reason: closure.name
-      ? `El negocio está cerrado ese día (${closure.name})`
-      : 'El negocio está cerrado ese día',
+      ? translateGlobal('calendar.schedule.businessClosedOnDateWithName', { name: closure.name })
+      : translateGlobal('calendar.schedule.businessClosedOnDate'),
   };
 }
 

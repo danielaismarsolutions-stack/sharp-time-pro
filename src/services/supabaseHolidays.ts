@@ -4,6 +4,7 @@
 import { SUPABASE_CONFIG } from '@/config/api';
 import { getAuthHeaders } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
+import { t } from '@/i18n';
 import { ClosureDate, ClosureDateInput } from '@/types';
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -55,11 +56,11 @@ const sanitizeName = (name: string | null | undefined): string | null => {
 
 const validateDate = (date: string): void => {
   if (!ISO_DATE_RE.test(date)) {
-    throw new Error(`Fecha inválida: "${date}". Usa el formato YYYY-MM-DD.`);
+    throw new Error(t('settings.closures.errors.invalidDateFormat', { date }));
   }
   const d = new Date(date + 'T00:00:00Z');
   if (Number.isNaN(d.getTime())) {
-    throw new Error(`Fecha inválida: "${date}".`);
+    throw new Error(t('settings.closures.errors.invalidDate', { date }));
   }
 };
 
@@ -77,7 +78,7 @@ export const supabaseHolidaysApi = {
 
     if (!response.ok) {
       const error = await parseErrorMessage(response);
-      throw new Error(`No se pudieron cargar las fechas de cierre: ${error}`);
+      throw new Error(t('settings.closures.errors.loadFailed', { error }));
     }
 
     const rows: DbHoliday[] = await response.json();
