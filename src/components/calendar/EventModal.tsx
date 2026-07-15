@@ -476,7 +476,7 @@ export function EventModal({
 
           {/* Color Picker */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium">Color</Label>
+            <Label className="text-xs font-medium">{t('calendar.eventModal.colorLabel')}</Label>
             <div className="flex gap-2 flex-wrap items-center">
               {/* Auto chip — follows the assigned barber's color */}
               <button
@@ -491,8 +491,8 @@ export function EventModal({
                 style={{ backgroundColor: autoColor }}
                 title={
                   selectedBarber
-                    ? `Automático (color de ${staffTerms.singular})`
-                    : 'Automático'
+                    ? t('calendar.eventModal.autoColorWithStaff', { staff: staffTerms.singular })
+                    : t('calendar.eventModal.autoColor')
                 }
               >
                 {formData.color === '' && (
@@ -513,7 +513,7 @@ export function EventModal({
                       : 'border-transparent hover:scale-105'
                   )}
                   style={{ backgroundColor: c.value }}
-                  title={c.label}
+                  title={t(c.labelKey)}
                 >
                   {formData.color === c.value && (
                     <Check className="h-3.5 w-3.5 text-foreground/80" />
@@ -523,8 +523,8 @@ export function EventModal({
             </div>
             <p className="text-[10px] text-muted-foreground">
               {selectedBarber
-                ? `Por defecto sigue el color de ${staffTerms.singular}. Elige un color para fijarlo.`
-                : 'Sin color fijo. Elige un color para fijarlo.'}
+                ? t('calendar.eventModal.colorHintWithStaff', { staff: staffTerms.singular })
+                : t('calendar.eventModal.colorHint')}
             </p>
           </div>
 
@@ -539,7 +539,7 @@ export function EventModal({
               className="text-xs h-8"
               onClick={() => onOpenChange(false)}
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -548,10 +548,10 @@ export function EventModal({
               disabled={isLoading}
             >
               {isLoading
-                ? 'Guardando...'
+                ? t('common.saving')
                 : event
-                  ? 'Actualizar'
-                  : 'Crear Evento'}
+                  ? t('common.update')
+                  : t('calendar.eventModal.createButton')}
             </Button>
           </div>
         </form>

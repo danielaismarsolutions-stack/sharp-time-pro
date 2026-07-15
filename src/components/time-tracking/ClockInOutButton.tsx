@@ -3,6 +3,7 @@ import { LogIn, LogOut, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useActiveSession, useClockIn, useClockOut } from '@/hooks/useQueryHooks';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { notifyAllAdmins } from '@/services/supabaseNotifications';
 import { getBusinessId } from '@/config/session';
@@ -21,6 +22,7 @@ interface ClockInOutButtonProps {
 
 export default function ClockInOutButton({ compact = false }: ClockInOutButtonProps) {
   const { user } = useAuth();
+  const { t, intlLocale } = useTranslation();
   const { toast } = useToast();
   const { data: activeSession, isLoading } = useActiveSession(user?.id);
   const clockIn = useClockIn();
@@ -51,17 +53,20 @@ export default function ClockInOutButton({ compact = false }: ClockInOutButtonPr
         { entryId: (activeSession as TimeEntry).id },
         {
           onSuccess: () => {
-            toast({ title: 'Salida fichada', description: `Has trabajado ${elapsed}` });
+            toast({
+              title: t('timeTracking.clock.clockedOutTitle'),
+              description: t('timeTracking.clock.clockedOutDescription', { elapsed }),
+            });
             // Notify admins (fire-and-forget)
             notifyAllAdmins({
               business_id: getBusinessId(),
               type: 'time_entry_clock_out',
-              title: 'Fichaje de salida',
-              message: `${user.name} ha fichado salida (${elapsed})`,
+              title: t('timeTracking.clock.clockOutNotificationTitle'),
+              message: t('timeTracking.clock.clockOutNotificationMessage', { name: user.name, elapsed }),
               performed_by_user_id: user.id,
             });
           },
-          onError: (err) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
+          onError: (err) => toast({ title: t('common.error'), description: err.message, variant: 'destructive' }),
         }
       );
     } else {
@@ -69,17 +74,20 @@ export default function ClockInOutButton({ compact = false }: ClockInOutButtonPr
         { userId: user.id },
         {
           onSuccess: () => {
-            toast({ title: 'Entrada fichada', description: 'Tu jornada ha comenzado.' });
+            toast({
+              title: t('timeTracking.clock.clockedInTitle'),
+              description: t('timeTracking.clock.clockedInDescription'),
+            });
             // Notify admins (fire-and-forget)
             notifyAllAdmins({
               business_id: getBusinessId(),
               type: 'time_entry_clock_in',
-              title: 'Fichaje de entrada',
-              message: `${user.name} ha fichado entrada`,
+              title: t('timeTracking.clock.clockInNotificationTitle'),
+              message: t('timeTracking.clock.clockInNotificationMessage', { name: user.name }),
               performed_by_user_id: user.id,
             });
           },
-          onError: (err) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
+          onError: (err) => toast({ title: t('common.error'), description: err.message, variant: 'destructive' }),
         }
       );
     }
@@ -108,7 +116,9 @@ export default function ClockInOutButton({ compact = false }: ClockInOutButtonPr
         ) : (
           <LogIn className="h-4 w-4 mr-2" />
         )}
-        {isClockedIn ? `Fichar Salida (${elapsed})` : 'Fichar Entrada'}
+        {isClockedIn
+          ? t('timeTracking.clock.clockOutWithElapsed', { elapsed })
+          : t('timeTracking.clock.clockIn')}
       </Button>
     );
   }
@@ -129,16 +139,20 @@ export default function ClockInOutButton({ compact = false }: ClockInOutButtonPr
         ) : (
           <LogIn className="h-6 w-6 mr-3" />
         )}
-        {isClockedIn ? 'Fichar Salida' : 'Fichar Entrada'}
+        {isClockedIn ? t('timeTracking.clock.clockOut') : t('timeTracking.clock.clockIn')}
       </Button>
       {isClockedIn && (
         <div className="text-center">
-          <p className="text-sm text-muted-foreground">Trabajando desde las {new Date(activeSession!.clock_in).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('timeTracking.clock.workingSince', {
+              time: new Date(activeSession!.clock_in).toLocaleTimeString(intlLocale, { hour: '2-digit', minute: '2-digit' }),
+            })}
+          </p>
           <p className="text-2xl font-bold text-primary">{elapsed}</p>
         </div>
       )}
       {!isClockedIn && (
-        <p className="text-sm text-muted-foreground">No has fichado entrada hoy</p>
+        <p className="text-sm text-muted-foreground">{t('timeTracking.clock.notClockedInToday')}</p>
       )}
     </div>
   );

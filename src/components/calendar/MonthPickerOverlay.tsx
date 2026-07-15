@@ -19,9 +19,9 @@ import {
   addYears,
   subYears,
 } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface MonthPickerOverlayProps {
   currentDate: Date;
@@ -32,11 +32,6 @@ interface MonthPickerOverlayProps {
   toggleButtonRef?: React.RefObject<HTMLButtonElement>;
 }
 
-const MONTH_LABELS = [
-  'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-  'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
-];
-
 export function MonthPickerOverlay({
   currentDate,
   isOpen,
@@ -45,6 +40,8 @@ export function MonthPickerOverlay({
   onToggle,
   toggleButtonRef,
 }: MonthPickerOverlayProps) {
+  const { t, dateLocale } = useTranslation();
+  const MONTH_LABELS = t('calendar.monthPicker.monthsShort').split(',');
   const [displayMonth, setDisplayMonth] = useState(currentDate);
   const [showYearView, setShowYearView] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -62,8 +59,8 @@ export function MonthPickerOverlay({
     }
   }, [currentDate, isOpen]);
 
-  // Spanish day abbreviations (Monday first)
-  const dayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  // Single-letter day abbreviations (Monday first)
+  const dayLabels = t('calendar.monthPicker.dayLetters').split(',');
 
   // Generate calendar dates (6 weeks = 42 days)
   const generateCalendarDates = (date: Date) => {
@@ -184,7 +181,7 @@ export function MonthPickerOverlay({
               <button
                 onClick={handlePreviousYear}
                 className="p-2 hover:bg-muted rounded-md transition-colors"
-                aria-label="Año anterior"
+                aria-label={t('calendar.monthPicker.prevYear')}
               >
                 <ChevronDown className="h-5 w-5 rotate-90" />
               </button>
@@ -200,7 +197,7 @@ export function MonthPickerOverlay({
               <button
                 onClick={handleNextYear}
                 className="p-2 hover:bg-muted rounded-md transition-colors"
-                aria-label="Año siguiente"
+                aria-label={t('calendar.monthPicker.nextYear')}
               >
                 <ChevronDown className="h-5 w-5 -rotate-90" />
               </button>
@@ -238,7 +235,7 @@ export function MonthPickerOverlay({
               <button
                 onClick={handlePreviousMonth}
                 className="p-2 hover:bg-muted rounded-md transition-colors"
-                aria-label="Previous month"
+                aria-label={t('calendar.monthPicker.prevMonth')}
               >
                 <ChevronDown className="h-5 w-5 rotate-90" />
               </button>
@@ -248,7 +245,7 @@ export function MonthPickerOverlay({
                 className="font-medium text-base flex items-center gap-1 px-3 py-1 rounded-md hover:bg-muted transition-colors"
               >
                 <span className="capitalize">
-                  {format(displayMonth, 'MMMM yyyy', { locale: es })}
+                  {format(displayMonth, 'MMMM yyyy', { locale: dateLocale })}
                 </span>
                 <ChevronDown className="h-4 w-4 opacity-60" />
               </button>
@@ -256,7 +253,7 @@ export function MonthPickerOverlay({
               <button
                 onClick={handleNextMonth}
                 className="p-2 hover:bg-muted rounded-md transition-colors"
-                aria-label="Next month"
+                aria-label={t('calendar.monthPicker.nextMonth')}
               >
                 <ChevronDown className="h-5 w-5 -rotate-90" />
               </button>

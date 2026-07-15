@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { Fingerprint } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { useTimeTrackingSettings, useTimeEntries, useBarbers } from '@/hooks/useQueryHooks';
 import ClockInOutButton from '@/components/time-tracking/ClockInOutButton';
 import ActiveEmployeesList from '@/components/time-tracking/ActiveEmployeesList';
@@ -25,6 +26,7 @@ function getDefaultEndDate(): string {
 
 export default function TimeTracking() {
   const { user, isAdmin } = useAuth();
+  const { t } = useTranslation();
   const { data: settings, isLoading: isLoadingSettings } = useTimeTrackingSettings();
   const { data: barbers = [] } = useBarbers(true);
 
@@ -69,10 +71,10 @@ export default function TimeTracking() {
       <div>
         <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
           <Fingerprint className="h-6 w-6" />
-          Fichajes
+          {t('timeTracking.title')}
         </h1>
         <p className="text-muted-foreground text-sm">
-          {isAdmin ? 'Controla las horas trabajadas de tu equipo' : 'Registra tu entrada y salida'}
+          {isAdmin ? t('timeTracking.subtitleAdmin') : t('timeTracking.subtitleEmployee')}
         </p>
       </div>
 
@@ -112,10 +114,12 @@ export default function TimeTracking() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">
-            Historial de fichajes
+            {t('timeTracking.history')}
             {!isLoadingEntries && (
               <span className="ml-2 text-sm font-normal text-muted-foreground">
-                ({entries.length} {entries.length === 1 ? 'registro' : 'registros'})
+                ({entries.length === 1
+                  ? t('timeTracking.entryCountOne', { count: entries.length })
+                  : t('timeTracking.entryCountOther', { count: entries.length })})
               </span>
             )}
           </CardTitle>

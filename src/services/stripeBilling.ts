@@ -4,6 +4,7 @@
 import { SUPABASE_CONFIG } from '@/config/api';
 import { getAuthHeaders } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
+import { t } from '@/i18n';
 
 export interface PaymentRecord {
   id: string;
@@ -41,12 +42,12 @@ async function callEdgeFunction<T>(fnName: string): Promise<T> {
   try {
     data = await res.json();
   } catch {
-    throw new Error(`${fnName}: respuesta no válida (HTTP ${res.status})`);
+    throw new Error(t('billing.errors.invalidResponse', { fn: fnName, status: res.status }));
   }
 
   if (!res.ok) {
     // Supabase relay uses "msg", Edge Functions use "error"
-    const message = (data.error ?? data.msg ?? `Error HTTP ${res.status}`) as string;
+    const message = (data.error ?? data.msg ?? t('billing.errors.http', { status: res.status })) as string;
     throw new Error(message);
   }
   return data as T;

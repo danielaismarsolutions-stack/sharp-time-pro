@@ -9,8 +9,8 @@ import {
   isSameMonth,
   isToday,
 } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -38,6 +38,7 @@ interface MonthViewProps {
 const MAX_VISIBLE_BOOKINGS = 3;
 
 export function MonthView({ currentDate, bookings, services, barberNames, onDateClick, onBookingClick, getEventsForDay, onEventClick }: MonthViewProps) {
+  const { t } = useTranslation();
   const isMobile = useIsMobile();
   // Subscribe to color overrides so the view re-renders when an admin
   // changes a barber's color (the inline getBarberPastelColorByName calls
@@ -71,7 +72,7 @@ export function MonthView({ currentDate, bookings, services, barberNames, onDate
     return grouped;
   }, [bookings]);
 
-  const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const dayNames = t('calendar.monthView.dayNamesShort').split(',');
 
   return (
     <div className="flex flex-col h-full">
@@ -174,7 +175,7 @@ export function MonthView({ currentDate, bookings, services, barberNames, onDate
                       onDateClick(day);
                     }}
                   >
-                    +{items.length - MAX_VISIBLE_BOOKINGS} más
+                    {t('calendar.monthView.moreItems', { count: items.length - MAX_VISIBLE_BOOKINGS })}
                   </button>
                 )}
               </div>

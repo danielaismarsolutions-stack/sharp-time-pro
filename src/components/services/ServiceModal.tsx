@@ -24,6 +24,7 @@ import { Service } from '@/types';
 import { Barber } from '@/types/barber';
 import { useToast } from '@/hooks/use-toast';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { useTranslation } from '@/contexts/LanguageContext';
 import ServicePhotoUpload from '@/components/services/ServicePhotoUpload';
 import { useServiceCategories } from '@/hooks/useQueryHooks';
 
@@ -72,6 +73,7 @@ export default function ServiceModal({
 }: ServiceModalProps) {
   const { toast } = useToast();
   const staffTerms = useStaffTerms();
+  const { t } = useTranslation();
   const { data: serviceCategories = [] } = useServiceCategories(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -145,21 +147,21 @@ export default function ServiceModal({
     
     // Validate name
     if (!formData.name.trim()) {
-      newErrors.name = 'El nombre es requerido';
+      newErrors.name = t('services.modal.nameRequired');
     } else if (formData.name.trim().length < 3) {
-      newErrors.name = 'El nombre debe tener al menos 3 caracteres';
+      newErrors.name = t('services.modal.nameMin');
     } else if (formData.name.trim().length > 100) {
-      newErrors.name = 'El nombre no puede exceder 100 caracteres';
+      newErrors.name = t('services.modal.nameMax');
     }
     
     // Validate price and duration only for services (not consultations)
     if (!formData.isConsultation) {
       if (formData.price < 0) {
-        newErrors.price = 'El precio debe ser mayor o igual a 0';
+        newErrors.price = t('services.modal.priceInvalid');
       }
 
       if (!Number.isInteger(formData.duration) || formData.duration < 1) {
-        newErrors.duration = 'La duración debe ser un número entero mayor que 0';
+        newErrors.duration = t('services.modal.durationInvalid');
       }
     }
     
@@ -172,8 +174,8 @@ export default function ServiceModal({
     
     if (!validateForm()) {
       toast({
-        title: 'Error de validación',
-        description: 'Por favor, corrige los errores del formulario',
+        title: t('services.modal.validationErrorTitle'),
+        description: t('services.modal.validationErrorDescription'),
         variant: 'destructive',
       });
       return;
@@ -207,7 +209,7 @@ export default function ServiceModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-1.5">
             <Scissors className="h-4 w-4 text-primary" />
-            {service ? 'Editar Servicio' : 'Nuevo Servicio'}
+            {service ? t('services.modal.editTitle') : t('services.modal.newTitle')}
           </DialogTitle>
         </DialogHeader>
 
@@ -226,7 +228,7 @@ export default function ServiceModal({
             />
           ) : (
             <div className="space-y-1">
-              <p className="text-xs font-medium">Foto del servicio</p>
+              <p className="text-xs font-medium">{t('services.modal.photoLabel')}</p>
               <div className="flex items-center gap-3">
                 <div
                   className={`
@@ -242,7 +244,7 @@ export default function ServiceModal({
                   ) : (
                     <div className="flex flex-col items-center gap-1 text-muted-foreground">
                       <Scissors className="h-6 w-6" />
-                      <span className="text-[10px] text-center leading-tight">Subir foto</span>
+                      <span className="text-[10px] text-center leading-tight">{t('services.modal.uploadPhoto')}</span>
                     </div>
                   )}
                 </div>
@@ -261,8 +263,8 @@ export default function ServiceModal({
                   }}
                 />
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  JPG, PNG, WebP o GIF.<br />
-                  Máximo 5MB. Se subirá al crear.
+                  {t('services.modal.photoFormats')}<br />
+                  {t('services.modal.photoMaxNew')}
                 </p>
               </div>
             </div>
@@ -270,7 +272,7 @@ export default function ServiceModal({
 
           {/* Service Type Selector */}
           <div className="space-y-1">
-            <Label className="text-xs">Tipo *</Label>
+            <Label className="text-xs">{t('services.modal.typeLabel')} *</Label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -283,7 +285,7 @@ export default function ServiceModal({
                 onClick={() => setFormData({ ...formData, isConsultation: false })}
               >
                 <Scissors className="h-3.5 w-3.5" />
-                Servicio
+                {t('services.modal.typeService')}
               </button>
               <button
                 type="button"
@@ -296,25 +298,25 @@ export default function ServiceModal({
                 onClick={() => setFormData({ ...formData, isConsultation: true })}
               >
                 <Clock className="h-3.5 w-3.5" />
-                Consulta
+                {t('services.modal.typeConsultation')}
               </button>
             </div>
             {formData.isConsultation && (
               <p className="text-[10px] text-muted-foreground">
-                Las consultas no requieren precio ni duración
+                {t('services.modal.consultationHint')}
               </p>
             )}
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">Nombre del servicio *</Label>
+            <Label className="text-xs">{t('services.modal.nameLabel')} *</Label>
             <Input
               value={formData.name}
               onChange={(e) => {
                 setFormData({ ...formData, name: e.target.value });
                 if (errors.name) setErrors({ ...errors, name: undefined });
               }}
-              placeholder="Ej: Corte clásico"
+              placeholder={t('services.modal.namePlaceholder')}
               className={cn("h-8 text-xs", errors.name && 'border-destructive')}
               maxLength={100}
             />
@@ -325,7 +327,7 @@ export default function ServiceModal({
 
           {serviceCategories.length > 1 && (
             <div className="space-y-1">
-              <Label className="text-xs">Categoría web</Label>
+              <Label className="text-xs">{t('services.modal.webCategoryLabel')}</Label>
               <Select
                 value={formData.category || 'none'}
                 onValueChange={(value) => setFormData({ ...formData, category: value === 'none' ? '' : value })}
@@ -334,7 +336,7 @@ export default function ServiceModal({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">— Sin categoría —</SelectItem>
+                  <SelectItem value="none">{t('services.modal.noCategory')}</SelectItem>
                   {serviceCategories.map((cat) => (
                     <SelectItem key={cat.slug} value={cat.slug}>
                       {cat.label}
@@ -343,17 +345,17 @@ export default function ServiceModal({
                 </SelectContent>
               </Select>
               <p className="text-[10px] text-muted-foreground">
-                Agrupa el servicio en la web pública. Sin categoría, el servicio no aparece en reservas online.
+                {t('services.modal.webCategoryHint')}
               </p>
             </div>
           )}
 
           <div className="space-y-1">
-            <Label className="text-xs">Descripción</Label>
+            <Label className="text-xs">{t('services.modal.descriptionLabel')}</Label>
             <Textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Descripción opcional del servicio..."
+              placeholder={t('services.modal.descriptionPlaceholder')}
               rows={2}
               maxLength={500}
               className="text-xs"
@@ -365,7 +367,7 @@ export default function ServiceModal({
               <div className="space-y-1">
                 <Label className="flex items-center gap-1.5 text-xs">
                   <Clock className="h-3 w-3" />
-                  Duración *
+                  {t('services.modal.durationLabel')} *
                 </Label>
                 {customDurationMode ? (
                   <div className="flex gap-1.5">
@@ -375,7 +377,7 @@ export default function ServiceModal({
                         inputMode="numeric"
                         min={1}
                         step={1}
-                        placeholder="Minutos"
+                        placeholder={t('services.modal.minutesPlaceholder')}
                         value={customDurationInput}
                         onChange={(e) => {
                           const raw = e.target.value;
@@ -389,7 +391,7 @@ export default function ServiceModal({
                         className={cn("h-8 text-xs pr-9", errors.duration && 'border-destructive')}
                       />
                       <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">
-                        min
+                        {t('common.minutesShort')}
                       </span>
                     </div>
                     <Button
@@ -404,7 +406,7 @@ export default function ServiceModal({
                         if (errors.duration) setErrors({ ...errors, duration: undefined });
                       }}
                     >
-                      Presets
+                      {t('services.modal.presets')}
                     </Button>
                   </div>
                 ) : (
@@ -426,10 +428,10 @@ export default function ServiceModal({
                     <SelectContent>
                       {durationOptions.map((d) => (
                         <SelectItem key={d} value={d.toString()}>
-                          {d} min
+                          {d} {t('common.minutesShort')}
                         </SelectItem>
                       ))}
-                      <SelectItem value={CUSTOM_DURATION_VALUE}>Personalizada…</SelectItem>
+                      <SelectItem value={CUSTOM_DURATION_VALUE}>{t('services.modal.customDuration')}</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
@@ -441,7 +443,7 @@ export default function ServiceModal({
               <div className="space-y-1">
                 <Label className="flex items-center gap-1.5 text-xs">
                   <DollarSign className="h-3 w-3" />
-                  Precio (€) *
+                  {t('services.modal.priceLabel')} *
                 </Label>
                 <Input
                   type="text"
@@ -455,7 +457,7 @@ export default function ServiceModal({
                       if (errors.price) setErrors({ ...errors, price: undefined });
                     }
                   }}
-                  placeholder="Ej: 15"
+                  placeholder={t('services.modal.pricePlaceholder')}
                   className={cn("h-8 text-xs", errors.price && 'border-destructive')}
                 />
                 {errors.price && (
@@ -466,7 +468,7 @@ export default function ServiceModal({
           )}
 
           <div className="space-y-1">
-            <Label className="text-xs">Color</Label>
+            <Label className="text-xs">{t('services.modal.colorLabel')}</Label>
             <div className="flex flex-wrap gap-1.5">
               {colorOptions.map((color) => (
                 <button
@@ -485,7 +487,7 @@ export default function ServiceModal({
           {!formData.isConsultation && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Buffer antes (min)</Label>
+                <Label className="text-xs">{t('services.modal.bufferBeforeLabel')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -494,10 +496,10 @@ export default function ServiceModal({
                   onChange={(e) => setFormData({ ...formData, bufferBefore: Math.max(0, parseInt(e.target.value) || 0) })}
                   className="h-8 text-xs"
                 />
-                <p className="text-[10px] text-muted-foreground">Antes de la cita</p>
+                <p className="text-[10px] text-muted-foreground">{t('services.modal.bufferBeforeHint')}</p>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Buffer después (min)</Label>
+                <Label className="text-xs">{t('services.modal.bufferAfterLabel')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -506,7 +508,7 @@ export default function ServiceModal({
                   onChange={(e) => setFormData({ ...formData, bufferAfter: Math.max(0, parseInt(e.target.value) || 0) })}
                   className="h-8 text-xs"
                 />
-                <p className="text-[10px] text-muted-foreground">Después de la cita</p>
+                <p className="text-[10px] text-muted-foreground">{t('services.modal.bufferAfterHint')}</p>
               </div>
             </div>
           )}
@@ -514,11 +516,11 @@ export default function ServiceModal({
           {/* Barber Assignment */}
           {barbers.length > 0 && (
             <div className="space-y-1">
-              <Label className="text-xs">{staffTerms.pluralCap} asignados</Label>
+              <Label className="text-xs">{t('services.modal.assignedStaff', { staff: staffTerms.pluralCap })}</Label>
               <div className="border rounded-lg p-2 max-h-32 overflow-y-auto space-y-1.5">
                 <div className="flex items-center justify-between pb-1 border-b">
                   <span className="text-[10px] text-muted-foreground">
-                    {selectedBarberIds.length} de {barbers.length} seleccionados
+                    {t('services.modal.selectedCount', { selected: selectedBarberIds.length, total: barbers.length })}
                   </span>
                   <button
                     type="button"
@@ -529,7 +531,7 @@ export default function ServiceModal({
                       )
                     }
                   >
-                    {selectedBarberIds.length === barbers.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+                    {selectedBarberIds.length === barbers.length ? t('services.modal.deselectAll') : t('services.modal.selectAll')}
                   </button>
                 </div>
                 {barbers.map((barber) => (
@@ -551,9 +553,9 @@ export default function ServiceModal({
 
           <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30">
             <div>
-              <Label className="text-xs">Activo</Label>
+              <Label className="text-xs">{t('services.modal.activeLabel')}</Label>
               <p className="text-[10px] text-muted-foreground">
-                Inactivos no aparecen en reservas
+                {t('services.modal.activeHint')}
               </p>
             </div>
             <Switch
@@ -571,15 +573,15 @@ export default function ServiceModal({
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button type="submit" size="sm" className="text-xs h-8" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
-                  Guardando...
+                  {t('common.saving')}
                 </>
-              ) : service ? 'Actualizar' : 'Crear Servicio'}
+              ) : service ? t('common.update') : t('services.modal.createService')}
             </Button>
           </div>
         </form>

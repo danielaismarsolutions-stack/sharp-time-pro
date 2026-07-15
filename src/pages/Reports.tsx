@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { useReportsData, Period } from '@/hooks/useReportsData';
 import KpiCards from '@/components/reports/KpiCards';
 import RevenueTrendChart from '@/components/reports/RevenueTrendChart';
@@ -10,6 +11,7 @@ import PaymentMethodChart from '@/components/reports/PaymentMethodChart';
 import BarberPerformance from '@/components/reports/BarberPerformance';
 
 export default function Reports() {
+  const { t } = useTranslation();
   const [period, setPeriod] = useState<Period>('month');
   const { analytics, isLoading } = useReportsData(period);
 
@@ -26,15 +28,15 @@ export default function Reports() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold">Informes</h1>
-          <p className="text-muted-foreground text-sm">Resumen del rendimiento del negocio</p>
+          <h1 className="text-xl md:text-2xl font-bold">{t('reports.title')}</h1>
+          <p className="text-muted-foreground text-sm">{t('reports.subtitle')}</p>
         </div>
         <Tabs value={period} onValueChange={(v) => setPeriod(v as Period)}>
           <TabsList className="h-11">
-            <TabsTrigger value="week" className="text-xs md:text-sm px-2 md:px-3 min-h-[40px]">Semana</TabsTrigger>
-            <TabsTrigger value="month" className="text-xs md:text-sm px-2 md:px-3 min-h-[40px]">Mes</TabsTrigger>
-            <TabsTrigger value="quarter" className="text-xs md:text-sm px-2 md:px-3 min-h-[40px]">Trim.</TabsTrigger>
-            <TabsTrigger value="year" className="text-xs md:text-sm px-2 md:px-3 min-h-[40px]">Año</TabsTrigger>
+            <TabsTrigger value="week" className="text-xs md:text-sm px-2 md:px-3 min-h-[40px]">{t('reports.period.week')}</TabsTrigger>
+            <TabsTrigger value="month" className="text-xs md:text-sm px-2 md:px-3 min-h-[40px]">{t('reports.period.month')}</TabsTrigger>
+            <TabsTrigger value="quarter" className="text-xs md:text-sm px-2 md:px-3 min-h-[40px]">{t('reports.period.quarter')}</TabsTrigger>
+            <TabsTrigger value="year" className="text-xs md:text-sm px-2 md:px-3 min-h-[40px]">{t('reports.period.year')}</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>

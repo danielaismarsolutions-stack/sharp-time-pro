@@ -10,25 +10,27 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Receipt } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslation } from '@/contexts/LanguageContext';
+import type { TranslationKey } from '@/i18n';
 import type { PaymentRecord } from '@/services/stripeBilling';
 
-const statusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  paid: { label: 'Pagado', variant: 'default' },
-  failed: { label: 'Fallido', variant: 'destructive' },
-  open: { label: 'Pendiente', variant: 'outline' },
-  void: { label: 'Anulado', variant: 'secondary' },
+const statusLabels: Record<string, { labelKey: TranslationKey; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  paid: { labelKey: 'billing.paymentStatus.paid', variant: 'default' },
+  failed: { labelKey: 'billing.paymentStatus.failed', variant: 'destructive' },
+  open: { labelKey: 'billing.paymentStatus.open', variant: 'outline' },
+  void: { labelKey: 'billing.paymentStatus.void', variant: 'secondary' },
 };
 
-function formatDate(dateStr: string): string {
-  return new Intl.DateTimeFormat('es-ES', {
+function formatDate(dateStr: string, intlLocale: string): string {
+  return new Intl.DateTimeFormat(intlLocale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   }).format(new Date(dateStr));
 }
 
-function formatPrice(amount: number, currency: string): string {
-  return new Intl.NumberFormat('es-ES', {
+function formatPrice(amount: number, currency: string, intlLocale: string): string {
+  return new Intl.NumberFormat(intlLocale, {
     style: 'currency',
     currency: currency.toUpperCase(),
   }).format(amount);
@@ -39,18 +41,20 @@ interface PaymentHistoryTableProps {
 }
 
 export default function PaymentHistoryTable({ payments }: PaymentHistoryTableProps) {
+  const { t, intlLocale } = useTranslation();
+
   if (payments.length === 0) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
             <Receipt className="h-5 w-5" />
-            Historial de pagos
+            {t('billing.paymentHistory')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground text-center py-8">
-            Aún no hay pagos registrados
+            {t('billing.noPayments')}
           </p>
         </CardContent>
       </Card>
@@ -62,17 +66,17 @@ export default function PaymentHistoryTable({ payments }: PaymentHistoryTablePro
       <CardHeader>
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <Receipt className="h-5 w-5" />
-          Historial de pagos
+          {t('billing.paymentHistory')}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Importe</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="text-right">Recibo</TableHead>
+              <TableHead>{t('common.date')}</TableHead>
+              <TableHead>{t('billing.amount')}</TableHead>
+              <TableHead>{t('common.status')}</TableHead>
+              <TableHead className="text-right">{t('billing.receipt')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -81,11 +85,11 @@ export default function PaymentHistoryTable({ payments }: PaymentHistoryTablePro
               return (
                 <TableRow key={payment.id}>
                   <TableCell className="font-medium">
-                    {formatDate(payment.created_at)}
+                    {formatDate(payment.created_at, intlLocale)}
                   </TableCell>
-                  <TableCell>{formatPrice(payment.amount_paid, payment.currency)}</TableCell>
+                  <TableCell>{formatPrice(payment.amount_paid, payment.currency, intlLocale)}</TableCell>
                   <TableCell>
-                    <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                    <Badge variant={statusInfo.variant}>{t(statusInfo.labelKey)}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     {payment.invoice_url ? (

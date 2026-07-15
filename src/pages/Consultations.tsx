@@ -193,16 +193,16 @@ export default function Consultations() {
 
       invalidateConsultations();
       toast({
-        title: 'Estado actualizado',
-        description: `La consulta se marcó como "${STATUS_CONFIG[status].label}"`,
+        title: t('consultations.page.statusUpdatedTitle'),
+        description: t('consultations.page.statusUpdatedDescription', { status: t(STATUS_CONFIG[status].labelKey) }),
       });
       if (selectedConsultation?.id === id) {
         setSelectedConsultation((prev) => prev ? { ...prev, status } : null);
       }
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'No se pudo actualizar el estado',
+        title: t('common.error'),
+        description: t('consultations.page.statusUpdateError'),
         variant: 'destructive',
       });
     }
@@ -210,9 +210,9 @@ export default function Consultations() {
 
   const handleNotesChange = async (id: string, notes: string) => {
     const confirmed = await confirm({
-      title: 'Guardar notas',
-      description: '¿Confirmar los cambios en las notas de esta consulta?',
-      confirmLabel: 'Guardar',
+      title: t('consultations.page.saveNotesTitle'),
+      description: t('consultations.page.saveNotesDescription'),
+      confirmLabel: t('common.save'),
     });
     if (!confirmed) return;
 
@@ -220,16 +220,16 @@ export default function Consultations() {
       await supabaseConsultationsApi.updateStaffNotes(id, notes);
       invalidateConsultations();
       toast({
-        title: 'Notas guardadas',
-        description: 'Las notas se han guardado correctamente',
+        title: t('consultations.page.notesSavedTitle'),
+        description: t('consultations.page.notesSavedDescription'),
       });
       if (selectedConsultation?.id === id) {
         setSelectedConsultation((prev) => prev ? { ...prev, staff_notes: notes } : null);
       }
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'No se pudieron guardar las notas',
+        title: t('common.error'),
+        description: t('consultations.page.notesSaveError'),
         variant: 'destructive',
       });
     }
@@ -261,8 +261,12 @@ export default function Consultations() {
         await notifyAllAdmins({
           business_id: getBusinessId(),
           type: 'consultation_updated',
-          title: 'Consulta programada',
-          message: `${user?.name || 'Usuario'} convirtió la consulta de ${bookingConsultation.client_name} (${bookingConsultation.service_name}) a reserva`,
+          title: t('consultations.notifications.scheduledTitle'),
+          message: t('consultations.notifications.scheduledMessage', {
+            user: user?.name || t('consultations.page.userFallback'),
+            client: bookingConsultation.client_name,
+            service: bookingConsultation.service_name,
+          }),
           metadata: {
             consultation_id: bookingConsultation.id,
             client_name: bookingConsultation.client_name,
@@ -275,8 +279,8 @@ export default function Consultations() {
       // Refresh consultations
       invalidateConsultations();
       toast({
-        title: 'Consulta actualizada',
-        description: 'La consulta se ha marcado como programada',
+        title: t('consultations.page.markedScheduledTitle'),
+        description: t('consultations.page.markedScheduledDescription'),
       });
     }
   };
@@ -301,8 +305,11 @@ export default function Consultations() {
         await notifyAllAdmins({
           business_id: getBusinessId(),
           type: 'consultation_deleted',
-          title: 'Consulta eliminada',
-          message: `${user?.name || 'Usuario'} eliminó la consulta de ${deleteConsultation.client_name}`,
+          title: t('consultations.notifications.deletedTitle'),
+          message: t('consultations.notifications.deletedMessage', {
+            user: user?.name || t('consultations.page.userFallback'),
+            client: deleteConsultation.client_name,
+          }),
           metadata: {
             consultation_id: deleteConsultation.id,
             client_name: deleteConsultation.client_name,
@@ -312,13 +319,13 @@ export default function Consultations() {
       } catch { /* ignored */ }
 
       toast({
-        title: 'Consulta eliminada',
-        description: `La consulta de ${deleteConsultation.client_name} ha sido eliminada`,
+        title: t('consultations.page.deletedTitle'),
+        description: t('consultations.page.deletedDescription', { client: deleteConsultation.client_name }),
       });
     } catch {
       toast({
-        title: 'Error',
-        description: 'No se pudo eliminar la consulta',
+        title: t('common.error'),
+        description: t('consultations.page.deleteError'),
         variant: 'destructive',
       });
     } finally {
@@ -334,10 +341,10 @@ export default function Consultations() {
       <div>
         <h1 className="text-xl md:text-2xl font-semibold flex items-center gap-2">
           <MessageSquare className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-          Consultas
+          {t('consultations.page.title')}
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Solicitudes de consulta pendientes
+          {t('consultations.page.subtitle')}
         </p>
       </div>
 
@@ -354,7 +361,7 @@ export default function Consultations() {
                 : 'bg-muted hover:bg-muted/80 text-foreground'
             )}
           >
-            {option.label}
+            {t(option.labelKey)}
             <Badge
               variant="secondary"
               className={cn(
@@ -382,11 +389,13 @@ export default function Consultations() {
           className="flex flex-col items-center justify-center h-64 text-center"
         >
           <Inbox className="h-16 w-16 text-muted-foreground/50 mb-4" />
-          <h3 className="text-lg font-medium">No hay consultas</h3>
+          <h3 className="text-lg font-medium">{t('consultations.page.emptyTitle')}</h3>
           <p className="text-muted-foreground text-sm mt-1">
             {activeFilter === 'all'
-              ? 'Aún no se han recibido solicitudes de consulta'
-              : `No hay consultas con estado "${filterOptions.find((f) => f.value === activeFilter)?.label}"`}
+              ? t('consultations.page.emptyAll')
+              : t('consultations.page.emptyFiltered', {
+                  status: t(filterOptions.find((f) => f.value === activeFilter)!.labelKey),
+                })}
           </p>
         </motion.div>
       ) : isMobile ? (
@@ -487,10 +496,10 @@ export default function Consultations() {
           <AlertDialogHeader className="px-5 pt-5 pb-0">
             <AlertDialogTitle className="text-base font-semibold flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-destructive" />
-              ¿Eliminar consulta?
+              {t('consultations.page.deleteConfirmTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm text-muted-foreground">
-              Se eliminará permanentemente la consulta de <strong>{deleteConsultation?.client_name}</strong> para <strong>{deleteConsultation?.service_name}</strong>. Esta acción no se puede deshacer.
+              {t('consultations.page.deleteConfirmPart1')} <strong>{deleteConsultation?.client_name}</strong> {t('consultations.page.deleteConfirmPart2')} <strong>{deleteConsultation?.service_name}</strong>. {t('consultations.page.deleteConfirmPart3')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="px-5 pb-5 pt-4 flex flex-row gap-3 sm:space-x-0">
@@ -498,14 +507,14 @@ export default function Consultations() {
               disabled={deleting}
               className="flex-1 h-11 text-sm font-medium mt-0"
             >
-              Cancelar
+              {t('common.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}
               className="flex-1 h-11 text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleting ? 'Eliminando...' : 'Eliminar'}
+              {deleting ? t('common.deleting') : t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

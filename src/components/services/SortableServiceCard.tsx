@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Service } from '@/types';
 import { getCategoryLabel } from '@/constants/serviceCategories';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface SortableServiceCardProps {
   service: Service;
@@ -29,6 +30,7 @@ export function SortableServiceCard({
   onDelete,
   onToggleActive,
 }: SortableServiceCardProps) {
+  const { t } = useTranslation();
   const {
     attributes,
     listeners,
@@ -63,7 +65,7 @@ export function SortableServiceCard({
                 {...attributes}
                 {...listeners}
                 className="cursor-grab active:cursor-grabbing touch-none p-1 -ml-1 text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Arrastrar para reordenar"
+                aria-label={t('services.card.dragToReorder')}
               >
                 <GripVertical className="h-5 w-5" />
               </button>
@@ -78,9 +80,9 @@ export function SortableServiceCard({
                     <Badge
                       variant="outline"
                       className="text-[10px] px-1.5 py-0 border-amber-500 text-amber-600 dark:text-amber-400"
-                      title="Este servicio no aparece en reservas online"
+                      title={t('services.card.noWebCategoryTooltip')}
                     >
-                      Sin categoría web
+                      {t('services.card.noWebCategory')}
                     </Badge>
                   )}
                 </div>
@@ -98,14 +100,14 @@ export function SortableServiceCard({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem className="min-h-[44px]" onClick={() => onEdit(service)}>
                   <Edit className="h-4 w-4 mr-2" />
-                  Editar
+                  {t('common.edit')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-destructive min-h-[44px]"
                   onClick={() => onDelete(service.id)}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Desactivar
+                  {t('services.card.deactivate')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -124,7 +126,7 @@ export function SortableServiceCard({
           <div className="flex items-center justify-between mb-3 md:mb-4">
             <div className="flex items-center gap-3 md:gap-4">
               {service.isConsultation ? (
-                <span className="text-sm text-muted-foreground italic">Consulta</span>
+                <span className="text-sm text-muted-foreground italic">{t('services.card.consultation')}</span>
               ) : (
                 <>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -141,7 +143,7 @@ export function SortableServiceCard({
           </div>
           <div className="flex items-center justify-between">
             <Badge variant={service.isActive ? 'default' : 'secondary'}>
-              {service.isActive ? 'Activo' : 'Inactivo'}
+              {service.isActive ? t('services.status.active') : t('services.status.inactive')}
             </Badge>
             <div className="flex items-center gap-2">
               {togglingId === service.id && (

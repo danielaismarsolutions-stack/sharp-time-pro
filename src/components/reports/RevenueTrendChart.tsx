@@ -12,28 +12,30 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts';
-
-const chartConfig = {
-  revenue: { label: 'Ingresos', color: 'hsl(var(--primary))' },
-} satisfies ChartConfig;
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface RevenueTrendChartProps {
   data: Array<{ label: string; revenue: number; bookings: number }>;
 }
 
 export default function RevenueTrendChart({ data }: RevenueTrendChartProps) {
+  const { t } = useTranslation();
   const hasData = data.some(d => d.revenue > 0 || d.bookings > 0);
+
+  const chartConfig = {
+    revenue: { label: t('reports.charts.revenueSeries'), color: 'hsl(var(--primary))' },
+  } satisfies ChartConfig;
 
   return (
     <Card className="border-border">
       <CardHeader className="p-4 md:p-6">
-        <CardTitle className="text-base md:text-lg">Tendencia de Ingresos</CardTitle>
+        <CardTitle className="text-base md:text-lg">{t('reports.charts.revenueTrend')}</CardTitle>
       </CardHeader>
       <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
         <div className="h-[200px] md:h-[300px]">
           {!hasData ? (
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-              Sin datos para este periodo
+              {t('reports.noDataForPeriod')}
             </div>
           ) : (
             <ChartContainer config={chartConfig} className="h-full w-full">
@@ -45,7 +47,7 @@ export default function RevenueTrendChart({ data }: RevenueTrendChartProps) {
                 <Line
                   type="monotone"
                   dataKey="revenue"
-                  name="Ingresos"
+                  name={t('reports.charts.revenueSeries')}
                   stroke="hsl(var(--primary))"
                   strokeWidth={2}
                   dot={{ fill: 'hsl(var(--primary))' }}

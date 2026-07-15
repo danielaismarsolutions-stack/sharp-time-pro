@@ -12,10 +12,7 @@ import {
   Legend,
 } from 'recharts';
 import { Banknote, CreditCard, Smartphone, CircleOff } from 'lucide-react';
-
-const chartConfig = {
-  count: { label: 'Citas' },
-} satisfies ChartConfig;
+import { useTranslation } from '@/contexts/LanguageContext';
 
 const METHOD_ICONS: Record<string, typeof Banknote> = {
   cash: Banknote,
@@ -29,6 +26,10 @@ interface PaymentMethodChartProps {
 }
 
 export default function PaymentMethodChart({ data }: PaymentMethodChartProps) {
+  const { t, intlLocale } = useTranslation();
+  const chartConfig = {
+    count: { label: t('reports.charts.appointmentsSeries') },
+  } satisfies ChartConfig;
   const total = data.reduce((sum, d) => sum + d.count, 0);
   const hasData = total > 0;
   const paidItems = data.filter(d => d.method !== 'unpaid');
@@ -45,12 +46,12 @@ export default function PaymentMethodChart({ data }: PaymentMethodChartProps) {
   return (
     <Card className="border-border">
       <CardHeader className="p-4 md:p-6">
-        <CardTitle className="text-base md:text-lg">Metodos de Pago</CardTitle>
+        <CardTitle className="text-base md:text-lg">{t('reports.payment.title')}</CardTitle>
       </CardHeader>
       <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
         {!hasData ? (
           <div className="flex items-center justify-center h-[180px] md:h-[250px] text-muted-foreground text-sm">
-            Sin datos para este periodo
+            {t('reports.noDataForPeriod')}
           </div>
         ) : (
           <div className="space-y-4">
@@ -82,7 +83,7 @@ export default function PaymentMethodChart({ data }: PaymentMethodChartProps) {
               {data.filter(d => d.count > 0).map((item) => {
                 const Icon = METHOD_ICONS[item.method] || CircleOff;
                 const pct = total > 0 ? Math.round((item.count / total) * 100) : 0;
-                const formattedRevenue = item.revenue.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0 });
+                const formattedRevenue = item.revenue.toLocaleString(intlLocale, { style: 'currency', currency: 'EUR', minimumFractionDigits: 0 });
 
                 return (
                   <div key={item.method} className="flex items-center gap-3">
@@ -98,7 +99,14 @@ export default function PaymentMethodChart({ data }: PaymentMethodChartProps) {
                         <span className="text-xs font-semibold tabular-nums">{formattedRevenue}</span>
                       </div>
                       <div className="flex items-center justify-between mt-0.5">
-                        <span className="text-[10px] text-muted-foreground">{item.count} citas</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {t(
+                            item.count === 1
+                              ? 'reports.payment.appointmentsCountOne'
+                              : 'reports.payment.appointmentsCountOther',
+                            { count: item.count }
+                          )}
+                        </span>
                         <span className="text-[10px] text-muted-foreground tabular-nums">{pct}%</span>
                       </div>
                       <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
@@ -115,13 +123,13 @@ export default function PaymentMethodChart({ data }: PaymentMethodChartProps) {
 
             {/* Summary */}
             <div className="flex items-center justify-between pt-2 border-t border-border">
-              <span className="text-xs text-muted-foreground">Cobrado</span>
+              <span className="text-xs text-muted-foreground">{t('reports.payment.collected')}</span>
               <div className="text-right">
                 <span className="text-sm font-bold">
-                  {paidRevenue.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0 })}
+                  {paidRevenue.toLocaleString(intlLocale, { style: 'currency', currency: 'EUR', minimumFractionDigits: 0 })}
                 </span>
                 <span className="text-[10px] text-muted-foreground ml-1.5">
-                  ({paidTotal} de {total} citas)
+                  {t('reports.payment.paidOfTotal', { paid: paidTotal, total })}
                 </span>
               </div>
             </div>

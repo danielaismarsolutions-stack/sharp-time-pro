@@ -16,14 +16,7 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts';
-
-const statusChartConfig = {
-  value: { label: 'Citas' },
-} satisfies ChartConfig;
-
-const hoursChartConfig = {
-  bookings: { label: 'Citas', color: 'hsl(var(--primary))' },
-} satisfies ChartConfig;
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface StatusAndHoursChartsProps {
   statusData: Array<{ name: string; value: number; color: string }>;
@@ -31,21 +24,30 @@ interface StatusAndHoursChartsProps {
 }
 
 export default function StatusAndHoursCharts({ statusData, hoursData }: StatusAndHoursChartsProps) {
+  const { t } = useTranslation();
   const hasStatusData = statusData.length > 0;
   const hasHoursData = hoursData.some(d => d.bookings > 0);
+
+  const statusChartConfig = {
+    value: { label: t('reports.charts.appointmentsSeries') },
+  } satisfies ChartConfig;
+
+  const hoursChartConfig = {
+    bookings: { label: t('reports.charts.appointmentsSeries'), color: 'hsl(var(--primary))' },
+  } satisfies ChartConfig;
 
   return (
     <>
       {/* Booking Status Donut */}
       <Card className="border-border">
         <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg">Estado de Citas</CardTitle>
+          <CardTitle className="text-base md:text-lg">{t('reports.charts.appointmentStatus')}</CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
           <div className="h-[180px] md:h-[250px]">
             {!hasStatusData ? (
               <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                Sin datos para este periodo
+                {t('reports.noDataForPeriod')}
               </div>
             ) : (
               <ChartContainer config={statusChartConfig} className="h-full w-full">
@@ -75,13 +77,13 @@ export default function StatusAndHoursCharts({ statusData, hoursData }: StatusAn
       {/* Busiest Hours */}
       <Card className="border-border">
         <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg">Horas Más Ocupadas</CardTitle>
+          <CardTitle className="text-base md:text-lg">{t('reports.charts.busiestHours')}</CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
           <div className="h-[180px] md:h-[250px]">
             {!hasHoursData ? (
               <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                Sin datos para este periodo
+                {t('reports.noDataForPeriod')}
               </div>
             ) : (
               <ChartContainer config={hoursChartConfig} className="h-full w-full">
@@ -90,7 +92,7 @@ export default function StatusAndHoursCharts({ statusData, hoursData }: StatusAn
                   <XAxis dataKey="hour" stroke="hsl(var(--muted-foreground))" fontSize={9} />
                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="bookings" name="Citas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="bookings" name={t('reports.charts.appointmentsSeries')} fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ChartContainer>
             )}
