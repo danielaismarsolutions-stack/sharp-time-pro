@@ -254,7 +254,7 @@ function buildRevenueTrend(
             bookings += entry.bookings;
           }
         }
-        return { label: format(weekStart, 'd MMM', { locale: es }), revenue, bookings };
+        return { label: format(weekStart, 'd MMM', { locale }), revenue, bookings };
       });
     }
     case 'year': {
@@ -270,7 +270,7 @@ function buildRevenueTrend(
             bookings += entry.bookings;
           }
         }
-        return { label: format(monthStart, 'MMM', { locale: es }), revenue, bookings };
+        return { label: format(monthStart, 'MMM', { locale }), revenue, bookings };
       });
     }
   }
@@ -298,6 +298,7 @@ const EMPTY_ANALYTICS: ReportsAnalytics = {
 
 export function useReportsData(period: Period) {
   const queryClient = useQueryClient();
+  const { t, dateLocale } = useTranslation();
   const { current, previous, currentStartDate, currentEndDate } = useMemo(() => getDateRanges(period), [period]);
   const businessId = getBusinessId();
 
@@ -389,7 +390,7 @@ export function useReportsData(period: Period) {
     const statusDistribution = (currentAgg?.status_distribution ?? [])
       .map(s => {
         const label = STATUS_LABELS[s.status];
-        return label ? { name: label.name, value: s.count, color: label.color } : null;
+        return label ? { name: t(label.nameKey), value: s.count, color: label.color } : null;
       })
       .filter((d): d is { name: string; value: number; color: string } => d !== null && d.value > 0);
 
@@ -443,13 +444,14 @@ export function useReportsData(period: Period) {
       period,
       currentStartDate,
       currentEndDate,
+      dateLocale,
     );
 
     // Payment methods
     const paymentMethods = (paymentMethodsRaw ?? [])
       .map(pm => {
         const config = PAYMENT_METHOD_CONFIG[pm.method];
-        return config ? { method: pm.method, label: config.label, count: pm.count, revenue: pm.revenue, color: config.color } : null;
+        return config ? { method: pm.method, label: t(config.labelKey), count: pm.count, revenue: pm.revenue, color: config.color } : null;
       })
       .filter((d): d is NonNullable<typeof d> => d !== null)
       .sort((a, b) => b.count - a.count);
@@ -474,7 +476,7 @@ export function useReportsData(period: Period) {
       barberMetrics,
       paymentMethods,
     };
-  }, [currentAgg, previousAgg, barbers, period, currentStartDate, currentEndDate, paymentMethodsRaw]);
+  }, [currentAgg, previousAgg, barbers, period, currentStartDate, currentEndDate, paymentMethodsRaw, t, dateLocale]);
 
   return {
     analytics,

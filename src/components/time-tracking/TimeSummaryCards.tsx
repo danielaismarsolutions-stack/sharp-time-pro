@@ -1,5 +1,6 @@
 import { Clock, CalendarDays, CalendarRange } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { useTranslation } from '@/contexts/LanguageContext';
 import type { TimeEntry } from '@/types/timeEntry';
 
 function formatHours(minutes: number): string {
@@ -48,14 +49,15 @@ interface TimeSummaryCardsProps {
 }
 
 export default function TimeSummaryCards({ entries }: TimeSummaryCardsProps) {
+  const { t } = useTranslation();
   const todayMinutes = computeMinutes(entries, getStartOfDay());
   const weekMinutes = computeMinutes(entries, getStartOfWeek());
   const monthMinutes = computeMinutes(entries, getStartOfMonth());
 
   const cards = [
-    { label: 'Hoy', value: formatHours(todayMinutes), icon: Clock, color: 'text-blue-500' },
-    { label: 'Esta semana', value: formatHours(weekMinutes), icon: CalendarDays, color: 'text-green-500' },
-    { label: 'Este mes', value: formatHours(monthMinutes), icon: CalendarRange, color: 'text-purple-500' },
+    { label: t('common.today'), value: formatHours(todayMinutes), icon: Clock, color: 'text-blue-500' },
+    { label: t('timeTracking.summary.thisWeek'), value: formatHours(weekMinutes), icon: CalendarDays, color: 'text-green-500' },
+    { label: t('timeTracking.summary.thisMonth'), value: formatHours(monthMinutes), icon: CalendarRange, color: 'text-purple-500' },
   ];
 
   return (

@@ -6,7 +6,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { DragEndEvent, DragStartEvent, DragMoveEvent } from '@dnd-kit/core';
 import { parse, format, addMinutes, differenceInMinutes, getDay } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Barber, BarberSchedule } from '@/types/barber';
 import { BusinessHours, ClosureDate } from '@/types';

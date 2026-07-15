@@ -6,6 +6,7 @@
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { AlertTriangle, Ban, Check, Moon } from 'lucide-react';
 
 interface DroppableTimeSlotEnhancedProps {
@@ -57,6 +58,7 @@ export function DroppableTimeSlotEnhanced({
   draggedBookingColorClasses,
   closedMinuteRanges,
 }: DroppableTimeSlotEnhancedProps) {
+  const { t } = useTranslation();
   const { isOver, setNodeRef } = useDroppable({
     id,
     data: {
@@ -138,7 +140,7 @@ export function DroppableTimeSlotEnhanced({
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
           <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-muted/60 text-muted-foreground">
             <Moon className="w-3 h-3" />
-            <span className="text-[9px] font-medium">Fuera de horario</span>
+            <span className="text-[9px] font-medium">{t('calendar.dragDrop.outsideHours')}</span>
           </div>
         </div>
       )}

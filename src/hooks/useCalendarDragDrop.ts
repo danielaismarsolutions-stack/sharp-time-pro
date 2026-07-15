@@ -5,6 +5,7 @@ import { parse, format, addMinutes, differenceInMinutes } from 'date-fns';
 import { ApiBooking } from '@/types/api';
 import { supabaseBookingsApi, UpdateBookingData } from '@/services/supabaseBookings';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface UseCalendarDragDropOptions {
   bookings: ApiBooking[];
@@ -23,6 +24,7 @@ export function useCalendarDragDrop({
   onBookingsChange,
 }: UseCalendarDragDropOptions) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [undoStack, setUndoStack] = useState<UndoAction[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -44,19 +46,19 @@ export function useCalendarDragDrop({
     
     try {
       await supabaseBookingsApi.update(bookingId, previousState as UpdateBookingData);
-      toast({ title: 'Cambio deshecho' });
-      
+      toast({ title: t('calendar.dragDrop.undone') });
+
       // Remove from undo stack
       setUndoStack(prev => prev.filter(a => a.bookingId !== bookingId));
     } catch (error) {
       // Rollback the rollback
       onBookingsChange(bookings);
       toast({
-        title: 'Error al deshacer',
+        title: t('calendar.dragDrop.undoError'),
         variant: 'destructive',
       });
     }
-  }, [bookings, onBookingsChange, toast]);
+  }, [bookings, onBookingsChange, toast, t]);
   
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -126,21 +128,25 @@ export function useCalendarDragDrop({
       setUndoStack(prev => [...prev.slice(-9), { bookingId, previousState }]);
       
       toast({
-        title: 'Cita movida',
-        description: `${booking.client_name} reprogramada para ${format(new Date(newDate), 'dd/MM')} a las ${newStartTime.substring(0, 5)}`,
+        title: t('calendar.dragDrop.moved'),
+        description: t('calendar.dragDrop.movedDescription', {
+          client: booking.client_name,
+          date: format(new Date(newDate), 'dd/MM'),
+          time: newStartTime.substring(0, 5),
+        }),
       });
     } catch (error) {
       // Rollback on error
       onBookingsChange(bookings);
       toast({
-        title: 'Error al mover cita',
-        description: 'No se pudo actualizar la cita',
+        title: t('calendar.dragDrop.moveError'),
+        description: t('calendar.dragDrop.moveErrorDescription'),
         variant: 'destructive',
       });
     } finally {
       setIsUpdating(false);
     }
-  }, [bookings, onBookingUpdate, onBookingsChange, toast]);
+  }, [bookings, onBookingUpdate, onBookingsChange, toast, t]);
   
   return {
     activeId,

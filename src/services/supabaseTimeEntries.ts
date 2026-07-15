@@ -2,6 +2,7 @@
 import { SUPABASE_CONFIG } from '@/config/api';
 import { getAuthHeaders } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
+import { t } from '@/i18n';
 import type { TimeEntry, TimeEntryFilters, TimeEntryCorrectionData } from '@/types/timeEntry';
 
 const supabaseHeaders = async () => ({
@@ -81,9 +82,9 @@ export const supabaseTimeEntriesApi = {
       const errorBody = await res.text();
       // Unique constraint violation = already clocked in
       if (res.status === 409 || errorBody.includes('23505') || errorBody.includes('idx_time_entries_open_session')) {
-        throw new Error('Ya tienes un fichaje abierto. Ficha salida antes de volver a fichar entrada.');
+        throw new Error(t('timeTracking.errors.alreadyClockedIn'));
       }
-      throw new Error(`Error al fichar entrada: ${res.status}`);
+      throw new Error(t('timeTracking.errors.clockIn', { status: res.status }));
     }
 
     const rows = await res.json();
@@ -108,7 +109,7 @@ export const supabaseTimeEntriesApi = {
       body: JSON.stringify(body),
     });
 
-    if (!res.ok) throw new Error(`Error al fichar salida: ${res.status}`);
+    if (!res.ok) throw new Error(t('timeTracking.errors.clockOut', { status: res.status }));
 
     const rows = await res.json();
     return mapDbToTimeEntry(rows[0]);
@@ -173,7 +174,7 @@ export const supabaseTimeEntriesApi = {
       body: JSON.stringify(body),
     });
 
-    if (!res.ok) throw new Error(`Error al corregir fichaje: ${res.status}`);
+    if (!res.ok) throw new Error(t('timeTracking.errors.correct', { status: res.status }));
 
     const rows = await res.json();
     return mapDbToTimeEntry(rows[0]);
@@ -185,7 +186,7 @@ export const supabaseTimeEntriesApi = {
     const url = `${SUPABASE_CONFIG.url}/rest/v1/time_entries?id=eq.${entryId}`;
 
     const res = await fetch(url, { method: 'DELETE', headers });
-    if (!res.ok) throw new Error(`Error al eliminar fichaje: ${res.status}`);
+    if (!res.ok) throw new Error(t('timeTracking.errors.delete', { status: res.status }));
   },
 };
 
