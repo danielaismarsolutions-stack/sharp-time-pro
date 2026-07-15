@@ -972,17 +972,19 @@ export default function Settings() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">Sin mínimo</SelectItem>
-                      <SelectItem value="1">1 hora</SelectItem>
-                      <SelectItem value="2">2 horas</SelectItem>
-                      <SelectItem value="4">4 horas</SelectItem>
-                      <SelectItem value="24">24 horas</SelectItem>
-                      <SelectItem value="48">48 horas</SelectItem>
+                      <SelectItem value="0">{t('settings.booking.noMinimum')}</SelectItem>
+                      {[1, 2, 4, 24, 48].map((h) => (
+                        <SelectItem key={h} value={h.toString()}>
+                          {h === 1
+                            ? t('settings.booking.hoursOne', { count: h })
+                            : t('settings.booking.hoursOther', { count: h })}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Antelación Máxima</Label>
+                  <Label>{t('settings.booking.maxNotice')}</Label>
                   <Select
                     value={bookingSettings.maxAdvanceBooking.toString()}
                     onValueChange={(value) =>
@@ -993,29 +995,31 @@ export default function Settings() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="7">7 días</SelectItem>
-                      <SelectItem value="14">14 días</SelectItem>
-                      <SelectItem value="30">30 días</SelectItem>
-                      <SelectItem value="60">60 días</SelectItem>
-                      <SelectItem value="90">90 días</SelectItem>
+                      {[7, 14, 30, 60, 90].map((d) => (
+                        <SelectItem key={d} value={d.toString()}>
+                          {d === 1
+                            ? t('settings.booking.daysOne', { count: d })
+                            : t('settings.booking.daysOther', { count: d })}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Política de Cancelación</Label>
+                <Label>{t('settings.booking.cancellationPolicy')}</Label>
                 <Textarea
                   value={bookingSettings.cancellationPolicy}
                   onChange={(e) =>
                     setBookingSettings({ ...bookingSettings, cancellationPolicy: e.target.value })
                   }
                   rows={3}
-                  placeholder="Introduce el texto de tu política de cancelación..."
+                  placeholder={t('settings.booking.cancellationPolicyPlaceholder')}
                 />
               </div>
               <Button onClick={saveBookingSettings} disabled={isSaving}>
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Guardar Configuración
+                {t('settings.booking.saveButton')}
               </Button>
             </CardContent>
           </Card>
@@ -1027,21 +1031,20 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Fingerprint className="h-5 w-5" />
-                Control de Fichajes
+                {t('settings.timeTracking.title')}
               </CardTitle>
               <CardDescription>
-                Permite a tus empleados fichar entrada y salida para registrar sus horas trabajadas.
+                {t('settings.timeTracking.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-1">
                   <Label htmlFor="time-tracking-enabled" className="text-base font-medium">
-                    Activar sistema de fichajes
+                    {t('settings.timeTracking.enableLabel')}
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Al activarlo, aparecerá la sección "Fichajes" en el menú para todos los empleados.
-                    Podrán fichar entrada al llegar y salida al irse.
+                    {t('settings.timeTracking.enableDescription')}
                   </p>
                 </div>
                 <Switch
@@ -1052,15 +1055,17 @@ export default function Settings() {
                       await supabaseBusinessesApi.updateTimeTrackingSettings(checked);
                       invalidateTimeTrackingSettings();
                       toast({
-                        title: checked ? 'Fichajes activados' : 'Fichajes desactivados',
+                        title: checked
+                          ? t('settings.timeTracking.enabledToast')
+                          : t('settings.timeTracking.disabledToast'),
                         description: checked
-                          ? 'Tus empleados ya pueden fichar entrada y salida.'
-                          : 'El sistema de fichajes ha sido desactivado.',
+                          ? t('settings.timeTracking.enabledToastDescription')
+                          : t('settings.timeTracking.disabledToastDescription'),
                       });
                     } catch {
                       toast({
-                        title: 'Error',
-                        description: 'No se pudo actualizar la configuración.',
+                        title: t('common.error'),
+                        description: t('settings.timeTracking.updateError'),
                         variant: 'destructive',
                       });
                     }
@@ -1069,23 +1074,23 @@ export default function Settings() {
               </div>
 
               <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium text-sm">Como funciona</h4>
+                <h4 className="font-medium text-sm">{t('settings.timeTracking.howItWorks')}</h4>
                 <ul className="text-sm text-muted-foreground space-y-2">
                   <li className="flex gap-2">
                     <span className="text-green-500 font-bold">1.</span>
-                    Los empleados fichan entrada al llegar con un solo click.
+                    {t('settings.timeTracking.step1')}
                   </li>
                   <li className="flex gap-2">
                     <span className="text-red-500 font-bold">2.</span>
-                    Fichan salida al terminar su jornada.
+                    {t('settings.timeTracking.step2')}
                   </li>
                   <li className="flex gap-2">
                     <span className="text-blue-500 font-bold">3.</span>
-                    Si olvidan fichar salida, el sistema cierra automaticamente a las 23:00 usando el horario programado del empleado.
+                    {t('settings.timeTracking.step3')}
                   </li>
                   <li className="flex gap-2">
                     <span className="text-purple-500 font-bold">4.</span>
-                    Los administradores pueden ver todos los registros y corregir errores.
+                    {t('settings.timeTracking.step4')}
                   </li>
                 </ul>
               </div>
@@ -1097,23 +1102,23 @@ export default function Settings() {
         <TabsContent value="notifications">
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Configuración de Notificaciones</CardTitle>
-              <CardDescription>Configura las notificaciones por email y SMS</CardDescription>
+              <CardTitle>{t('settings.notifications.title')}</CardTitle>
+              <CardDescription>{t('settings.notifications.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Push Notifications Section */}
               <div className="space-y-4">
                 <h3 className="font-medium flex items-center gap-2">
                   <BellRing className="h-4 w-4" />
-                  Notificaciones Push
+                  {t('settings.notifications.pushTitle')}
                 </h3>
                 {isPushSupported ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label>Activar notificaciones push</Label>
+                        <Label>{t('settings.notifications.pushEnableLabel')}</Label>
                         <p className="text-sm text-muted-foreground">
-                          Recibe alertas instantáneas en tu dispositivo
+                          {t('settings.notifications.pushEnableDescription')}
                         </p>
                       </div>
                       <Switch
@@ -1126,13 +1131,13 @@ export default function Settings() {
                       <Alert variant="destructive">
                         <AlertTriangle className="h-4 w-4" />
                         <AlertDescription>
-                          Las notificaciones están bloqueadas. Habilítalas en la configuración de tu navegador.
+                          {t('settings.notifications.pushBlocked')}
                         </AlertDescription>
                       </Alert>
                     )}
                     {isSubscribed && (
                       <p className="text-sm text-green-600 dark:text-green-400">
-                        ✓ Notificaciones push activadas
+                        {t('settings.notifications.pushEnabled')}
                       </p>
                     )}
                   </div>
@@ -1140,7 +1145,7 @@ export default function Settings() {
                   <Alert>
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                      Tu navegador no soporta notificaciones push.
+                      {t('settings.notifications.pushUnsupported')}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -1149,13 +1154,13 @@ export default function Settings() {
               
               {/* Email Notifications Section */}
               <div className="space-y-4">
-                <h3 className="font-medium">Notificaciones por Email</h3>
+                <h3 className="font-medium">{t('settings.notifications.emailTitle')}</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label>Notificaciones de Nueva Reserva</Label>
+                      <Label>{t('settings.notifications.newBookingLabel')}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Recibe un email cuando se realice una nueva reserva
+                        {t('settings.notifications.newBookingDescription')}
                       </p>
                     </div>
                     <Switch
@@ -1167,9 +1172,9 @@ export default function Settings() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label>Notificaciones de Cancelación</Label>
+                      <Label>{t('settings.notifications.cancellationLabel')}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Recibe un email cuando se cancele una reserva
+                        {t('settings.notifications.cancellationDescription')}
                       </p>
                     </div>
                     <Switch
@@ -1181,9 +1186,9 @@ export default function Settings() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label>Notificaciones de Recordatorio</Label>
+                      <Label>{t('settings.notifications.reminderLabel')}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Enviar recordatorios a los clientes antes de sus citas
+                        {t('settings.notifications.reminderDescription')}
                       </p>
                     </div>
                     <Switch
@@ -1195,7 +1200,7 @@ export default function Settings() {
                   </div>
                   {notificationSettings.emailReminder && (
                     <div className="space-y-2 pl-4">
-                      <Label>Enviar recordatorio antes de</Label>
+                      <Label>{t('settings.notifications.reminderTimingLabel')}</Label>
                       <Select
                         value={notificationSettings.reminderTiming.toString()}
                         onValueChange={(value) =>
@@ -1206,11 +1211,13 @@ export default function Settings() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="2">2 horas</SelectItem>
-                          <SelectItem value="4">4 horas</SelectItem>
-                          <SelectItem value="12">12 horas</SelectItem>
-                          <SelectItem value="24">24 horas</SelectItem>
-                          <SelectItem value="48">48 horas</SelectItem>
+                          {[2, 4, 12, 24, 48].map((h) => (
+                            <SelectItem key={h} value={h.toString()}>
+                              {h === 1
+                                ? t('settings.booking.hoursOne', { count: h })
+                                : t('settings.booking.hoursOther', { count: h })}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -1219,12 +1226,12 @@ export default function Settings() {
               </div>
               <Separator />
               <div className="space-y-4">
-                <h3 className="font-medium">Notificaciones SMS</h3>
+                <h3 className="font-medium">{t('settings.notifications.smsTitle')}</h3>
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Habilitar SMS</Label>
+                    <Label>{t('settings.notifications.smsEnableLabel')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Enviar notificaciones SMS a los clientes (requiere integración)
+                      {t('settings.notifications.smsEnableDescription')}
                     </p>
                   </div>
                   <Switch
@@ -1237,7 +1244,7 @@ export default function Settings() {
               </div>
               <Button onClick={saveNotificationSettings} disabled={isSaving}>
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Guardar Configuración
+                {t('settings.booking.saveButton')}
               </Button>
             </CardContent>
           </Card>
@@ -1249,19 +1256,18 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Palette className="h-5 w-5" />
-                Apariencia
+                {t('settings.appearance.title')}
               </CardTitle>
               <CardDescription>
-                Elige cómo quieres ver la aplicación. Tu preferencia se guarda en tu cuenta y se
-                aplica en todos tus dispositivos.
+                {t('settings.appearance.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Label>Tema</Label>
+              <Label>{t('settings.appearance.theme')}</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md">
                 {([
-                  { value: 'light', label: 'Claro', description: 'Fondo blanco', icon: Sun },
-                  { value: 'dark', label: 'Oscuro', description: 'Fondo negro', icon: Moon },
+                  { value: 'light', label: t('settings.appearance.light'), description: t('settings.appearance.lightDescription'), icon: Sun },
+                  { value: 'dark', label: t('settings.appearance.dark'), description: t('settings.appearance.darkDescription'), icon: Moon },
                 ] as const).map((option) => {
                   const isSelected = theme === option.value;
                   const Icon = option.icon;
@@ -1355,8 +1361,8 @@ export default function Settings() {
         <TabsContent value="account">
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Configuración de Cuenta</CardTitle>
-              <CardDescription>Gestiona tu cuenta y seguridad</CardDescription>
+              <CardTitle>{t('settings.account.title')}</CardTitle>
+              <CardDescription>{t('settings.account.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/30">
@@ -1374,30 +1380,30 @@ export default function Settings() {
               <Separator />
 
               <div className="space-y-4">
-                <h3 className="font-medium">Cambiar Contraseña</h3>
+                <h3 className="font-medium">{t('settings.account.changePassword')}</h3>
                 <div className="grid gap-4 max-w-sm">
                   <div className="space-y-2">
-                    <Label>Contraseña Actual</Label>
+                    <Label>{t('settings.account.currentPassword')}</Label>
                     <Input type="password" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Nueva Contraseña</Label>
+                    <Label>{t('settings.account.newPassword')}</Label>
                     <Input type="password" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Confirmar Nueva Contraseña</Label>
+                    <Label>{t('settings.account.confirmNewPassword')}</Label>
                     <Input type="password" />
                   </div>
-                  <Button variant="outline">Actualizar Contraseña</Button>
+                  <Button variant="outline">{t('settings.account.updatePassword')}</Button>
                 </div>
               </div>
 
               <Separator />
 
               <div className="space-y-4">
-                <h3 className="font-medium">Zona de Peligro</h3>
+                <h3 className="font-medium">{t('settings.account.dangerZone')}</h3>
                 <Button variant="destructive" onClick={logout}>
-                  Cerrar sesión en todos los dispositivos
+                  {t('settings.account.logoutAll')}
                 </Button>
               </div>
             </CardContent>

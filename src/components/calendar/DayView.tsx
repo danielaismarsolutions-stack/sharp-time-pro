@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { format, differenceInMinutes, parse } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { ApiBooking } from '@/types/api';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Clock, Phone, Scissors, User } from 'lucide-react';
@@ -55,6 +55,7 @@ const getOverlapInfo = (bookings: ApiBooking[], booking: ApiBooking) => {
 };
 
 export function DayView({ currentDate, bookings, onBookingClick }: DayViewProps) {
+  const { t } = useTranslation();
   // Filter bookings for this day
   const dayBookings = useMemo(() => {
     const dateKey = format(currentDate, 'yyyy-MM-dd');
@@ -137,8 +138,8 @@ export function DayView({ currentDate, bookings, onBookingClick }: DayViewProps)
             {dayBookings.length === 0 && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center text-muted-foreground">
-                  <p className="text-lg font-medium">Sin citas</p>
-                  <p className="text-sm">No hay reservas para este día</p>
+                  <p className="text-lg font-medium">{t('calendar.emptyState.noAppointments')}</p>
+                  <p className="text-sm">{t('calendar.emptyState.noBookingsForDay')}</p>
                 </div>
               </div>
             )}

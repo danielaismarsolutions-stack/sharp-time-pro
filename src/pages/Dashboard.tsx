@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import { format, subDays, subMonths, addMonths, isSameDay, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Users, DollarSign, TrendingUp, Plus, ArrowRight, RefreshCw, Loader2, AlertCircle, Scissors, ArrowUpDown, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Clock, User } from 'lucide-react';
@@ -13,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { ApiBooking } from '@/types/api';
 import { useBookings, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { AnimatedCard } from '@/components/ui/animated-card';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -27,6 +27,8 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const staffTerms = useStaffTerms();
+  const { t, dateLocale } = useTranslation();
+  const unassignedLabel = t('dashboard.unassigned');
   // Scope to last 3 months + 1 month ahead instead of fetching all-time bookings
   const dashboardDateRange = useMemo(() => {
     const now = new Date();
@@ -37,7 +39,7 @@ export default function Dashboard() {
   }, []);
   const { data: bookings = [], isLoading, isError, refetch } = useBookings(dashboardDateRange);
   const { invalidateBookings } = useInvalidateQuery();
-  const error = isError ? 'No se pudieron cargar las citas. Por favor, intente de nuevo.' : null;
+  const error = isError ? t('dashboard.loadBookingsError') : null;
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -63,9 +65,9 @@ export default function Dashboard() {
   const actualBookings = useMemo(() => bookings.filter(b => b.booking_type !== 'event'), [bookings]);
 
   const uniqueBarbers = useMemo(() => {
-    const barbers = new Set(actualBookings.map(b => b.barber || 'Sin asignar'));
+    const barbers = new Set(actualBookings.map(b => b.barber || unassignedLabel));
     return Array.from(barbers).sort();
-  }, [actualBookings]);
+  }, [actualBookings, unassignedLabel]);
 
   // Filter and sort bookings
   const filteredAndSortedBookings = useMemo(() => {
@@ -89,7 +91,7 @@ export default function Dashboard() {
 
     // Apply barber filter
     if (barberFilter !== 'all') {
-      result = result.filter(b => (b.barber || 'Sin asignar') === barberFilter);
+      result = result.filter(b => (b.barber || unassignedLabel) === barberFilter);
     }
 
     // Apply sorting
@@ -122,7 +124,7 @@ export default function Dashboard() {
     });
 
     return result;
-  }, [bookings, searchQuery, statusFilter, barberFilter, sortField, sortOrder]);
+  }, [bookings, searchQuery, statusFilter, barberFilter, sortField, sortOrder, unassignedLabel]);
 
   // Pagination calculations
   const totalItems = filteredAndSortedBookings.length;
@@ -185,7 +187,7 @@ export default function Dashboard() {
 
   // Calculate stats per barber
   const barberStats = actualBookings.reduce((acc, booking) => {
-    const barberName = booking.barber || 'Sin asignar';
+    const barberName = booking.barber || unassignedLabel;
     if (!acc[barberName]) {
       acc[barberName] = { totalBookings: 0, totalRevenue: 0 };
     }
@@ -206,11 +208,11 @@ export default function Dashboard() {
   // Status badge colors and labels
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { class: string; label: string }> = {
-      confirmed: { class: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', label: 'Confirmada' },
-      pending: { class: 'bg-amber-500/10 text-amber-500 border-amber-500/20', label: 'Pendiente' },
-      completed: { class: 'bg-blue-500/10 text-blue-500 border-blue-500/20', label: 'Completada' },
-      cancelled: { class: 'bg-red-500/10 text-red-500 border-red-500/20', label: 'Cancelada' },
-      no_show: { class: 'bg-gray-500/10 text-gray-500 border-gray-500/20', label: 'No asistió' },
+      confirmed: { class: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', label: t('dashboard.status.confirmed') },
+      pending: { class: 'bg-amber-500/10 text-amber-500 border-amber-500/20', label: t('dashboard.status.pending') },
+      completed: { class: 'bg-blue-500/10 text-blue-500 border-blue-500/20', label: t('dashboard.status.completed') },
+      cancelled: { class: 'bg-red-500/10 text-red-500 border-red-500/20', label: t('dashboard.status.cancelled') },
+      no_show: { class: 'bg-gray-500/10 text-gray-500 border-gray-500/20', label: t('dashboard.status.noShow') },
     };
     return statusConfig[status] || { class: 'bg-gray-500/10 text-gray-500', label: status };
   };
@@ -223,7 +225,7 @@ export default function Dashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-muted-foreground text-lg">Cargando citas...</p>
+        <p className="text-muted-foreground text-lg">{t('dashboard.loadingAppointments')}</p>
       </div>
     );
   }
@@ -235,18 +237,18 @@ export default function Dashboard() {
         <div className="rounded-full bg-destructive/10 p-4">
           <AlertCircle className="h-12 w-12 text-destructive" />
         </div>
-        <h2 className="text-xl font-semibold text-center">Error al cargar</h2>
+        <h2 className="text-xl font-semibold text-center">{t('dashboard.loadErrorTitle')}</h2>
         <p className="text-muted-foreground text-center max-w-md">{error}</p>
         <Button onClick={handleRefresh} disabled={isRefreshing} className="h-11 min-h-[44px]">
           {isRefreshing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Reintentando...
+              {t('dashboard.retrying')}
             </>
           ) : (
             <>
               <RefreshCw className="mr-2 h-4 w-4" />
-              Reintentar
+              {t('common.retry')}
             </>
           )}
         </Button>
@@ -281,7 +283,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-2 flex-wrap">
           <span className="flex items-center gap-1">
             <Calendar className="h-3 w-3 shrink-0" />
-            {format(new Date(booking.booking_date), "d MMM", { locale: es })}
+            {format(new Date(booking.booking_date), "d MMM", { locale: dateLocale })}
           </span>
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3 shrink-0" />
@@ -314,12 +316,12 @@ export default function Dashboard() {
           <h1 className={cn(
             "font-bold truncate",
             isMobile ? "text-lg" : "text-2xl md:text-3xl"
-          )}>Panel de Control</h1>
+          )}>{t('dashboard.title')}</h1>
           <p className={cn(
             "text-muted-foreground truncate",
             isMobile ? "text-[11px]" : "text-sm md:text-base"
           )}>
-            {format(new Date(), isMobile ? "EEE, d MMM" : "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
+            {format(new Date(), isMobile ? t('dashboard.headerDateShort') : t('dashboard.headerDateLong'), { locale: dateLocale })}
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
@@ -344,7 +346,7 @@ export default function Dashboard() {
             onClick={() => navigate('/calendar')}
           >
             <Plus className="h-4 w-4" />
-            {!isMobile && <span className="ml-2">Nueva Cita</span>}
+            {!isMobile && <span className="ml-2">{t('dashboard.newAppointment')}</span>}
           </Button>
         </div>
       </div>
@@ -373,9 +375,9 @@ export default function Dashboard() {
         isMobile ? "grid-cols-3" : "grid-cols-3 lg:grid-cols-3 gap-4"
       )}>
         {[
-          { label: 'Total Citas', value: stats.totalBookings, sub: 'reservas', icon: Calendar, color: '' },
-          { label: 'Confirmadas', value: stats.confirmedBookings, sub: 'citas', icon: Users, color: 'text-emerald-500', borderColor: 'border-emerald-500/20' },
-          { label: 'Promedio', value: `€${stats.averagePrice.toFixed(0)}`, sub: 'por cita', icon: TrendingUp, color: '' },
+          { label: t('dashboard.stats.totalAppointments'), value: stats.totalBookings, sub: t('dashboard.stats.bookingsSub'), icon: Calendar, color: '' },
+          { label: t('dashboard.stats.confirmed'), value: stats.confirmedBookings, sub: t('dashboard.stats.appointmentsSub'), icon: Users, color: 'text-emerald-500', borderColor: 'border-emerald-500/20' },
+          { label: t('dashboard.stats.average'), value: `€${stats.averagePrice.toFixed(0)}`, sub: t('dashboard.stats.perAppointmentSub'), icon: TrendingUp, color: '' },
         ].map((stat, idx) => (
           <AnimatedCard key={stat.label} delay={idx + 1}>
             <Card className={cn("touch-manipulation h-full", stat.borderColor)}>
@@ -417,7 +419,7 @@ export default function Dashboard() {
                 isMobile ? "text-sm" : "text-lg"
               )}>
                 <Scissors className={cn(isMobile ? "h-4 w-4" : "h-5 w-5")} />
-                Por {staffTerms.singularCap}
+                {t('dashboard.byStaff', { staff: staffTerms.singularCap })}
               </CardTitle>
             </CardHeader>
             <CardContent className={cn(isMobile ? "px-4 pb-3 pt-0" : "p-6 pt-0")}>
@@ -435,7 +437,7 @@ export default function Dashboard() {
                       <div className="space-y-0.5">
                         <div className="flex items-baseline gap-1">
                           <span className="text-base font-bold text-primary">{barber.totalBookings}</span>
-                          <span className="text-[9px] text-muted-foreground">citas</span>
+                          <span className="text-[9px] text-muted-foreground">{t('dashboard.stats.appointmentsSub')}</span>
                         </div>
                         <div className="flex items-baseline gap-1">
                           <span className="text-sm font-bold text-emerald-500">€{barber.totalRevenue.toFixed(0)}</span>
@@ -458,15 +460,15 @@ export default function Dashboard() {
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div>
                           <div className="text-xl font-bold text-primary">{barber.totalBookings}</div>
-                          <div className="text-xs text-muted-foreground">Citas</div>
+                          <div className="text-xs text-muted-foreground">{t('dashboard.cardLabels.appointments')}</div>
                         </div>
                         <div>
                           <div className="text-xl font-bold text-emerald-500">€{barber.totalRevenue.toFixed(0)}</div>
-                          <div className="text-xs text-muted-foreground">Ingresos</div>
+                          <div className="text-xs text-muted-foreground">{t('dashboard.cardLabels.revenue')}</div>
                         </div>
                         <div>
                           <div className="text-xl font-bold">€{barber.averagePrice.toFixed(0)}</div>
-                          <div className="text-xs text-muted-foreground">Promedio</div>
+                          <div className="text-xs text-muted-foreground">{t('dashboard.cardLabels.average')}</div>
                         </div>
                       </div>
                     </motion.div>
@@ -484,7 +486,7 @@ export default function Dashboard() {
           <CardHeader className={cn(isMobile ? "px-4 py-3 space-y-2" : "p-6 space-y-3")}>
             <div className="flex items-center justify-between gap-2">
               <CardTitle className={cn(isMobile ? "text-sm" : "text-lg")}>
-                Citas
+                {t('dashboard.appointments')}
                 {filteredAndSortedBookings.length !== bookings.length && (
                   <span className="text-[10px] md:text-xs font-normal text-muted-foreground ml-1">
                     ({filteredAndSortedBookings.length}/{bookings.length})
@@ -511,7 +513,7 @@ export default function Dashboard() {
                   className={cn("touch-manipulation", isMobile ? "h-10 w-10" : "h-9 px-2")}
                   onClick={() => navigate('/calendar')}
                 >
-                  {!isMobile && <span>Ver Agenda</span>}
+                  {!isMobile && <span>{t('dashboard.viewCalendar')}</span>}
                   <ArrowRight className={cn("h-4 w-4", !isMobile && "ml-1")} />
                 </Button>
               </div>
@@ -524,7 +526,7 @@ export default function Dashboard() {
                   {/* Search */}
                   <div className="relative">
                     <Input
-                      placeholder="Buscar cliente, servicio..."
+                      placeholder={t('dashboard.searchPlaceholder')}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="h-10 pr-8 text-sm"
@@ -543,15 +545,15 @@ export default function Dashboard() {
                     {/* Status Filter */}
                     <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
                       <SelectTrigger className="flex-1 h-10 text-sm">
-                        <SelectValue placeholder="Estado" />
+                        <SelectValue placeholder={t('common.status')} />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border shadow-lg z-50">
-                        <SelectItem value="all">Todos</SelectItem>
-                        <SelectItem value="confirmed">Confirmada</SelectItem>
-                        <SelectItem value="pending">Pendiente</SelectItem>
-                        <SelectItem value="completed">Completada</SelectItem>
-                        <SelectItem value="cancelled">Cancelada</SelectItem>
-                        <SelectItem value="no_show">No asistió</SelectItem>
+                        <SelectItem value="all">{t('common.all')}</SelectItem>
+                        <SelectItem value="confirmed">{t('dashboard.status.confirmed')}</SelectItem>
+                        <SelectItem value="pending">{t('dashboard.status.pending')}</SelectItem>
+                        <SelectItem value="completed">{t('dashboard.status.completed')}</SelectItem>
+                        <SelectItem value="cancelled">{t('dashboard.status.cancelled')}</SelectItem>
+                        <SelectItem value="no_show">{t('dashboard.status.noShow')}</SelectItem>
                       </SelectContent>
                     </Select>
                     
@@ -561,7 +563,7 @@ export default function Dashboard() {
                         <SelectValue placeholder={staffTerms.singularCap} />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border shadow-lg z-50">
-                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="all">{t('common.all')}</SelectItem>
                         {uniqueBarbers.map((barber) => (
                           <SelectItem key={barber} value={barber}>{barber}</SelectItem>
                         ))}
@@ -573,7 +575,7 @@ export default function Dashboard() {
                   {hasActiveFilters && (
                     <Button variant="outline" size="sm" onClick={clearFilters} className="w-full h-10 text-sm">
                       <X className="h-4 w-4 mr-2" />
-                      Limpiar filtros
+                      {t('dashboard.clearFilters')}
                     </Button>
                   )}
                 </CollapsibleContent>
@@ -583,7 +585,7 @@ export default function Dashboard() {
                 {/* Search */}
                 <div className="relative flex-1">
                   <Input
-                    placeholder="Buscar cliente, servicio..."
+                    placeholder={t('dashboard.searchPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="h-10 pr-8"
@@ -601,15 +603,15 @@ export default function Dashboard() {
                 {/* Status Filter */}
                 <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
                   <SelectTrigger className="w-full sm:w-[160px] h-10">
-                    <SelectValue placeholder="Estado" />
+                    <SelectValue placeholder={t('common.status')} />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border shadow-lg z-50">
-                    <SelectItem value="all">Todos los estados</SelectItem>
-                    <SelectItem value="confirmed">Confirmada</SelectItem>
-                    <SelectItem value="pending">Pendiente</SelectItem>
-                    <SelectItem value="completed">Completada</SelectItem>
-                    <SelectItem value="cancelled">Cancelada</SelectItem>
-                    <SelectItem value="no_show">No asistió</SelectItem>
+                    <SelectItem value="all">{t('dashboard.allStatuses')}</SelectItem>
+                    <SelectItem value="confirmed">{t('dashboard.status.confirmed')}</SelectItem>
+                    <SelectItem value="pending">{t('dashboard.status.pending')}</SelectItem>
+                    <SelectItem value="completed">{t('dashboard.status.completed')}</SelectItem>
+                    <SelectItem value="cancelled">{t('dashboard.status.cancelled')}</SelectItem>
+                    <SelectItem value="no_show">{t('dashboard.status.noShow')}</SelectItem>
                   </SelectContent>
                 </Select>
                 
@@ -619,7 +621,7 @@ export default function Dashboard() {
                     <SelectValue placeholder={staffTerms.singularCap} />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border shadow-lg z-50">
-                    <SelectItem value="all">Todos los {staffTerms.plural}</SelectItem>
+                    <SelectItem value="all">{t('dashboard.allStaff', { staff: staffTerms.plural })}</SelectItem>
                     {uniqueBarbers.map((barber) => (
                       <SelectItem key={barber} value={barber}>{barber}</SelectItem>
                     ))}
@@ -630,7 +632,7 @@ export default function Dashboard() {
                 {hasActiveFilters && (
                   <Button variant="outline" size="sm" onClick={clearFilters} className="h-10 min-h-[44px]">
                     <X className="h-4 w-4 mr-1" />
-                    Limpiar
+                    {t('dashboard.clear')}
                   </Button>
                 )}
               </div>
@@ -643,7 +645,7 @@ export default function Dashboard() {
                 "text-center text-muted-foreground",
                 isMobile ? "py-6 text-sm" : "py-8"
               )}>
-                {hasActiveFilters ? 'No hay citas con estos filtros' : 'No hay citas registradas'}
+                {hasActiveFilters ? t('dashboard.noAppointmentsFiltered') : t('dashboard.noAppointments')}
               </div>
             ) : isMobile ? (
               /* Mobile: Card list optimizado */
@@ -665,7 +667,7 @@ export default function Dashboard() {
                         onClick={() => handleSort('client')}
                       >
                         <div className="flex items-center gap-1">
-                          Cliente
+                          {t('dashboard.table.client')}
                           <ArrowUpDown className={cn("h-3 w-3", sortField === 'client' && "text-primary")} />
                         </div>
                       </TableHead>
@@ -674,7 +676,7 @@ export default function Dashboard() {
                         onClick={() => handleSort('service')}
                       >
                         <div className="flex items-center gap-1">
-                          Servicio
+                          {t('dashboard.table.service')}
                           <ArrowUpDown className={cn("h-3 w-3", sortField === 'service' && "text-primary")} />
                         </div>
                       </TableHead>
@@ -692,21 +694,21 @@ export default function Dashboard() {
                         onClick={() => handleSort('date')}
                       >
                         <div className="flex items-center gap-1">
-                          Fecha y Hora
+                          {t('dashboard.table.dateAndTime')}
                           <ArrowUpDown className={cn("h-3 w-3", sortField === 'date' && "text-primary")} />
                         </div>
                       </TableHead>
-                      <TableHead className="font-semibold text-center">Duración</TableHead>
+                      <TableHead className="font-semibold text-center">{t('common.duration')}</TableHead>
                       <TableHead 
                         className="font-semibold text-right cursor-pointer hover:bg-muted/70 transition-colors"
                         onClick={() => handleSort('price')}
                       >
                         <div className="flex items-center justify-end gap-1">
-                          Precio
+                          {t('common.price')}
                           <ArrowUpDown className={cn("h-3 w-3", sortField === 'price' && "text-primary")} />
                         </div>
                       </TableHead>
-                      <TableHead className="font-semibold text-center">Estado</TableHead>
+                      <TableHead className="font-semibold text-center">{t('common.status')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -732,7 +734,7 @@ export default function Dashboard() {
                           </TableCell>
                           <TableCell>
                             <div className="font-medium">
-                              {format(new Date(booking.booking_date), "d MMM yyyy", { locale: es })}
+                              {format(new Date(booking.booking_date), "d MMM yyyy", { locale: dateLocale })}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
@@ -774,14 +776,14 @@ export default function Dashboard() {
                 "text-muted-foreground",
                 isMobile ? "text-[11px]" : "text-sm"
               )}>
-                {startIndex + 1}-{endIndex} de {totalItems}
+                {t('dashboard.paginationRange', { from: startIndex + 1, to: endIndex, total: totalItems })}
               </div>
               
               <div className="flex items-center gap-1.5">
                 {/* Page size selector - hidden on mobile */}
                 {!isMobile && (
                   <div className="flex items-center gap-2 mr-2">
-                    <span className="text-sm text-muted-foreground">Por página:</span>
+                    <span className="text-sm text-muted-foreground">{t('dashboard.perPage')}</span>
                     <Select value={pageSize.toString()} onValueChange={(v) => setPageSize(Number(v))}>
                       <SelectTrigger className="w-[70px] h-9">
                         <SelectValue />

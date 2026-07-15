@@ -131,7 +131,7 @@ export function CalendarNav({
               <SelectValue placeholder={staffTerms.singularCap} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="all">{t('common.all')}</SelectItem>
               {barbers.map((barber) => (
                 <SelectItem key={barber} value={barber}>
                   {barber}
