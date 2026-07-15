@@ -206,14 +206,14 @@ export function MoveEventConfirmDialog({
             disabled={isLoading}
             className="flex-1 h-11 text-sm font-medium mt-0"
           >
-            Cancelar
+            {t('common.cancel')}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             disabled={isLoading}
             className="flex-1 h-11 text-sm font-medium bg-primary hover:bg-primary/90"
           >
-            {isLoading ? 'Moviendo...' : 'Confirmar'}
+            {isLoading ? t('calendar.moveDialog.moving') : t('common.confirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

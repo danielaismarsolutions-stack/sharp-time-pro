@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Service } from '@/types';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface ServiceLegendProps {
   services: Service[];
@@ -45,6 +46,7 @@ const getServicePastelColor = (service: Service) => {
 
 // Inline legend component - always visible below the calendar
 export function ServiceLegend({ services }: ServiceLegendProps) {
+  const { t } = useTranslation();
   const serviceColors = useMemo(() => {
     return services.map((service) => ({
       service,
@@ -57,7 +59,7 @@ export function ServiceLegend({ services }: ServiceLegendProps) {
   return (
     <div className="px-2 md:px-4 py-3 border-t border-border bg-card rounded-b-lg">
       <p className="text-xs font-medium text-muted-foreground mb-2">
-        Colores por servicio
+        {t('calendar.legend.colorsByService')}
       </p>
       <div className="flex flex-wrap gap-1.5 sm:gap-2">
         {serviceColors.map(({ service, colors }) => (

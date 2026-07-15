@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { format, isSameDay } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Menu, ChevronDown, ChevronLeft, ChevronRight, Bell, List, LayoutGrid, Calendar as CalendarIcon, Filter, Settings, HelpCircle, User, Check, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +23,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/LanguageContext';
 import {
   useNotifications,
   formatNotificationTime,

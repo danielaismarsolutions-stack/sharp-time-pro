@@ -18,10 +18,12 @@ import {
   eachDayOfInterval,
   eachWeekOfInterval,
 } from 'date-fns';
-import { es } from 'date-fns/locale';
+import type { Locale } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
 import { useBarbers } from '@/hooks/useQueryHooks';
+import { useTranslation } from '@/contexts/LanguageContext';
+import type { TranslationKey } from '@/i18n';
 
 // ── Public types (consumed by Reports.tsx, KpiCards, BarberPerformance) ──
 
@@ -160,11 +162,11 @@ async function fetchReportAggregations(businessId: string, startDate: string, en
   return data as RpcResult;
 }
 
-const PAYMENT_METHOD_CONFIG: Record<string, { label: string; color: string }> = {
-  cash: { label: 'Efectivo', color: '#10b981' },
-  card: { label: 'Tarjeta', color: '#3b82f6' },
-  bizum: { label: 'Bizum', color: '#8b5cf6' },
-  unpaid: { label: 'Sin cobrar', color: '#6b7280' },
+const PAYMENT_METHOD_CONFIG: Record<string, { labelKey: TranslationKey; color: string }> = {
+  cash: { labelKey: 'reports.payment.cash', color: '#10b981' },
+  card: { labelKey: 'reports.payment.card', color: '#3b82f6' },
+  bizum: { labelKey: 'reports.payment.bizum', color: '#8b5cf6' },
+  unpaid: { labelKey: 'reports.payment.unpaid', color: '#6b7280' },
 };
 
 async function fetchPaymentMethodDistribution(
@@ -200,12 +202,12 @@ async function fetchPaymentMethodDistribution(
   }));
 }
 
-const STATUS_LABELS: Record<string, { name: string; color: string }> = {
-  completed: { name: 'Completadas', color: '#10b981' },
-  pending: { name: 'Pendientes', color: '#f59e0b' },
-  confirmed: { name: 'Confirmadas', color: '#3b82f6' },
-  cancelled: { name: 'Canceladas', color: '#ef4444' },
-  no_show: { name: 'No asistió', color: '#6b7280' },
+const STATUS_LABELS: Record<string, { nameKey: TranslationKey; color: string }> = {
+  completed: { nameKey: 'reports.status.completed', color: '#10b981' },
+  pending: { nameKey: 'reports.status.pending', color: '#f59e0b' },
+  confirmed: { nameKey: 'reports.status.confirmed', color: '#3b82f6' },
+  cancelled: { nameKey: 'reports.status.cancelled', color: '#ef4444' },
+  no_show: { nameKey: 'reports.status.noShow', color: '#6b7280' },
 };
 
 /** Build revenue trend from daily aggregates returned by the RPC */
@@ -214,6 +216,7 @@ function buildRevenueTrend(
   period: Period,
   startDate: Date,
   endDate: Date,
+  locale: Locale,
 ): Array<{ label: string; revenue: number; bookings: number }> {
   const dailyMap = new Map(dailyTrend.map(d => [d.date, d]));
 
@@ -223,7 +226,7 @@ function buildRevenueTrend(
         const day = addDays(startDate, i);
         const entry = dailyMap.get(format(day, 'yyyy-MM-dd'));
         return {
-          label: format(day, 'EEE', { locale: es }),
+          label: format(day, 'EEE', { locale }),
           revenue: Number(entry?.revenue ?? 0),
           bookings: entry?.bookings ?? 0,
         };
