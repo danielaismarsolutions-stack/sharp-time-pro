@@ -107,21 +107,21 @@ export const supabaseHolidaysApi = {
       const error = await parseErrorMessage(response);
       // Unique violation (business_id, holiday_date)
       if (response.status === 409 || /duplicate key/i.test(error)) {
-        throw new Error('Ya existe una fecha de cierre para ese día.');
+        throw new Error(t('settings.closures.errors.duplicate'));
       }
-      throw new Error(`No se pudo crear la fecha de cierre: ${error}`);
+      throw new Error(t('settings.closures.errors.createFailed', { error }));
     }
 
     const rows: DbHoliday[] = await response.json();
     if (!rows || rows.length === 0) {
-      throw new Error('La base de datos no devolvió la fila creada.');
+      throw new Error(t('settings.closures.errors.noRowReturned'));
     }
     return mapDbToClosureDate(rows[0]);
   },
 
   /** Update an existing closure date. Scoped by id + business_id (RLS also enforces this). */
   async update(id: string, input: Partial<ClosureDateInput>): Promise<ClosureDate> {
-    if (!id) throw new Error('ID de fecha de cierre requerido.');
+    if (!id) throw new Error(t('settings.closures.errors.idRequired'));
     const businessId = getBusinessId();
 
     const patch: Partial<DbHoliday> = {};
@@ -133,7 +133,7 @@ export const supabaseHolidaysApi = {
     if (input.isClosed !== undefined) patch.is_closed = input.isClosed;
 
     if (Object.keys(patch).length === 0) {
-      throw new Error('No hay cambios para guardar.');
+      throw new Error(t('settings.closures.errors.noChanges'));
     }
 
     const response = await fetch(
@@ -148,21 +148,21 @@ export const supabaseHolidaysApi = {
     if (!response.ok) {
       const error = await parseErrorMessage(response);
       if (response.status === 409 || /duplicate key/i.test(error)) {
-        throw new Error('Ya existe una fecha de cierre para ese día.');
+        throw new Error(t('settings.closures.errors.duplicate'));
       }
-      throw new Error(`No se pudo actualizar la fecha de cierre: ${error}`);
+      throw new Error(t('settings.closures.errors.updateFailed', { error }));
     }
 
     const rows: DbHoliday[] = await response.json();
     if (!rows || rows.length === 0) {
-      throw new Error('La fecha de cierre no existe o no pertenece a este negocio.');
+      throw new Error(t('settings.closures.errors.notFound'));
     }
     return mapDbToClosureDate(rows[0]);
   },
 
   /** Remove a closure date. Scoped by id + business_id (RLS also enforces this). */
   async remove(id: string): Promise<void> {
-    if (!id) throw new Error('ID de fecha de cierre requerido.');
+    if (!id) throw new Error(t('settings.closures.errors.idRequired'));
     const businessId = getBusinessId();
 
     const response = await fetch(
@@ -175,7 +175,7 @@ export const supabaseHolidaysApi = {
 
     if (!response.ok) {
       const error = await parseErrorMessage(response);
-      throw new Error(`No se pudo eliminar la fecha de cierre: ${error}`);
+      throw new Error(t('settings.closures.errors.deleteFailed', { error }));
     }
   },
 };

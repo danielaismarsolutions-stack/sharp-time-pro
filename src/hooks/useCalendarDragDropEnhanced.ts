@@ -153,14 +153,16 @@ export function checkBusinessSchedule(
     if (start < fallbackOpenHour * 60 || end > fallbackCloseHour * 60) {
       return {
         isWithin: false,
-        reason: `Fuera del horario del negocio (${fallbackOpenHour}:00-${fallbackCloseHour}:00)`,
+        reason: translateGlobal('calendar.schedule.outsideBusinessHours', {
+          hours: `${fallbackOpenHour}:00-${fallbackCloseHour}:00`,
+        }),
       };
     }
     return { isWithin: true };
   }
 
   if (!dayData.isOpen || dayData.shifts.length === 0) {
-    return { isWithin: false, reason: 'El negocio no abre este día' };
+    return { isWithin: false, reason: translateGlobal('calendar.schedule.businessClosedThisDay') };
   }
 
   const fitsInShift = dayData.shifts.some(shift =>
@@ -173,7 +175,7 @@ export function checkBusinessSchedule(
       .join(', ');
     return {
       isWithin: false,
-      reason: `Fuera del horario del negocio (${shiftsText})`,
+      reason: translateGlobal('calendar.schedule.outsideBusinessHours', { hours: shiftsText }),
     };
   }
 
@@ -213,8 +215,8 @@ export function checkBarberSchedule(
     return {
       isAvailable: false,
       reason: timeOff.reason
-        ? `${barberName} tiene el día libre (${timeOff.reason})`
-        : `${barberName} tiene el día libre`,
+        ? translateGlobal('calendar.schedule.staffDayOffWithReason', { name: barberName, reason: timeOff.reason })
+        : translateGlobal('calendar.schedule.staffDayOff', { name: barberName }),
     };
   }
 
@@ -222,7 +224,7 @@ export function checkBarberSchedule(
   if (!daySchedule || !daySchedule.enabled || daySchedule.shifts.length === 0) {
     return {
       isAvailable: false,
-      reason: `${barberName} no trabaja este día`,
+      reason: translateGlobal('calendar.schedule.staffNotWorking', { name: barberName }),
     };
   }
 
@@ -240,7 +242,7 @@ export function checkBarberSchedule(
       .join(', ');
     return {
       isAvailable: false,
-      reason: `Fuera del horario de ${barberName} (${shiftsText})`,
+      reason: translateGlobal('calendar.schedule.outsideStaffHours', { name: barberName, hours: shiftsText }),
     };
   }
 
