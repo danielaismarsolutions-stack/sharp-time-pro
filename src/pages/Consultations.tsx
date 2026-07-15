@@ -31,21 +31,24 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
+import type { TranslationKey } from '@/i18n';
 
 type FilterStatus = 'all' | ConsultationStatus;
 
-const filterOptions: { value: FilterStatus; label: string }[] = [
-  { value: 'all', label: 'Todas' },
-  { value: 'new', label: 'Nuevas' },
-  { value: 'contacted', label: 'Contactadas' },
-  { value: 'scheduled', label: 'Programadas' },
-  { value: 'completed', label: 'Completadas' },
-  { value: 'cancelled', label: 'Canceladas' },
+const filterOptions: { value: FilterStatus; labelKey: TranslationKey }[] = [
+  { value: 'all', labelKey: 'consultations.filters.all' },
+  { value: 'new', labelKey: 'consultations.filters.new' },
+  { value: 'contacted', labelKey: 'consultations.filters.contacted' },
+  { value: 'scheduled', labelKey: 'consultations.filters.scheduled' },
+  { value: 'completed', labelKey: 'consultations.filters.completed' },
+  { value: 'cancelled', labelKey: 'consultations.filters.cancelled' },
 ];
 
 export default function Consultations() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const isMobile = useIsMobile();
   
@@ -86,8 +89,8 @@ export default function Consultations() {
       setSelectedConsultation(found);
     } else {
       toast({
-        title: 'Consulta no disponible',
-        description: 'La consulta de esta notificación ya no existe.',
+        title: t('consultations.page.notFoundTitle'),
+        description: t('consultations.page.notFoundDescription'),
         variant: 'destructive',
       });
     }
@@ -106,8 +109,11 @@ export default function Consultations() {
           await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'consultation_created',
-            title: 'Nueva consulta recibida',
-            message: `${payload.new.client_name} ha enviado una consulta para ${payload.new.service_name}`,
+            title: t('consultations.notifications.newTitle'),
+            message: t('consultations.notifications.newMessage', {
+              client: payload.new.client_name,
+              service: payload.new.service_name,
+            }),
             metadata: {
               consultation_id: payload.new.id,
               client_name: payload.new.client_name,
@@ -152,9 +158,9 @@ export default function Consultations() {
   // Handlers
   const handleStatusChange = async (id: string, status: ConsultationStatus) => {
     const confirmed = await confirm({
-      title: 'Cambiar estado de consulta',
-      description: `¿Estás seguro de marcar esta consulta como "${STATUS_CONFIG[status].label}"?`,
-      confirmLabel: 'Confirmar',
+      title: t('consultations.page.changeStatusTitle'),
+      description: t('consultations.page.changeStatusDescription', { status: t(STATUS_CONFIG[status].labelKey) }),
+      confirmLabel: t('common.confirm'),
       variant: status === 'cancelled' ? 'destructive' : 'default',
     });
     if (!confirmed) return;
@@ -169,8 +175,12 @@ export default function Consultations() {
           await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'consultation_updated',
-            title: 'Estado de consulta actualizado',
-            message: `${user?.name || 'Usuario'} marcó la consulta de ${consultation?.client_name || 'cliente'} como "${STATUS_CONFIG[status].label}"`,
+            title: t('consultations.notifications.statusUpdatedTitle'),
+            message: t('consultations.notifications.statusUpdatedMessage', {
+              user: user?.name || t('consultations.page.userFallback'),
+              client: consultation?.client_name || t('consultations.page.clientFallback'),
+              status: t(STATUS_CONFIG[status].labelKey),
+            }),
             metadata: {
               consultation_id: id,
               client_name: consultation?.client_name,

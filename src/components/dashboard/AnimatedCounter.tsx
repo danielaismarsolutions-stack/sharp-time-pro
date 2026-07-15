@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, useSpring } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
 interface AnimatedCounterProps {
@@ -22,6 +23,7 @@ export function AnimatedCounter({
   className,
 }: AnimatedCounterProps) {
   const { toast } = useToast();
+  const { t, intlLocale } = useTranslation();
   const previousMilestone = useRef<number>(0);
   const [displayValue, setDisplayValue] = useState(0);
   
@@ -64,16 +66,16 @@ export function AnimatedCounter({
         
         // Show toast
         toast({
-          title: `🎉 ¡${milestone}${prefix} alcanzados hoy!`,
-          description: '¡Felicidades por el logro!',
+          title: t('dashboard.counter.milestoneTitle', { milestone, prefix }),
+          description: t('dashboard.counter.milestoneDescription'),
         });
-        
+
         break; // Only celebrate one milestone at a time
       }
     }
-    
+
     previousMilestone.current = value;
-  }, [value, celebrateAt, prefix, toast]);
+  }, [value, celebrateAt, prefix, toast, t]);
 
   // Calculate trend
   const trendPercentage = previousValue > 0 
@@ -84,9 +86,9 @@ export function AnimatedCounter({
   const isNegative = trendPercentage < 0;
   const isNeutral = trendPercentage === 0;
 
-  // Format number with Spanish locale (1.234,56)
+  // Format number with the active locale (es: 1.234,56 / en-GB: 1,234.56)
   const formatNumber = (num: number) => {
-    return num.toLocaleString('es-ES', {
+    return num.toLocaleString(intlLocale, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
@@ -124,7 +126,7 @@ export function AnimatedCounter({
             {trendPercentage.toFixed(1)}%
           </span>
           <span className="text-muted-foreground text-xs ml-1">
-            vs ayer
+            {t('dashboard.counter.vsYesterday')}
           </span>
         </motion.div>
       )}
@@ -136,7 +138,7 @@ export function AnimatedCounter({
         transition={{ delay: 0.2 }}
         className="text-xs text-muted-foreground mt-1"
       >
-        Ingresos hoy
+        {t('dashboard.counter.revenueToday')}
       </motion.p>
     </div>
   );

@@ -387,7 +387,7 @@ export function EventModal({
 
           {/* Repeat */}
           <div className="space-y-1">
-            <Label className="text-xs font-medium">Repetir</Label>
+            <Label className="text-xs font-medium">{t('calendar.eventModal.repeatLabel')}</Label>
             <Select
               value={formData.repeat}
               onValueChange={(value) =>
@@ -398,10 +398,10 @@ export function EventModal({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Solo una vez</SelectItem>
-                <SelectItem value="daily">Todos los días</SelectItem>
-                <SelectItem value="weekly">Cada semana</SelectItem>
-                <SelectItem value="monthly">Cada mes</SelectItem>
+                <SelectItem value="none">{t('calendar.eventModal.repeatNone')}</SelectItem>
+                <SelectItem value="daily">{t('calendar.eventModal.repeatDaily')}</SelectItem>
+                <SelectItem value="weekly">{t('calendar.eventModal.repeatWeekly')}</SelectItem>
+                <SelectItem value="monthly">{t('calendar.eventModal.repeatMonthly')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -409,9 +409,9 @@ export function EventModal({
           {/* Location */}
           <div className="space-y-1">
             <Label className="text-xs font-medium">
-              Ubicación{' '}
+              {t('calendar.eventModal.locationLabel')}{' '}
               <span className="text-muted-foreground font-normal">
-                (opcional)
+                {t('calendar.eventModal.optionalSuffix')}
               </span>
             </Label>
             <Input
@@ -419,7 +419,7 @@ export function EventModal({
               onChange={(e) =>
                 setFormData({ ...formData, location: e.target.value })
               }
-              placeholder="Ej: Sala principal, Dirección..."
+              placeholder={t('calendar.eventModal.locationPlaceholder')}
               className="h-8 text-xs"
             />
           </div>
@@ -429,7 +429,7 @@ export function EventModal({
             <Label className="text-xs font-medium">
               {staffTerms.singularCap}{' '}
               <span className="text-muted-foreground font-normal">
-                (opcional)
+                {t('calendar.eventModal.optionalSuffix')}
               </span>
             </Label>
             <Select
@@ -442,10 +442,10 @@ export function EventModal({
               }}
             >
               <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="Sin asignar" />
+                <SelectValue placeholder={t('calendar.eventModal.unassigned')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Sin asignar</SelectItem>
+                <SelectItem value="none">{t('calendar.eventModal.unassigned')}</SelectItem>
                 {barbers.map((barber) => (
                   <SelectItem key={barber.id} value={barber.id}>
                     {barber.name}
@@ -458,9 +458,9 @@ export function EventModal({
           {/* Notes */}
           <div className="space-y-1">
             <Label className="text-xs font-medium">
-              Notas{' '}
+              {t('common.notes')}{' '}
               <span className="text-muted-foreground font-normal">
-                (opcional)
+                {t('calendar.eventModal.optionalSuffix')}
               </span>
             </Label>
             <Textarea
@@ -468,7 +468,7 @@ export function EventModal({
               onChange={(e) =>
                 setFormData({ ...formData, notes: e.target.value })
               }
-              placeholder="Detalles del evento..."
+              placeholder={t('calendar.eventModal.notesPlaceholder')}
               rows={2}
               className="resize-none text-xs"
             />
