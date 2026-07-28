@@ -1,18 +1,22 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-function getAllowedOrigin(req: Request): string {
-  const allowed = (Deno.env.get("FRONTEND_URL") || "http://localhost:5173").replace(/\/$/, "");
+function getCorsOrigin(req: Request): string {
+  const frontendUrl = Deno.env.get("FRONTEND_URL");
+  if (!frontendUrl) return "*";
+  const allowed = frontendUrl.replace(/\/$/, "");
   const origin = req.headers.get("Origin") || "";
   return origin === allowed ? allowed : "";
 }
 
 function corsHeaders(req: Request) {
-  return {
-    "Access-Control-Allow-Origin": getAllowedOrigin(req),
+  const origin = getCorsOrigin(req);
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Vary": "Origin",
   };
+  if (origin !== "*") headers["Vary"] = "Origin";
+  return headers;
 }
 
 function jsonResponse(status: number, body: Record<string, unknown>, req: Request) {
@@ -39,6 +43,7 @@ const MESSAGES: Record<Language, {
   sessionExpired: string;
   profileNotFound: string;
   noPermission: string;
+  businessNotFound: string;
   internal: string;
 }> = {
   es: {
@@ -46,6 +51,7 @@ const MESSAGES: Record<Language, {
     sessionExpired: "Sesión expirada. Inicia sesión de nuevo.",
     profileNotFound: "No se encontró tu perfil de usuario",
     noPermission: "No tienes permisos para ver la facturación",
+    businessNotFound: "Negocio no encontrado",
     internal: "Error interno. Inténtalo de nuevo.",
   },
   en: {
@@ -53,6 +59,7 @@ const MESSAGES: Record<Language, {
     sessionExpired: "Your session has expired. Please sign in again.",
     profileNotFound: "Your user profile could not be found",
     noPermission: "You don't have permission to view billing",
+    businessNotFound: "Business not found",
     internal: "Internal error. Please try again.",
   },
 };
@@ -111,7 +118,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (bizErr || !business) {
-      return jsonResponse(404, { error: "Negocio no encontrado" }, req);
+      return jsonResponse(404, { error: msg.businessNotFound }, req);
     }
 
     // 4. Get payment history (last 12 entries)
