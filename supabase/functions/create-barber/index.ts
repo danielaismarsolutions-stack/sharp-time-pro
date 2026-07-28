@@ -126,7 +126,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!["owner", "admin"].includes(callerProfile.role)) {
+    const allowedRoles = ["owner", "admin"];
+    if (!allowedRoles.includes(callerProfile.role)) {
       return jsonResponse(403, {
         error: msg.noPermission,
       });
@@ -148,7 +149,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!["barber", "admin"].includes(role)) {
+    const allowedNewRoles = ["barber", "admin"];
+    if (!allowedNewRoles.includes(role)) {
       return jsonResponse(400, {
         error: msg.invalidRole,
       });
