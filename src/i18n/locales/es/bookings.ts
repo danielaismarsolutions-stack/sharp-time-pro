@@ -32,6 +32,21 @@ export const bookings = {
     updatedDescription: 'La cita se ha actualizado correctamente',
     saveError: 'No se pudo guardar la cita',
   },
+  newClient: {
+    title: 'Nuevo cliente',
+    openButton: 'Crear nuevo cliente',
+    namePlaceholder: 'Nombre completo *',
+    phonePlaceholder: 'Teléfono *',
+    emailPlaceholder: 'Correo electrónico (opcional)',
+    createButton: 'Crear cliente',
+    creating: 'Creando...',
+    requiredFieldsDescription: 'El nombre y teléfono son obligatorios',
+    duplicateTitle: 'Cliente ya existente',
+    duplicateDescription: 'Ya existe un cliente con ese teléfono: se ha seleccionado {name}',
+    createdTitle: 'Cliente creado',
+    createdDescription: '{name} se ha creado correctamente',
+    createError: 'No se pudo crear el cliente',
+  },
   dateFormats: {
     // date-fns format strings, localized because word order differs per language
     medium: "d 'de' MMM yyyy",

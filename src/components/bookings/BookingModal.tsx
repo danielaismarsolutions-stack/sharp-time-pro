@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format, getDay, addMinutes, parse, isBefore, isAfter, isSameDay } from 'date-fns';
-import { Calendar as CalendarIcon, AlertCircle, Search, X } from 'lucide-react';
+import { Calendar as CalendarIcon, AlertCircle, Search, X, UserPlus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -157,6 +157,7 @@ export default function BookingModal({
   barbers,
   allBookings = [],
   onSave,
+  onClientCreate,
   selectedDate,
   selectedTime,
   isSlotCreation = false,
@@ -171,6 +172,11 @@ export default function BookingModal({
   const [isLoading, setIsLoading] = useState(false);
   const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
   const [clientSearch, setClientSearch] = useState('');
+  // Inline "new client" form shown instead of the search bar while creating
+  // a client without leaving the booking modal.
+  const [isCreatingClient, setIsCreatingClient] = useState(false);
+  const [isSavingClient, setIsSavingClient] = useState(false);
+  const [newClient, setNewClient] = useState({ name: '', phone: '', email: '' });
   const [existingBookings, setExistingBookings] = useState<ApiBooking[]>([]);
   const [formData, setFormData] = useState({
     clientId: '',
@@ -410,6 +416,85 @@ export default function BookingModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [booking, selectedDate, selectedTime, isSlotCreation, preselectedBarberName, preselectedClientId, preselectedServiceId, preselectedBarberId, open, barbers]);
 
+  // Reset the inline client-creation form every time the modal opens
+  useEffect(() => {
+    if (open) {
+      setIsCreatingClient(false);
+      setIsSavingClient(false);
+      setNewClient({ name: '', phone: '', email: '' });
+      setClientSearch('');
+    }
+  }, [open]);
+
+  // Open the inline form, reusing what the user already typed in the search
+  // bar as the name (or phone, when the query looks like a number).
+  const startCreatingClient = () => {
+    const query = clientSearch.trim();
+    const looksLikePhone = /^[\d\s+()./-]+$/.test(query) && phoneKey(query).length >= 3;
+    setNewClient({
+      name: looksLikePhone ? '' : query,
+      phone: looksLikePhone ? query : '',
+      email: '',
+    });
+    setIsCreatingClient(true);
+  };
+
+  const handleCreateClient = async () => {
+    if (!onClientCreate) return;
+
+    const name = newClient.name.trim();
+    const phone = newClient.phone.trim();
+    if (!name || !phone) {
+      toast({
+        title: t('bookings.form.incompleteFieldsTitle'),
+        description: t('bookings.newClient.requiredFieldsDescription'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // If a client with this phone already exists, select it instead of
+    // creating a duplicate.
+    const duplicate = clients.find(
+      (c) => phoneKey(c.phone) && phoneKey(c.phone) === phoneKey(phone)
+    );
+    if (duplicate) {
+      setFormData((prev) => ({ ...prev, clientId: duplicate.id }));
+      setIsCreatingClient(false);
+      setClientSearch('');
+      toast({
+        title: t('bookings.newClient.duplicateTitle'),
+        description: t('bookings.newClient.duplicateDescription', { name: duplicate.name }),
+      });
+      return;
+    }
+
+    setIsSavingClient(true);
+    try {
+      const created = await onClientCreate({
+        name,
+        phone,
+        email: newClient.email.trim(),
+      });
+      setFormData((prev) => ({ ...prev, clientId: created.id }));
+      setIsCreatingClient(false);
+      setClientSearch('');
+      setNewClient({ name: '', phone: '', email: '' });
+      toast({
+        title: t('bookings.newClient.createdTitle'),
+        description: t('bookings.newClient.createdDescription', { name: created.name }),
+      });
+    } catch (error) {
+      toast({
+        title: t('common.error'),
+        description: t('bookings.newClient.createError'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingClient(false);
+    }
+  };
+
   // Reset time when date or barber changes (only for new bookings via + button)
   useEffect(() => {
     if (!booking && !isSlotCreation && formData.barberId && date) {
@@ -551,6 +636,65 @@ export default function BookingModal({
                     <X className="h-3.5 w-3.5 opacity-50" />
                   </Button>
                 </div>
+              ) : isCreatingClient ? (
+                <div
+                  className="space-y-2 rounded-md border border-input p-2.5"
+                  onKeyDown={(e) => {
+                    // Enter inside the inline form creates the client instead
+                    // of submitting the whole booking form.
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCreateClient();
+                    }
+                  }}
+                >
+                  <p className="flex items-center gap-1.5 text-xs font-medium">
+                    <UserPlus className="h-3.5 w-3.5 text-primary" />
+                    {t('bookings.newClient.title')}
+                  </p>
+                  <Input
+                    autoFocus
+                    value={newClient.name}
+                    onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
+                    placeholder={t('bookings.newClient.namePlaceholder')}
+                    className="h-8 text-xs"
+                  />
+                  <Input
+                    type="tel"
+                    value={newClient.phone}
+                    onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
+                    placeholder={t('bookings.newClient.phonePlaceholder')}
+                    className="h-8 text-xs"
+                  />
+                  <Input
+                    type="email"
+                    value={newClient.email}
+                    onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
+                    placeholder={t('bookings.newClient.emailPlaceholder')}
+                    className="h-8 text-xs"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setIsCreatingClient(false)}
+                      disabled={isSavingClient}
+                    >
+                      {t('common.cancel')}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={handleCreateClient}
+                      disabled={isSavingClient}
+                    >
+                      {isSavingClient ? t('bookings.newClient.creating') : t('bookings.newClient.createButton')}
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <>
                   <div className="relative">
@@ -588,6 +732,18 @@ export default function BookingModal({
                         ))
                       )}
                     </div>
+                  )}
+                  {onClientCreate && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-full justify-start text-xs"
+                      onClick={startCreatingClient}
+                    >
+                      <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+                      {t('bookings.newClient.openButton')}
+                    </Button>
                   )}
                 </>
               )}
