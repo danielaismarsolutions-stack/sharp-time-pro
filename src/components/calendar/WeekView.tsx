@@ -7,8 +7,8 @@ import {
   differenceInMinutes,
   parse,
 } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { ApiBooking } from '@/types/api';
 import { Service } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -90,6 +90,7 @@ const getOverlapInfo = (bookings: ApiBooking[], booking: ApiBooking) => {
 };
 
 export function WeekView({ currentDate, bookings, services, onBookingClick }: WeekViewProps) {
+  const { dateLocale } = useTranslation();
   // Generate week days (Monday - Sunday)
   const weekDays = useMemo(() => {
     const start = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -140,7 +141,7 @@ export function WeekView({ currentDate, bookings, services, onBookingClick }: We
             )}
           >
             <div className="text-xs font-medium text-muted-foreground uppercase">
-              {format(day, 'EEE', { locale: es })}
+              {format(day, 'EEE', { locale: dateLocale })}
             </div>
             <div className={cn('text-lg font-semibold', isToday(day) && 'text-primary')}>
               {format(day, 'd')}

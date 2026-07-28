@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { NexioMark } from '@/components/NexioLogo';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/contexts/LanguageContext';
 import LegalFooter from '@/components/layout/LegalFooter';
 
 export default function LoginPage() {
@@ -21,14 +22,15 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !password) {
       toast({
-        title: 'Credenciales incompletas',
-        description: 'Por favor, introduce tu email y contraseña.',
+        title: t('auth.incompleteCredentialsTitle'),
+        description: t('auth.incompleteCredentialsDesc'),
         variant: 'destructive',
       });
       return;
@@ -39,14 +41,14 @@ export default function LoginPage() {
     try {
       await login(email, password, rememberMe);
       toast({
-        title: '¡Bienvenido de nuevo!',
-        description: 'Has iniciado sesión correctamente.',
+        title: t('auth.welcomeToastTitle'),
+        description: t('auth.welcomeToastDesc'),
       });
       navigate('/calendar');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Por favor, verifica tus credenciales e inténtalo de nuevo.';
+      const message = error instanceof Error ? error.message : t('auth.loginErrorFallback');
       toast({
-        title: 'Error de inicio de sesión',
+        title: t('auth.loginErrorTitle'),
         description: message,
         variant: 'destructive',
       });
@@ -70,9 +72,9 @@ export default function LoginPage() {
             <NexioMark size="lg" className="w-16 h-16" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">Bienvenido de nuevo</CardTitle>
+            <CardTitle className="text-2xl font-bold">{t('auth.welcomeBack')}</CardTitle>
             <CardDescription className="mt-2">
-              Inicia sesión para gestionar tu salón
+              {t('auth.loginSubtitle')}
             </CardDescription>
           </div>
         </CardHeader>
@@ -80,7 +82,7 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Correo electrónico</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -93,7 +95,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -109,7 +111,7 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                  aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -127,7 +129,7 @@ export default function LoginPage() {
                 onCheckedChange={(checked) => setRememberMe(checked as boolean)}
               />
               <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
-                Recuérdame durante 30 días
+                {t('auth.rememberMe')}
               </Label>
             </div>
 
@@ -139,10 +141,10 @@ export default function LoginPage() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Iniciando sesión...
+                  {t('auth.signingIn')}
                 </>
               ) : (
-                'Iniciar sesión'
+                t('auth.signIn')
               )}
             </Button>
           </form>

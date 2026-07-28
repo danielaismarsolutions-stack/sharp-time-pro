@@ -2,12 +2,14 @@ import { Users, Scissors, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { BarberMetric } from '@/hooks/useReportsData';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface BarberPerformanceProps {
   barberMetrics: BarberMetric[];
 }
 
 function BarberCard({ metric }: { metric: BarberMetric }) {
+  const { t, intlLocale } = useTranslation();
   return (
     <Card className="border-border">
       <CardContent className="p-4">
@@ -28,16 +30,16 @@ function BarberCard({ metric }: { metric: BarberMetric }) {
           )}
           <div className="min-w-0">
             <p className="font-semibold text-sm truncate">{metric.barberName}</p>
-            <p className="text-xs text-muted-foreground">{metric.revenueShare}% del total</p>
+            <p className="text-xs text-muted-foreground">{t('reports.staff.shareOfTotal', { share: metric.revenueShare })}</p>
           </div>
         </div>
 
         {/* Revenue bar */}
         <div className="mb-3">
           <div className="flex justify-between items-baseline mb-1">
-            <span className="text-xs text-muted-foreground">Ingresos</span>
+            <span className="text-xs text-muted-foreground">{t('reports.staff.revenue')}</span>
             <span className="text-sm font-bold">
-              {metric.revenue.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0 })}
+              {metric.revenue.toLocaleString(intlLocale, { style: 'currency', currency: 'EUR', minimumFractionDigits: 0 })}
             </span>
           </div>
           <div className="w-full bg-muted rounded-full h-2">
@@ -52,11 +54,11 @@ function BarberCard({ metric }: { metric: BarberMetric }) {
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-muted-foreground">Citas:</span>
+            <span className="text-muted-foreground">{t('reports.staff.appointments')}:</span>
             <span className="font-medium">{metric.bookingsCount}</span>
           </div>
           <div>
-            <span className="text-muted-foreground">Completadas: </span>
+            <span className="text-muted-foreground">{t('reports.staff.completed')}: </span>
             <span className={`font-medium ${metric.completionRate >= 80 ? 'text-status-success' : metric.completionRate >= 60 ? 'text-yellow-500' : 'text-destructive'}`}>
               {metric.completionRate}%
             </span>
@@ -64,12 +66,17 @@ function BarberCard({ metric }: { metric: BarberMetric }) {
           {metric.noShowCount > 0 && (
             <div className="flex items-center gap-1.5 col-span-2">
               <AlertTriangle className="h-3.5 w-3.5 text-yellow-500" />
-              <span className="text-yellow-600">{metric.noShowCount} no asistieron</span>
+              <span className="text-yellow-600">
+                {t(
+                  metric.noShowCount === 1 ? 'reports.staff.noShowCountOne' : 'reports.staff.noShowCountOther',
+                  { count: metric.noShowCount }
+                )}
+              </span>
             </div>
           )}
           <div className="flex items-center gap-1.5 col-span-2">
             <Scissors className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-muted-foreground truncate">Top: {metric.topService}</span>
+            <span className="text-muted-foreground truncate">{t('reports.staff.topService', { service: metric.topService })}</span>
           </div>
         </div>
       </CardContent>
@@ -79,15 +86,16 @@ function BarberCard({ metric }: { metric: BarberMetric }) {
 
 export default function BarberPerformance({ barberMetrics }: BarberPerformanceProps) {
   const staffTerms = useStaffTerms();
+  const { t } = useTranslation();
   if (barberMetrics.length === 0) {
     return (
       <Card className="border-border">
         <CardHeader className="p-4 md:p-6">
-          <CardTitle className="text-base md:text-lg">Rendimiento por {staffTerms.singularCap}</CardTitle>
+          <CardTitle className="text-base md:text-lg">{t('reports.staff.performanceByStaff', { staff: staffTerms.singularCap })}</CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
           <div className="flex items-center justify-center h-[120px] text-muted-foreground text-sm">
-            Sin datos de {staffTerms.plural} para este periodo
+            {t('reports.staff.noStaffData', { staff: staffTerms.plural })}
           </div>
         </CardContent>
       </Card>
@@ -96,7 +104,7 @@ export default function BarberPerformance({ barberMetrics }: BarberPerformancePr
 
   return (
     <div>
-      <h2 className="text-base md:text-lg font-bold mb-3 md:mb-4">Rendimiento por {staffTerms.singularCap}</h2>
+      <h2 className="text-base md:text-lg font-bold mb-3 md:mb-4">{t('reports.staff.performanceByStaff', { staff: staffTerms.singularCap })}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
         {barberMetrics.map(metric => (
           <BarberCard key={metric.barberName} metric={metric} />

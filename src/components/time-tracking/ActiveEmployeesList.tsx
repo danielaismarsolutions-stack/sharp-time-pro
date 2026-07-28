@@ -3,6 +3,7 @@ import { Clock, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useActiveSessions } from '@/hooks/useQueryHooks';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 function formatElapsed(clockIn: string): string {
   const diff = Date.now() - new Date(clockIn).getTime();
@@ -12,6 +13,7 @@ function formatElapsed(clockIn: string): string {
 }
 
 export default function ActiveEmployeesList() {
+  const { t, intlLocale } = useTranslation();
   const { data: sessions = [], isLoading } = useActiveSessions();
   const [, setTick] = useState(0);
 
@@ -27,17 +29,19 @@ export default function ActiveEmployeesList() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Users className="h-4 w-4" />
-          Trabajando ahora
+          {t('timeTracking.active.title')}
           <span className="ml-auto text-sm font-normal text-muted-foreground">
-            {sessions.length} {sessions.length === 1 ? 'empleado' : 'empleados'}
+            {sessions.length === 1
+              ? t('timeTracking.active.employeeCountOne', { count: sessions.length })
+              : t('timeTracking.active.employeeCountOther', { count: sessions.length })}
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Cargando...</p>
+          <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
         ) : sessions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nadie ha fichado entrada todavia.</p>
+          <p className="text-sm text-muted-foreground">{t('timeTracking.active.empty')}</p>
         ) : (
           <div className="space-y-3">
             {sessions.map((session) => (
@@ -49,9 +53,11 @@ export default function ActiveEmployeesList() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{session.user_name ?? 'Empleado'}</p>
+                  <p className="text-sm font-medium truncate">{session.user_name ?? t('timeTracking.active.employeeFallback')}</p>
                   <p className="text-xs text-muted-foreground">
-                    Desde las {new Date(session.clock_in).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    {t('timeTracking.active.since', {
+                      time: new Date(session.clock_in).toLocaleTimeString(intlLocale, { hour: '2-digit', minute: '2-digit' }),
+                    })}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 text-sm font-medium text-green-600">

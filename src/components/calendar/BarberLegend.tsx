@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { getBarberPastelColorByName, useBarberColorVersion } from './shared/colorUtils';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface BarberLegendProps {
   barberNames: string[];
@@ -10,6 +11,7 @@ interface BarberLegendProps {
 }
 
 export function BarberLegend({ barberNames, floating = false }: BarberLegendProps) {
+  const { t } = useTranslation();
   const staffTerms = useStaffTerms();
   const colorVersion = useBarberColorVersion();
   const barberColors = useMemo(() => {
@@ -54,7 +56,7 @@ export function BarberLegend({ barberNames, floating = false }: BarberLegendProp
   return (
     <div className="px-2 md:px-4 py-3 border-t border-border bg-card rounded-b-lg">
       <p className="text-xs font-medium text-muted-foreground mb-2">
-        Colores por {staffTerms.singular}
+        {t('calendar.legend.colorsByStaff', { staff: staffTerms.singular })}
       </p>
       <div className="flex flex-wrap gap-1.5 sm:gap-2">
         {barberColors.map(({ name, colors }) => (

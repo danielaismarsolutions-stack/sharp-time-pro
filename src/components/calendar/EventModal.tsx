@@ -1,7 +1,6 @@
 // Modal for creating / editing calendar events
 import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { CalendarDays, Calendar as CalendarIcon, Check } from 'lucide-react';
 import {
   Dialog,
@@ -31,6 +30,8 @@ import { Barber } from '@/types/barber';
 import { ApiCalendarEvent, ApiEventRepeat } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { useTranslation } from '@/contexts/LanguageContext';
+import type { TranslationKey } from '@/i18n';
 import { getBarberHexColor, DEFAULT_EVENT_HEX } from '@/components/calendar/shared/colorUtils';
 import { END_OF_DAY } from '@/components/calendar/shared/slotTimeUtils';
 
@@ -81,15 +82,15 @@ const addHourClamped = (slot: string): string => {
   return TIME_SLOTS[target];
 };
 
-const EVENT_COLORS: { label: string; value: string; tw: string }[] = [
-  { label: 'Gris', value: '#d1d5db', tw: 'bg-gray-300' },
-  { label: 'Azul', value: '#93c5fd', tw: 'bg-blue-300' },
-  { label: 'Verde', value: '#86efac', tw: 'bg-green-300' },
-  { label: 'Amarillo', value: '#fde68a', tw: 'bg-yellow-300' },
-  { label: 'Naranja', value: '#fdba74', tw: 'bg-orange-300' },
-  { label: 'Rosa', value: '#f9a8d4', tw: 'bg-pink-300' },
-  { label: 'Morado', value: '#c4b5fd', tw: 'bg-violet-300' },
-  { label: 'Rojo', value: '#fca5a5', tw: 'bg-red-300' },
+const EVENT_COLORS: { labelKey: TranslationKey; value: string; tw: string }[] = [
+  { labelKey: 'calendar.eventModal.colors.gray', value: '#d1d5db', tw: 'bg-gray-300' },
+  { labelKey: 'calendar.eventModal.colors.blue', value: '#93c5fd', tw: 'bg-blue-300' },
+  { labelKey: 'calendar.eventModal.colors.green', value: '#86efac', tw: 'bg-green-300' },
+  { labelKey: 'calendar.eventModal.colors.yellow', value: '#fde68a', tw: 'bg-yellow-300' },
+  { labelKey: 'calendar.eventModal.colors.orange', value: '#fdba74', tw: 'bg-orange-300' },
+  { labelKey: 'calendar.eventModal.colors.pink', value: '#f9a8d4', tw: 'bg-pink-300' },
+  { labelKey: 'calendar.eventModal.colors.purple', value: '#c4b5fd', tw: 'bg-violet-300' },
+  { labelKey: 'calendar.eventModal.colors.red', value: '#fca5a5', tw: 'bg-red-300' },
 ];
 
 // ==================== Props ====================
@@ -134,6 +135,7 @@ export function EventModal({
 }: EventModalProps) {
   const { toast } = useToast();
   const staffTerms = useStaffTerms();
+  const { t, dateLocale } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
   // Empty `color` = "auto" (renders with the assigned barber's color); a hex
@@ -229,8 +231,8 @@ export function EventModal({
 
     if (!formData.name.trim()) {
       toast({
-        title: 'Nombre requerido',
-        description: 'Por favor, ingresa un nombre para el evento',
+        title: t('calendar.eventModal.nameRequiredTitle'),
+        description: t('calendar.eventModal.nameRequiredDescription'),
         variant: 'destructive',
       });
       return;
@@ -238,8 +240,8 @@ export function EventModal({
 
     if (!date || !formData.startTime || !formData.endTime) {
       toast({
-        title: 'Campos incompletos',
-        description: 'Por favor, completa la fecha y horarios',
+        title: t('calendar.eventModal.incompleteTitle'),
+        description: t('calendar.eventModal.incompleteDescription'),
         variant: 'destructive',
       });
       return;
@@ -262,8 +264,8 @@ export function EventModal({
       onOpenChange(false);
     } catch {
       toast({
-        title: 'Error',
-        description: 'No se pudo guardar el evento',
+        title: t('common.error'),
+        description: t('calendar.eventModal.saveErrorDescription'),
         variant: 'destructive',
       });
     } finally {
@@ -282,7 +284,7 @@ export function EventModal({
         <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
           <DialogTitle className="flex items-center gap-1.5">
             <CalendarDays className="h-4 w-4 text-violet-600" />
-            {event ? 'Editar Evento' : 'Nuevo Evento'}
+            {event ? t('calendar.eventModal.editTitle') : t('calendar.eventModal.newTitle')}
           </DialogTitle>
         </DialogHeader>
 
@@ -290,13 +292,13 @@ export function EventModal({
           <div className="space-y-3 overflow-y-auto px-4 pb-2 flex-1">
           {/* Event Name */}
           <div className="space-y-1">
-            <Label className="text-xs font-medium">Nombre del evento</Label>
+            <Label className="text-xs font-medium">{t('calendar.eventModal.nameLabel')}</Label>
             <Input
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              placeholder="Ej: Reunión de equipo, Limpieza..."
+              placeholder={t('calendar.eventModal.namePlaceholder')}
               className="h-8 text-xs"
               autoFocus={!event}
             />
@@ -304,7 +306,7 @@ export function EventModal({
 
           {/* Date & Times */}
           <div className="space-y-1">
-            <Label className="text-xs font-medium">Fecha</Label>
+            <Label className="text-xs font-medium">{t('common.date')}</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -317,8 +319,8 @@ export function EventModal({
                   <CalendarIcon className="mr-1.5 h-3 w-3 shrink-0" />
                   <span className="truncate">
                     {date
-                      ? format(date, "d 'de' MMM yyyy", { locale: es })
-                      : 'Selecciona fecha'}
+                      ? format(date, t('calendar.dateFormats.dayShortMonthYear'), { locale: dateLocale })
+                      : t('calendar.eventModal.selectDate')}
                   </span>
                 </Button>
               </PopoverTrigger>
@@ -336,7 +338,7 @@ export function EventModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs font-medium">Hora inicio</Label>
+              <Label className="text-xs font-medium">{t('calendar.eventModal.startTimeLabel')}</Label>
               <Select
                 value={formData.startTime}
                 onValueChange={(value) => {
@@ -350,7 +352,7 @@ export function EventModal({
                 }}
               >
                 <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Inicio" />
+                  <SelectValue placeholder={t('calendar.eventModal.startPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {startTimeSlots.map((time) => (
@@ -362,7 +364,7 @@ export function EventModal({
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs font-medium">Hora fin</Label>
+              <Label className="text-xs font-medium">{t('calendar.eventModal.endTimeLabel')}</Label>
               <Select
                 value={formData.endTime}
                 onValueChange={(value) =>
@@ -370,7 +372,7 @@ export function EventModal({
                 }
               >
                 <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Fin" />
+                  <SelectValue placeholder={t('calendar.eventModal.endPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {endTimeSlots.map((time) => (
@@ -385,7 +387,7 @@ export function EventModal({
 
           {/* Repeat */}
           <div className="space-y-1">
-            <Label className="text-xs font-medium">Repetir</Label>
+            <Label className="text-xs font-medium">{t('calendar.eventModal.repeatLabel')}</Label>
             <Select
               value={formData.repeat}
               onValueChange={(value) =>
@@ -396,10 +398,10 @@ export function EventModal({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Solo una vez</SelectItem>
-                <SelectItem value="daily">Todos los días</SelectItem>
-                <SelectItem value="weekly">Cada semana</SelectItem>
-                <SelectItem value="monthly">Cada mes</SelectItem>
+                <SelectItem value="none">{t('calendar.eventModal.repeatNone')}</SelectItem>
+                <SelectItem value="daily">{t('calendar.eventModal.repeatDaily')}</SelectItem>
+                <SelectItem value="weekly">{t('calendar.eventModal.repeatWeekly')}</SelectItem>
+                <SelectItem value="monthly">{t('calendar.eventModal.repeatMonthly')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -407,9 +409,9 @@ export function EventModal({
           {/* Location */}
           <div className="space-y-1">
             <Label className="text-xs font-medium">
-              Ubicación{' '}
+              {t('calendar.eventModal.locationLabel')}{' '}
               <span className="text-muted-foreground font-normal">
-                (opcional)
+                {t('calendar.eventModal.optionalSuffix')}
               </span>
             </Label>
             <Input
@@ -417,7 +419,7 @@ export function EventModal({
               onChange={(e) =>
                 setFormData({ ...formData, location: e.target.value })
               }
-              placeholder="Ej: Sala principal, Dirección..."
+              placeholder={t('calendar.eventModal.locationPlaceholder')}
               className="h-8 text-xs"
             />
           </div>
@@ -427,7 +429,7 @@ export function EventModal({
             <Label className="text-xs font-medium">
               {staffTerms.singularCap}{' '}
               <span className="text-muted-foreground font-normal">
-                (opcional)
+                {t('calendar.eventModal.optionalSuffix')}
               </span>
             </Label>
             <Select
@@ -440,10 +442,10 @@ export function EventModal({
               }}
             >
               <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="Sin asignar" />
+                <SelectValue placeholder={t('calendar.eventModal.unassigned')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Sin asignar</SelectItem>
+                <SelectItem value="none">{t('calendar.eventModal.unassigned')}</SelectItem>
                 {barbers.map((barber) => (
                   <SelectItem key={barber.id} value={barber.id}>
                     {barber.name}
@@ -456,9 +458,9 @@ export function EventModal({
           {/* Notes */}
           <div className="space-y-1">
             <Label className="text-xs font-medium">
-              Notas{' '}
+              {t('common.notes')}{' '}
               <span className="text-muted-foreground font-normal">
-                (opcional)
+                {t('calendar.eventModal.optionalSuffix')}
               </span>
             </Label>
             <Textarea
@@ -466,7 +468,7 @@ export function EventModal({
               onChange={(e) =>
                 setFormData({ ...formData, notes: e.target.value })
               }
-              placeholder="Detalles del evento..."
+              placeholder={t('calendar.eventModal.notesPlaceholder')}
               rows={2}
               className="resize-none text-xs"
             />
@@ -474,7 +476,7 @@ export function EventModal({
 
           {/* Color Picker */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium">Color</Label>
+            <Label className="text-xs font-medium">{t('calendar.eventModal.colorLabel')}</Label>
             <div className="flex gap-2 flex-wrap items-center">
               {/* Auto chip — follows the assigned barber's color */}
               <button
@@ -489,8 +491,8 @@ export function EventModal({
                 style={{ backgroundColor: autoColor }}
                 title={
                   selectedBarber
-                    ? `Automático (color de ${staffTerms.singular})`
-                    : 'Automático'
+                    ? t('calendar.eventModal.autoColorWithStaff', { staff: staffTerms.singular })
+                    : t('calendar.eventModal.autoColor')
                 }
               >
                 {formData.color === '' && (
@@ -511,7 +513,7 @@ export function EventModal({
                       : 'border-transparent hover:scale-105'
                   )}
                   style={{ backgroundColor: c.value }}
-                  title={c.label}
+                  title={t(c.labelKey)}
                 >
                   {formData.color === c.value && (
                     <Check className="h-3.5 w-3.5 text-foreground/80" />
@@ -521,8 +523,8 @@ export function EventModal({
             </div>
             <p className="text-[10px] text-muted-foreground">
               {selectedBarber
-                ? `Por defecto sigue el color de ${staffTerms.singular}. Elige un color para fijarlo.`
-                : 'Sin color fijo. Elige un color para fijarlo.'}
+                ? t('calendar.eventModal.colorHintWithStaff', { staff: staffTerms.singular })
+                : t('calendar.eventModal.colorHint')}
             </p>
           </div>
 
@@ -537,7 +539,7 @@ export function EventModal({
               className="text-xs h-8"
               onClick={() => onOpenChange(false)}
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -546,10 +548,10 @@ export function EventModal({
               disabled={isLoading}
             >
               {isLoading
-                ? 'Guardando...'
+                ? t('common.saving')
                 : event
-                  ? 'Actualizar'
-                  : 'Crear Evento'}
+                  ? t('common.update')
+                  : t('calendar.eventModal.createButton')}
             </Button>
           </div>
         </form>

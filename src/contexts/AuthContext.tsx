@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { supabase } from '@/lib/supabase';
 import { SUPABASE_CONFIG } from '@/config/api';
 import { setBusinessId, clearBusinessId } from '@/config/session';
+import { t } from '@/i18n';
 import type { Session } from '@supabase/supabase-js';
 
 interface User {
@@ -154,10 +155,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
-          throw new Error('Email o contraseña incorrectos.');
+          throw new Error(t('auth.invalidCredentials'));
         }
         if (error.message.includes('Email not confirmed')) {
-          throw new Error('Debes confirmar tu email antes de iniciar sesión. Revisa tu bandeja de entrada.');
+          throw new Error(t('auth.emailNotConfirmed'));
         }
         throw new Error(error.message);
       }

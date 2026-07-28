@@ -5,9 +5,9 @@ import { StatusBadge } from './StatusBadge';
 import { StatusDropdown } from './StatusDropdown';
 import { Consultation, ConsultationStatus } from '@/types/consultation';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Phone, Mail, MessageCircle, Image, FileText, ChevronDown, ChevronUp, User, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface ConsultationCardProps {
   consultation: Consultation;
@@ -26,17 +26,21 @@ export function ConsultationCard({
   onClick,
   onDelete,
 }: ConsultationCardProps) {
+  const { t, dateLocale } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
   const formatDate = (date: string) => {
-    return format(new Date(date), "dd/MM/yyyy HH:mm", { locale: es });
+    return format(new Date(date), "dd/MM/yyyy HH:mm", { locale: dateLocale });
   };
 
   const truncatedNotes = consultation.client_notes && consultation.client_notes.length > 100
     ? consultation.client_notes.substring(0, 100) + '...'
     : consultation.client_notes;
 
-  const whatsappUrl = `https://wa.me/34${consultation.client_phone.replace(/\D/g, '')}?text=Hola ${encodeURIComponent(consultation.client_name)}, te contactamos desde Rioja Barber Studio sobre tu consulta de ${encodeURIComponent(consultation.service_name)}`;
+  const whatsappUrl = `https://wa.me/34${consultation.client_phone.replace(/\D/g, '')}?text=${t('consultations.whatsappMessage', {
+    name: encodeURIComponent(consultation.client_name),
+    service: encodeURIComponent(consultation.service_name),
+  })}`;
 
   return (
     <Card className="overflow-hidden hover:border-primary/50 transition-colors">
@@ -93,11 +97,11 @@ export function ConsultationCard({
                 >
                   {expanded ? (
                     <>
-                      Ver menos <ChevronUp className="h-3 w-3" />
+                      {t('consultations.actions.seeLess')} <ChevronUp className="h-3 w-3" />
                     </>
                   ) : (
                     <>
-                      Ver más <ChevronDown className="h-3 w-3" />
+                      {t('common.seeMore')} <ChevronDown className="h-3 w-3" />
                     </>
                   )}
                 </button>
@@ -123,7 +127,7 @@ export function ConsultationCard({
           <a href={`tel:${consultation.client_phone}`} onClick={(e) => e.stopPropagation()}>
             <Button size="sm" variant="outline" className="gap-1.5 h-10 min-w-[40px]">
               <Phone className="h-4 w-4" />
-              Llamar
+              {t('consultations.actions.call')}
             </Button>
           </a>
 
@@ -145,7 +149,7 @@ export function ConsultationCard({
               }}
             >
               <Image className="h-4 w-4" />
-              Foto
+              {t('consultations.actions.photo')}
             </Button>
           )}
 
@@ -159,7 +163,7 @@ export function ConsultationCard({
             }}
           >
             <FileText className="h-4 w-4" />
-            Notas
+            {t('common.notes')}
           </Button>
 
           <Button

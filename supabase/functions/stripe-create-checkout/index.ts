@@ -1,19 +1,23 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17?target=deno";
 
-function getAllowedOrigin(req: Request): string {
-  const allowed = (Deno.env.get("FRONTEND_URL") || "http://localhost:5173").replace(/\/$/, "");
+function getCorsOrigin(req: Request): string {
+  const frontendUrl = Deno.env.get("FRONTEND_URL");
+  if (!frontendUrl) return "*";
+  const allowed = frontendUrl.replace(/\/$/, "");
   const origin = req.headers.get("Origin") || "";
   return origin === allowed ? allowed : "";
 }
 
 function corsHeaders(req: Request) {
-  return {
-    "Access-Control-Allow-Origin": getAllowedOrigin(req),
+  const origin = getCorsOrigin(req);
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Vary": "Origin",
   };
+  if (origin !== "*") headers["Vary"] = "Origin";
+  return headers;
 }
 
 function jsonResponse(status: number, body: Record<string, unknown>, req: Request) {
@@ -23,16 +27,70 @@ function jsonResponse(status: number, body: Record<string, unknown>, req: Reques
   });
 }
 
+type Language = "es" | "en";
+
+// El frontend envía ?lang=en|es (idioma del negocio). Sin parámetro → 'es'.
+function resolveLanguage(req: Request): Language {
+  try {
+    return new URL(req.url).searchParams.get("lang") === "en" ? "en" : "es";
+  } catch {
+    return "es";
+  }
+}
+
+const MESSAGES: Record<Language, {
+  authRequired: string;
+  sessionExpired: string;
+  profileNotFound: string;
+  noPermission: string;
+  businessNotFound: string;
+  ambassadorNoSubscription: string;
+  alreadySubscribed: string;
+  priceNotConfigured: string;
+  productName: string;
+  productDescription: (name: string) => string;
+  internal: string;
+}> = {
+  es: {
+    authRequired: "Token de autorización requerido",
+    sessionExpired: "Sesión expirada. Inicia sesión de nuevo.",
+    profileNotFound: "No se encontró tu perfil de usuario",
+    noPermission: "No tienes permisos para gestionar la suscripción",
+    businessNotFound: "Negocio no encontrado",
+    ambassadorNoSubscription: "Las cuentas de embajador no requieren suscripción",
+    alreadySubscribed: "Ya tienes una suscripción activa. Usa el portal de pagos para gestionarla.",
+    priceNotConfigured: "El precio mensual no está configurado para este negocio. Contacta con soporte.",
+    productName: "Nexio — Suscripción Mensual",
+    productDescription: (name) => `Plan mensual para ${name}`,
+    internal: "Error interno. Inténtalo de nuevo.",
+  },
+  en: {
+    authRequired: "Authorisation token required",
+    sessionExpired: "Your session has expired. Please sign in again.",
+    profileNotFound: "Your user profile could not be found",
+    noPermission: "You don't have permission to manage the subscription",
+    businessNotFound: "Business not found",
+    ambassadorNoSubscription: "Ambassador accounts don't need a subscription",
+    alreadySubscribed: "You already have an active subscription. Use the payment portal to manage it.",
+    priceNotConfigured: "The monthly price is not set up for this business. Please contact support.",
+    productName: "Nexio — Monthly Subscription",
+    productDescription: (name) => `Monthly plan for ${name}`,
+    internal: "Internal error. Please try again.",
+  },
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders(req) });
   }
 
+  const msg = MESSAGES[resolveLanguage(req)];
+
   try {
     // 1. Verify JWT
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return jsonResponse(401, { error: "Token de autorización requerido" }, req);
+      return jsonResponse(401, { error: msg.authRequired }, req);
     }
     const token = authHeader.replace("Bearer ", "");
 
@@ -47,7 +105,7 @@ Deno.serve(async (req) => {
     } = await supabaseAdmin.auth.getUser(token);
 
     if (authErr || !authUser) {
-      return jsonResponse(401, { error: "Sesión expirada. Inicia sesión de nuevo." }, req);
+      return jsonResponse(401, { error: msg.sessionExpired }, req);
     }
 
     // 2. Get user profile and verify role
@@ -58,11 +116,11 @@ Deno.serve(async (req) => {
       .single();
 
     if (profileErr || !profile) {
-      return jsonResponse(403, { error: "No se encontró tu perfil de usuario" }, req);
+      return jsonResponse(403, { error: msg.profileNotFound }, req);
     }
 
     if (!["owner", "admin"].includes(profile.role)) {
-      return jsonResponse(403, { error: "No tienes permisos para gestionar la suscripción" }, req);
+      return jsonResponse(403, { error: msg.noPermission }, req);
     }
 
     // 3. Get business data
@@ -73,22 +131,22 @@ Deno.serve(async (req) => {
       .single();
 
     if (bizErr || !business) {
-      return jsonResponse(404, { error: "Negocio no encontrado" }, req);
+      return jsonResponse(404, { error: msg.businessNotFound }, req);
     }
 
-    // 4. Block ambassador accounts — they don't pay
+    // 4. Block ambassador accounts
     if (business.plan_type === "ambassador") {
-      return jsonResponse(400, { error: "Las cuentas de embajador no requieren suscripción" }, req);
+      return jsonResponse(400, { error: msg.ambassadorNoSubscription }, req);
     }
 
     // 5. Block if there's already an active or past_due subscription
     if (business.stripe_subscription_id && ["active", "past_due", "trialing"].includes(business.subscription_status ?? "")) {
-      return jsonResponse(400, { error: "Ya tienes una suscripción activa. Usa el portal de pagos para gestionarla." }, req);
+      return jsonResponse(400, { error: msg.alreadySubscribed }, req);
     }
 
     if (!business.monthly_price || business.monthly_price <= 0) {
       return jsonResponse(400, {
-        error: "El precio mensual no está configurado para este negocio. Contacta con soporte.",
+        error: msg.priceNotConfigured,
       }, req);
     }
 
@@ -125,8 +183,8 @@ Deno.serve(async (req) => {
           price_data: {
             currency: "eur",
             product_data: {
-              name: "Nexio — Suscripción Mensual",
-              description: `Plan mensual para ${business.business_name}`,
+              name: msg.productName,
+              description: msg.productDescription(business.business_name),
             },
             unit_amount: Math.round(business.monthly_price * 100),
             recurring: { interval: "month" },
@@ -145,6 +203,6 @@ Deno.serve(async (req) => {
     return jsonResponse(200, { url: session.url }, req);
   } catch (err) {
     console.error("Error in stripe-create-checkout:", err);
-    return jsonResponse(500, { error: "Error interno. Inténtalo de nuevo." }, req);
+    return jsonResponse(500, { error: msg.internal }, req);
   }
 });

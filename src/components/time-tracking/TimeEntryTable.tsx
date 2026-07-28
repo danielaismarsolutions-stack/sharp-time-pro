@@ -14,15 +14,17 @@ import { useDeleteTimeEntry } from '@/hooks/useQueryHooks';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
+import { useTranslation } from '@/contexts/LanguageContext';
+import type { TranslationKey } from '@/i18n';
 import TimeEntryCorrectionDialog from './TimeEntryCorrectionDialog';
 import type { TimeEntry } from '@/types/timeEntry';
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+function formatTime(iso: string, intlLocale: string): string {
+  return new Date(iso).toLocaleTimeString(intlLocale, { hour: '2-digit', minute: '2-digit' });
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', weekday: 'short' });
+function formatDate(iso: string, intlLocale: string): string {
+  return new Date(iso).toLocaleDateString(intlLocale, { day: '2-digit', month: 'short', weekday: 'short' });
 }
 
 function formatDuration(minutes: number | null): string {
@@ -32,11 +34,11 @@ function formatDuration(minutes: number | null): string {
   return `${h}h ${m.toString().padStart(2, '0')}m`;
 }
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  open: { label: 'Abierto', variant: 'default' },
-  closed: { label: 'Cerrado', variant: 'secondary' },
-  auto_closed: { label: 'Auto-cerrado', variant: 'destructive' },
-  corrected: { label: 'Corregido', variant: 'outline' },
+const statusConfig: Record<string, { labelKey: TranslationKey; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  open: { labelKey: 'timeTracking.status.open', variant: 'default' },
+  closed: { labelKey: 'timeTracking.status.closed', variant: 'secondary' },
+  auto_closed: { labelKey: 'timeTracking.status.autoClosed', variant: 'destructive' },
+  corrected: { labelKey: 'timeTracking.status.corrected', variant: 'outline' },
 };
 
 interface TimeEntryTableProps {
@@ -46,6 +48,7 @@ interface TimeEntryTableProps {
 }
 
 export default function TimeEntryTable({ entries, showEmployee = false, isAdmin = false }: TimeEntryTableProps) {
+  const { t, intlLocale } = useTranslation();
   const { toast } = useToast();
   const deleteEntry = useDeleteTimeEntry();
   const { confirm, dialogProps } = useConfirmAction();
@@ -53,23 +56,26 @@ export default function TimeEntryTable({ entries, showEmployee = false, isAdmin 
 
   const handleDelete = async (entry: TimeEntry) => {
     const confirmed = await confirm({
-      title: 'Eliminar fichaje',
-      description: `Se eliminara el fichaje de ${entry.user_name ?? 'empleado'} del ${formatDate(entry.clock_in)}. Esta accion no se puede deshacer.`,
-      confirmLabel: 'Eliminar',
+      title: t('timeTracking.table.deleteTitle'),
+      description: t('timeTracking.table.deleteDescription', {
+        name: entry.user_name ?? t('timeTracking.table.employeeFallback'),
+        date: formatDate(entry.clock_in, intlLocale),
+      }),
+      confirmLabel: t('common.delete'),
       variant: 'destructive',
     });
     if (!confirmed) return;
 
     deleteEntry.mutate(entry.id, {
-      onSuccess: () => toast({ title: 'Fichaje eliminado' }),
-      onError: (err) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
+      onSuccess: () => toast({ title: t('timeTracking.table.deleted') }),
+      onError: (err) => toast({ title: t('common.error'), description: err.message, variant: 'destructive' }),
     });
   };
 
   if (entries.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        <p>No hay fichajes en este periodo.</p>
+        <p>{t('timeTracking.table.empty')}</p>
       </div>
     );
   }
@@ -80,13 +86,13 @@ export default function TimeEntryTable({ entries, showEmployee = false, isAdmin 
         <Table>
           <TableHeader>
             <TableRow>
-              {showEmployee && <TableHead>Empleado</TableHead>}
-              <TableHead>Fecha</TableHead>
-              <TableHead>Entrada</TableHead>
-              <TableHead>Salida</TableHead>
-              <TableHead>Duracion</TableHead>
-              <TableHead>Estado</TableHead>
-              {isAdmin && <TableHead className="text-right">Acciones</TableHead>}
+              {showEmployee && <TableHead>{t('timeTracking.table.employee')}</TableHead>}
+              <TableHead>{t('common.date')}</TableHead>
+              <TableHead>{t('timeTracking.table.clockIn')}</TableHead>
+              <TableHead>{t('timeTracking.table.clockOut')}</TableHead>
+              <TableHead>{t('timeTracking.table.duration')}</TableHead>
+              <TableHead>{t('common.status')}</TableHead>
+              {isAdmin && <TableHead className="text-right">{t('common.actions')}</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -97,18 +103,18 @@ export default function TimeEntryTable({ entries, showEmployee = false, isAdmin 
                   {showEmployee && (
                     <TableCell className="font-medium">{entry.user_name ?? '-'}</TableCell>
                   )}
-                  <TableCell>{formatDate(entry.clock_in)}</TableCell>
-                  <TableCell>{formatTime(entry.clock_in)}</TableCell>
+                  <TableCell>{formatDate(entry.clock_in, intlLocale)}</TableCell>
+                  <TableCell>{formatTime(entry.clock_in, intlLocale)}</TableCell>
                   <TableCell>
-                    {entry.clock_out ? formatTime(entry.clock_out) : (
-                      <span className="text-green-600 font-medium">En curso</span>
+                    {entry.clock_out ? formatTime(entry.clock_out, intlLocale) : (
+                      <span className="text-green-600 font-medium">{t('timeTracking.table.inProgress')}</span>
                     )}
                   </TableCell>
                   <TableCell>{formatDuration(entry.duration_minutes)}</TableCell>
                   <TableCell>
                     <Badge variant={sc.variant} className="text-xs">
                       {entry.status === 'auto_closed' && <AlertTriangle className="h-3 w-3 mr-1" />}
-                      {sc.label}
+                      {t(sc.labelKey)}
                     </Badge>
                   </TableCell>
                   {isAdmin && (

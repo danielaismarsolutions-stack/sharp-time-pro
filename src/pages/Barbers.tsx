@@ -19,6 +19,7 @@ import BarberModal from '@/components/barbers/BarberModal';
 import ScheduleEditor from '@/components/barbers/ScheduleEditor';
 import TimeOffManager from '@/components/barbers/TimeOffManager';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -67,6 +68,7 @@ export default function Barbers() {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const staffTerms = useStaffTerms();
+  const { t } = useTranslation();
 
   const loadBarbers = useCallback(async () => {
     await refetchBarbers();
@@ -107,9 +109,9 @@ export default function Barbers() {
   const handleSaveBarber = async (data: CreateBarberData, avatarFile?: File | null) => {
     if (selectedBarber) {
       const confirmed = await confirm({
-        title: `Actualizar ${staffTerms.singular}`,
-        description: `¿Confirmar los cambios en el ${staffTerms.singular} "${data.name}"?`,
-        confirmLabel: 'Actualizar',
+        title: t('barbers.confirm.updateTitle', { staff: staffTerms.singular }),
+        description: t('barbers.confirm.updateDescription', { staff: staffTerms.singular, name: data.name }),
+        confirmLabel: t('common.update'),
       });
       if (!confirmed) return;
     }
@@ -124,8 +126,11 @@ export default function Barbers() {
           await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'barber_modified',
-            title: `${staffTerms.singularCap} modificado`,
-            message: `${user?.name || 'Usuario'} actualizó el perfil de ${data.name}`,
+            title: t('barbers.notifications.modifiedTitle', { staff: staffTerms.singularCap }),
+            message: t('barbers.notifications.modifiedMessage', {
+              user: user?.name || t('barbers.notifications.defaultUser'),
+              name: data.name,
+            }),
             metadata: {
               barber_id: selectedBarber.id,
               barber_name: data.name,
@@ -134,7 +139,7 @@ export default function Barbers() {
           });
         } catch { /* ignored */ }
 
-        toast({ title: `${staffTerms.singularCap} actualizado` });
+        toast({ title: t('barbers.toasts.updated', { staff: staffTerms.singularCap }) });
       } else {
         // Creating new barber
         const newBarber = await supabaseBarbersApi.create(data);
@@ -151,8 +156,8 @@ export default function Barbers() {
             await supabaseBarbersApi.updateAvatarUrl(newBarber.id, result.url);
           } catch (uploadError) {
             toast({
-              title: 'Advertencia',
-              description: `${staffTerms.singularCap} creado, pero no se pudo subir la foto`,
+              title: t('barbers.toasts.warningTitle'),
+              description: t('barbers.toasts.createdPhotoFailed', { staff: staffTerms.singularCap }),
             });
           }
         }
@@ -162,8 +167,12 @@ export default function Barbers() {
           await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'barber_created',
-            title: `Nuevo ${staffTerms.singular}`,
-            message: `${user?.name || 'Usuario'} creó el ${staffTerms.singular} "${data.name}"`,
+            title: t('barbers.notifications.createdTitle', { staff: staffTerms.singular }),
+            message: t('barbers.notifications.createdMessage', {
+              user: user?.name || t('barbers.notifications.defaultUser'),
+              staff: staffTerms.singular,
+              name: data.name,
+            }),
             metadata: {
               barber_id: newBarber.id,
               barber_name: data.name,
@@ -172,13 +181,13 @@ export default function Barbers() {
           });
         } catch { /* ignored */ }
 
-        toast({ title: `${staffTerms.singularCap} creado` });
+        toast({ title: t('barbers.toasts.created', { staff: staffTerms.singularCap }) });
       }
       await loadBarbers();
     } catch (error) {
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : `No se pudo guardar el ${staffTerms.singular}`,
+        title: t('common.error'),
+        description: error instanceof Error ? error.message : t('barbers.toasts.saveFailed', { staff: staffTerms.singular }),
         variant: 'destructive',
       });
       throw error;
@@ -189,9 +198,9 @@ export default function Barbers() {
     if (!editingBarber) return;
 
     const confirmed = await confirm({
-      title: 'Actualizar horario',
-      description: `¿Confirmar los cambios en el horario de ${editingBarber.name}?`,
-      confirmLabel: 'Guardar',
+      title: t('barbers.confirm.scheduleTitle'),
+      description: t('barbers.confirm.scheduleDescription', { name: editingBarber.name }),
+      confirmLabel: t('common.save'),
     });
     if (!confirmed) return;
 
@@ -203,8 +212,11 @@ export default function Barbers() {
         await notifyAllAdmins({
           business_id: getBusinessId(),
           type: 'schedule_modified',
-          title: 'Horario modificado',
-          message: `${user?.name || 'Usuario'} actualizó el horario de ${editingBarber.name}`,
+          title: t('barbers.notifications.scheduleModifiedTitle'),
+          message: t('barbers.notifications.scheduleModifiedMessage', {
+            user: user?.name || t('barbers.notifications.defaultUser'),
+            name: editingBarber.name,
+          }),
           metadata: {
             barber_id: editingBarber.id,
             barber_name: editingBarber.name,
@@ -213,13 +225,13 @@ export default function Barbers() {
         });
       } catch { /* ignored */ }
 
-      toast({ title: 'Horario actualizado' });
+      toast({ title: t('barbers.toasts.scheduleUpdated') });
       await loadBarbers();
       setEditingBarber((prev) => prev ? { ...prev, schedule } : null);
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'No se pudo guardar el horario',
+        title: t('common.error'),
+        description: t('barbers.toasts.scheduleSaveFailed'),
         variant: 'destructive',
       });
       throw error;
@@ -230,9 +242,9 @@ export default function Barbers() {
     if (!editingBarber) return;
 
     const confirmed = await confirm({
-      title: 'Actualizar días libres',
-      description: `¿Confirmar los cambios en los días libres de ${editingBarber.name}?`,
-      confirmLabel: 'Guardar',
+      title: t('barbers.confirm.timeOffTitle'),
+      description: t('barbers.confirm.timeOffDescription', { name: editingBarber.name }),
+      confirmLabel: t('common.save'),
     });
     if (!confirmed) return;
 
@@ -244,8 +256,11 @@ export default function Barbers() {
         await notifyAllAdmins({
           business_id: getBusinessId(),
           type: 'time_off_modified',
-          title: 'Días libres modificados',
-          message: `${user?.name || 'Usuario'} actualizó los días libres de ${editingBarber.name}`,
+          title: t('barbers.notifications.timeOffModifiedTitle'),
+          message: t('barbers.notifications.timeOffModifiedMessage', {
+            user: user?.name || t('barbers.notifications.defaultUser'),
+            name: editingBarber.name,
+          }),
           metadata: {
             barber_id: editingBarber.id,
             barber_name: editingBarber.name,
@@ -254,13 +269,13 @@ export default function Barbers() {
         });
       } catch { /* ignored */ }
 
-      toast({ title: 'Días libres actualizados' });
+      toast({ title: t('barbers.toasts.timeOffUpdated') });
       await loadBarbers();
       setEditingBarber((prev) => prev ? { ...prev, time_off: timeOff } : null);
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'No se pudieron guardar los días libres',
+        title: t('common.error'),
+        description: t('barbers.toasts.timeOffSaveFailed'),
         variant: 'destructive',
       });
       throw error;
@@ -318,7 +333,7 @@ export default function Barbers() {
             {staffTerms.pluralCap}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Gestiona tu equipo y sus horarios
+            {t('barbers.page.subtitle')}
           </p>
         </div>
         <Button 
@@ -326,7 +341,7 @@ export default function Barbers() {
           className="w-full sm:w-auto h-11 sm:h-10 text-base sm:text-sm font-medium"
         >
           <Plus className="h-5 w-5 sm:h-4 sm:w-4 mr-2" />
-          Nuevo {staffTerms.singularCap}
+          {t('barbers.page.new', { staff: staffTerms.singularCap })}
         </Button>
       </div>
 
@@ -339,7 +354,7 @@ export default function Barbers() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder={`Buscar ${staffTerms.singular}...`}
+                  placeholder={t('barbers.page.searchPlaceholder', { staff: staffTerms.singular })}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9 h-11 sm:h-10 text-base sm:text-sm"
@@ -372,7 +387,7 @@ export default function Barbers() {
                       onCheckedChange={setShowInactive}
                     />
                     <Label htmlFor="show-inactive" className="text-sm cursor-pointer">
-                      Mostrar inactivos
+                      {t('barbers.page.showInactive')}
                     </Label>
                   </div>
                 </motion.div>
@@ -394,16 +409,16 @@ export default function Barbers() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 px-6 text-center">
             <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium mb-1">No hay {staffTerms.plural}</h3>
+            <h3 className="text-lg font-medium mb-1">{t('barbers.page.emptyTitle', { staff: staffTerms.plural })}</h3>
             <p className="text-muted-foreground text-sm mb-4">
               {searchQuery
-                ? 'No se encontraron resultados para tu búsqueda'
-                : `Añade tu primer ${staffTerms.singular} para empezar`}
+                ? t('barbers.page.emptySearchResults')
+                : t('barbers.page.emptyCta', { staff: staffTerms.singular })}
             </p>
             {!searchQuery && (
               <Button onClick={openNewModal} className="h-11">
                 <Plus className="h-4 w-4 mr-2" />
-                Añadir {staffTerms.singularCap}
+                {t('barbers.page.addStaff', { staff: staffTerms.singularCap })}
               </Button>
             )}
           </CardContent>
@@ -453,7 +468,7 @@ export default function Barbers() {
           <DrawerContent className="max-h-[90dvh]">
             <DrawerHeader className="pb-2">
               <DrawerTitle className="text-lg">
-                Horario de {editingBarber?.name}
+                {t('barbers.page.scheduleOf', { name: editingBarber?.name ?? '' })}
               </DrawerTitle>
             </DrawerHeader>
             <div className="overflow-y-auto px-4">
@@ -472,10 +487,10 @@ export default function Barbers() {
                 onClick={() => setScheduleSheetOpen(false)}
               >
                 <ArrowLeft className="h-4 w-4 mr-1" />
-                Volver
+                {t('common.back')}
               </Button>
               <SheetTitle className="text-xl">
-                Horario de {editingBarber?.name}
+                {t('barbers.page.scheduleOf', { name: editingBarber?.name ?? '' })}
               </SheetTitle>
             </SheetHeader>
             <ScheduleContent />

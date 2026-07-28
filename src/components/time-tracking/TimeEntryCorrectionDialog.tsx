@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useCorrectTimeEntry } from '@/hooks/useQueryHooks';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import type { TimeEntry } from '@/types/timeEntry';
 
@@ -31,6 +32,7 @@ interface TimeEntryCorrectionDialogProps {
 
 export default function TimeEntryCorrectionDialog({ entry, onClose }: TimeEntryCorrectionDialogProps) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const correctEntry = useCorrectTimeEntry();
 
@@ -54,10 +56,10 @@ export default function TimeEntryCorrectionDialog({ entry, onClose }: TimeEntryC
       },
       {
         onSuccess: () => {
-          toast({ title: 'Fichaje corregido' });
+          toast({ title: t('timeTracking.correction.saved') });
           onClose();
         },
-        onError: (err) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
+        onError: (err) => toast({ title: t('common.error'), description: err.message, variant: 'destructive' }),
       }
     );
   };
@@ -66,14 +68,16 @@ export default function TimeEntryCorrectionDialog({ entry, onClose }: TimeEntryC
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Corregir fichaje</DialogTitle>
+          <DialogTitle>{t('timeTracking.correction.title')}</DialogTitle>
           <DialogDescription>
-            Empleado: {entry.user_name ?? 'Desconocido'}
+            {t('timeTracking.correction.employee', {
+              name: entry.user_name ?? t('timeTracking.correction.unknownEmployee'),
+            })}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="correction-clock-in">Hora de entrada</Label>
+            <Label htmlFor="correction-clock-in">{t('timeTracking.correction.clockInLabel')}</Label>
             <Input
               id="correction-clock-in"
               type="datetime-local"
@@ -83,7 +87,7 @@ export default function TimeEntryCorrectionDialog({ entry, onClose }: TimeEntryC
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="correction-clock-out">Hora de salida</Label>
+            <Label htmlFor="correction-clock-out">{t('timeTracking.correction.clockOutLabel')}</Label>
             <Input
               id="correction-clock-out"
               type="datetime-local"
@@ -92,22 +96,22 @@ export default function TimeEntryCorrectionDialog({ entry, onClose }: TimeEntryC
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="correction-notes">Nota de correccion</Label>
+            <Label htmlFor="correction-notes">{t('timeTracking.correction.noteLabel')}</Label>
             <Textarea
               id="correction-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Motivo de la correccion..."
+              placeholder={t('timeTracking.correction.notePlaceholder')}
               rows={2}
             />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={correctEntry.isPending}>
               {correctEntry.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Guardar correccion
+              {t('timeTracking.correction.save')}
             </Button>
           </DialogFooter>
         </form>

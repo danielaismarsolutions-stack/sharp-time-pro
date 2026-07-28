@@ -12,9 +12,9 @@ import { StatusBadge } from './StatusBadge';
 import { StatusDropdown } from './StatusDropdown';
 import { Consultation, ConsultationStatus } from '@/types/consultation';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Phone, Mail, MessageCircle, Image, FileText, User, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface ConsultationTableProps {
   consultations: Consultation[];
@@ -33,10 +33,11 @@ export function ConsultationTable({
   onRowClick,
   onDelete,
 }: ConsultationTableProps) {
+  const { t, dateLocale } = useTranslation();
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
 
   const formatDate = (date: string) => {
-    return format(new Date(date), "dd/MM/yyyy HH:mm", { locale: es });
+    return format(new Date(date), "dd/MM/yyyy HH:mm", { locale: dateLocale });
   };
 
   const toggleNotes = (id: string) => {
@@ -48,18 +49,21 @@ export function ConsultationTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[60px]">Foto</TableHead>
-            <TableHead>Cliente</TableHead>
-            <TableHead>Servicio</TableHead>
-            <TableHead className="hidden lg:table-cell">Descripción</TableHead>
-            <TableHead>Fecha</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead className="text-right">Acciones</TableHead>
+            <TableHead className="w-[60px]">{t('consultations.table.photo')}</TableHead>
+            <TableHead>{t('consultations.table.client')}</TableHead>
+            <TableHead>{t('consultations.table.service')}</TableHead>
+            <TableHead className="hidden lg:table-cell">{t('consultations.table.description')}</TableHead>
+            <TableHead>{t('common.date')}</TableHead>
+            <TableHead>{t('common.status')}</TableHead>
+            <TableHead className="text-right">{t('common.actions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {consultations.map((consultation) => {
-            const whatsappUrl = `https://wa.me/34${consultation.client_phone.replace(/\D/g, '')}?text=Hola ${encodeURIComponent(consultation.client_name)}, te contactamos desde Rioja Barber Studio sobre tu consulta de ${encodeURIComponent(consultation.service_name)}`;
+            const whatsappUrl = `https://wa.me/34${consultation.client_phone.replace(/\D/g, '')}?text=${t('consultations.whatsappMessage', {
+              name: encodeURIComponent(consultation.client_name),
+              service: encodeURIComponent(consultation.service_name),
+            })}`;
             const isExpanded = expandedNotes[consultation.id];
             const hasLongNotes = consultation.client_notes && consultation.client_notes.length > 80;
             const displayNotes = isExpanded
@@ -132,11 +136,11 @@ export function ConsultationTable({
                         >
                           {isExpanded ? (
                             <>
-                              Ver menos <ChevronUp className="h-3 w-3" />
+                              {t('consultations.actions.seeLess')} <ChevronUp className="h-3 w-3" />
                             </>
                           ) : (
                             <>
-                              Ver más <ChevronDown className="h-3 w-3" />
+                              {t('common.seeMore')} <ChevronDown className="h-3 w-3" />
                             </>
                           )}
                         </button>

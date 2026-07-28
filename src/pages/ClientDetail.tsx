@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import {
   ArrowLeft,
   User,
@@ -33,6 +32,7 @@ import { supabaseBookingsApi } from '@/services/supabaseBookings';
 import { notifyBookingUsers } from '@/services/supabaseNotifications';
 import { getBusinessId } from '@/config/session';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import {
   useClientDetail,
@@ -49,28 +49,29 @@ import BookingModal from '@/components/bookings/BookingModal';
 import { BookingDetailModal } from '@/components/calendar';
 import type { BookingStatus as StatusBadgeStatus } from '@/components/calendar/StatusBadge';
 
-const statusConfig: Record<string, { label: string; class: string }> = {
-  pending: { label: 'Pendiente', class: 'bg-yellow-500/20 text-yellow-500' },
-  confirmed: { label: 'Confirmada', class: 'bg-violet-500/20 text-violet-500' },
-  completed: { label: 'Completada', class: 'bg-green-500/20 text-green-500' },
-  cancelled: { label: 'Cancelada', class: 'bg-red-500/20 text-red-500' },
-  'no-show': { label: 'No asistió', class: 'bg-gray-500/20 text-gray-500' },
-  'no_show': { label: 'No asistió', class: 'bg-gray-500/20 text-gray-500' },
-};
-
-const bookingStatusLabels: Record<ApiBookingStatus, string> = {
-  pending: 'pendiente',
-  confirmed: 'confirmada',
-  completed: 'completada',
-  cancelled: 'cancelada',
-  no_show: 'no presentado',
-};
-
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t, dateLocale } = useTranslation();
   const { user } = useAuth();
+
+  const statusConfig: Record<string, { label: string; class: string }> = {
+    pending: { label: t('clients.status.pending'), class: 'bg-yellow-500/20 text-yellow-500' },
+    confirmed: { label: t('clients.status.confirmed'), class: 'bg-violet-500/20 text-violet-500' },
+    completed: { label: t('clients.status.completed'), class: 'bg-green-500/20 text-green-500' },
+    cancelled: { label: t('clients.status.cancelled'), class: 'bg-red-500/20 text-red-500' },
+    'no-show': { label: t('clients.status.noShow'), class: 'bg-gray-500/20 text-gray-500' },
+    'no_show': { label: t('clients.status.noShow'), class: 'bg-gray-500/20 text-gray-500' },
+  };
+
+  const bookingStatusLabels: Record<ApiBookingStatus, string> = {
+    pending: t('clients.statusLower.pending'),
+    confirmed: t('clients.statusLower.confirmed'),
+    completed: t('clients.statusLower.completed'),
+    cancelled: t('clients.statusLower.cancelled'),
+    no_show: t('clients.statusLower.noShow'),
+  };
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const { data: clientData, isLoading, refetch: loadClientData } = useClientDetail(id);
   const { invalidateClients, invalidateBookings } = useInvalidateQuery();
@@ -132,8 +133,8 @@ export default function ClientDetail() {
       const fullBooking = await supabaseBookingsApi.getById(bookingId);
       if (!fullBooking || fullBooking.booking_type === 'event') {
         toast({
-          title: 'Cita no disponible',
-          description: 'Esta cita ya no existe.',
+          title: t('clients.booking.unavailableTitle'),
+          description: t('clients.booking.unavailableDescription'),
           variant: 'destructive',
         });
         invalidateClients();
@@ -142,7 +143,7 @@ export default function ClientDetail() {
       setSelectedApiBooking(fullBooking);
       setIsBookingDetailOpen(true);
     } catch {
-      toast({ title: 'Error al cargar la cita', variant: 'destructive' });
+      toast({ title: t('clients.booking.loadError'), variant: 'destructive' });
     } finally {
       setOpeningBookingId(null);
     }
@@ -163,9 +164,9 @@ export default function ClientDetail() {
     ) as ApiBookingStatus;
 
     const confirmed = await confirm({
-      title: 'Cambiar estado de cita',
-      description: `¿Estás seguro de marcar esta cita como "${bookingStatusLabels[apiStatus]}"?`,
-      confirmLabel: 'Confirmar',
+      title: t('clients.booking.changeStatusTitle'),
+      description: t('clients.booking.changeStatusDescription', { status: bookingStatusLabels[apiStatus] }),
+      confirmLabel: t('common.confirm'),
       variant: apiStatus === 'cancelled' ? 'destructive' : 'default',
     });
     if (!confirmed) return;
@@ -178,8 +179,12 @@ export default function ClientDetail() {
         await notifyBookingUsers({
           business_id: getBusinessId(),
           type: 'booking_status_changed',
-          title: 'Estado de cita cambiado',
-          message: `${user?.name || 'Usuario'} cambió la cita de ${updated.client_name || 'cliente'} a "${bookingStatusLabels[apiStatus]}"`,
+          title: t('clients.notifications.statusChangedTitle'),
+          message: t('clients.notifications.statusChangedMessage', {
+            user: user?.name || t('clients.userFallback'),
+            client: updated.client_name || t('clients.clientFallback'),
+            status: bookingStatusLabels[apiStatus],
+          }),
           barber_user_id: updated.user_id,
           performed_by_user_id: user?.id || '',
           metadata: {
@@ -193,9 +198,9 @@ export default function ClientDetail() {
 
       invalidateClients();
       invalidateBookings();
-      toast({ title: `Cita marcada como ${bookingStatusLabels[apiStatus]}` });
+      toast({ title: t('clients.booking.markedAs', { status: bookingStatusLabels[apiStatus] }) });
     } catch {
-      toast({ title: 'Error al actualizar', variant: 'destructive' });
+      toast({ title: t('clients.booking.updateError'), variant: 'destructive' });
     }
   };
 
@@ -209,20 +214,26 @@ export default function ClientDetail() {
         : await supabaseBookingsApi.clearPayment(bookingId);
       setSelectedApiBooking((prev) => (prev && prev.id === bookingId ? updated : prev));
       invalidateBookings();
-      const methodLabels: Record<string, string> = { cash: 'efectivo', card: 'tarjeta', bizum: 'Bizum' };
+      const methodLabels: Record<string, string> = {
+        cash: t('clients.payment.cash'),
+        card: t('clients.payment.card'),
+        bizum: t('clients.payment.bizum'),
+      };
       toast({
-        title: method ? `Pago registrado (${methodLabels[method]})` : 'Pago desmarcado',
+        title: method
+          ? t('clients.payment.recorded', { method: methodLabels[method] })
+          : t('clients.payment.cleared'),
       });
     } catch {
-      toast({ title: 'Error al actualizar el pago', variant: 'destructive' });
+      toast({ title: t('clients.payment.updateError'), variant: 'destructive' });
     }
   };
 
   const handleBookingDelete = async (bookingId: string) => {
     const confirmed = await confirm({
-      title: '¿Eliminar cita?',
-      description: 'Se eliminará permanentemente esta cita. Esta acción no se puede deshacer.',
-      confirmLabel: 'Eliminar',
+      title: t('clients.booking.deleteTitle'),
+      description: t('clients.booking.deleteDescription'),
+      confirmLabel: t('common.delete'),
       variant: 'destructive',
     });
     if (!confirmed) return;
@@ -237,8 +248,12 @@ export default function ClientDetail() {
           await notifyBookingUsers({
             business_id: getBusinessId(),
             type: 'booking_deleted',
-            title: 'Cita eliminada',
-            message: `${user?.name || 'Usuario'} eliminó la cita de ${deletedBooking.client_name} (${deletedBooking.service_name})`,
+            title: t('clients.notifications.bookingDeletedTitle'),
+            message: t('clients.notifications.bookingDeletedMessage', {
+              user: user?.name || t('clients.userFallback'),
+              client: deletedBooking.client_name,
+              service: deletedBooking.service_name,
+            }),
             barber_user_id: deletedBooking.user_id,
             performed_by_user_id: user?.id || '',
             metadata: {
@@ -253,9 +268,9 @@ export default function ClientDetail() {
 
       invalidateClients();
       invalidateBookings();
-      toast({ title: 'Cita eliminada correctamente' });
+      toast({ title: t('clients.booking.deletedToast') });
     } catch {
-      toast({ title: 'Error al eliminar la cita', variant: 'destructive' });
+      toast({ title: t('clients.booking.deleteError'), variant: 'destructive' });
     }
   };
 
@@ -307,8 +322,14 @@ export default function ClientDetail() {
         await notifyBookingUsers({
           business_id: getBusinessId(),
           type: 'booking_modified',
-          title: 'Reserva modificada',
-          message: `${user?.name || 'Usuario'} modificó la cita de ${data.clientName} (${data.serviceName}) al ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
+          title: t('clients.notifications.bookingModifiedTitle'),
+          message: t('clients.notifications.bookingModifiedMessage', {
+            user: user?.name || t('clients.userFallback'),
+            client: data.clientName || '',
+            service: data.serviceName || '',
+            date: format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: dateLocale }),
+            time: data.time || '',
+          }),
           barber_user_id: data.barberId || editingBooking.user_id,
           performed_by_user_id: user?.id || '',
           metadata: {
@@ -347,8 +368,15 @@ export default function ClientDetail() {
         await notifyBookingUsers({
           business_id: getBusinessId(),
           type: 'booking_created',
-          title: `Nueva reserva - ${data.barber || 'Sin asignar'}`,
-          message: `${user?.name || 'Usuario'} creó una cita para ${data.clientName} (${data.serviceName}) con ${data.barber || 'Sin asignar'} el ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
+          title: t('clients.notifications.bookingCreatedTitle', { barber: data.barber || t('clients.unassigned') }),
+          message: t('clients.notifications.bookingCreatedMessage', {
+            user: user?.name || t('clients.userFallback'),
+            client: data.clientName || '',
+            service: data.serviceName || '',
+            barber: data.barber || t('clients.unassigned'),
+            date: format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: dateLocale }),
+            time: data.time || '',
+          }),
           barber_user_id: data.barberId || newBooking.user_id,
           performed_by_user_id: user?.id || '',
           metadata: {
@@ -370,27 +398,27 @@ export default function ClientDetail() {
 
   const handleSaveClient = async (updates: Partial<Client>) => {
     const confirmed = await confirm({
-      title: 'Actualizar cliente',
-      description: `¿Confirmar los cambios en el cliente "${updates.name || clientData?.name}"?`,
-      confirmLabel: 'Actualizar',
+      title: t('clients.confirm.updateTitle'),
+      description: t('clients.confirm.updateDescription', { name: updates.name || clientData?.name || '' }),
+      confirmLabel: t('common.update'),
     });
     if (!confirmed) return;
 
     try {
       await supabaseClientsApi.update(id!, updates);
       invalidateClients();
-      toast({ title: 'Cliente actualizado correctamente' });
+      toast({ title: t('clients.toasts.updated') });
     } catch (error) {
-      toast({ title: 'Error al actualizar cliente', variant: 'destructive' });
+      toast({ title: t('clients.toasts.updateError'), variant: 'destructive' });
       throw error;
     }
   };
 
   const handleDeleteClient = async () => {
     const confirmed = await confirm({
-      title: '¿Eliminar cliente?',
-      description: `Se eliminará permanentemente el cliente "${clientData?.name}". Esta acción no se puede deshacer.`,
-      confirmLabel: 'Eliminar',
+      title: t('clients.confirm.deleteTitle'),
+      description: t('clients.confirm.deleteDescription', { name: clientData?.name || '' }),
+      confirmLabel: t('common.delete'),
       variant: 'destructive',
     });
     if (!confirmed) return;
@@ -398,10 +426,10 @@ export default function ClientDetail() {
     try {
       await supabaseClientsApi.delete(id!);
       invalidateClients();
-      toast({ title: 'Cliente eliminado' });
+      toast({ title: t('clients.toasts.deleted') });
       navigate('/clients');
     } catch (error) {
-      toast({ title: 'Error al eliminar cliente', variant: 'destructive' });
+      toast({ title: t('clients.toasts.deleteError'), variant: 'destructive' });
     }
   };
 
@@ -415,9 +443,9 @@ export default function ClientDetail() {
       invalidateClients();
       setNewTag('');
       setIsAddingTag(false);
-      toast({ title: 'Etiqueta añadida' });
+      toast({ title: t('clients.toasts.tagAdded') });
     } catch (error) {
-      toast({ title: 'Error al añadir etiqueta', variant: 'destructive' });
+      toast({ title: t('clients.toasts.tagAddError'), variant: 'destructive' });
     }
   };
 
@@ -425,9 +453,9 @@ export default function ClientDetail() {
     if (!clientData) return;
 
     const confirmed = await confirm({
-      title: '¿Eliminar etiqueta?',
-      description: `¿Eliminar la etiqueta "${tagToRemove}" del cliente?`,
-      confirmLabel: 'Eliminar',
+      title: t('clients.confirm.deleteTagTitle'),
+      description: t('clients.confirm.deleteTagDescription', { tag: tagToRemove }),
+      confirmLabel: t('common.delete'),
       variant: 'destructive',
     });
     if (!confirmed) return;
@@ -437,9 +465,9 @@ export default function ClientDetail() {
     try {
       await supabaseClientsApi.updateTags(id!, updatedTags);
       invalidateClients();
-      toast({ title: 'Etiqueta eliminada' });
+      toast({ title: t('clients.toasts.tagRemoved') });
     } catch (error) {
-      toast({ title: 'Error al eliminar etiqueta', variant: 'destructive' });
+      toast({ title: t('clients.toasts.tagRemoveError'), variant: 'destructive' });
     }
   };
 
@@ -492,7 +520,7 @@ export default function ClientDetail() {
         </Button>
         <div className="flex-1 min-w-0">
           <h1 className="text-xl md:text-2xl font-bold truncate">{clientData.name}</h1>
-          <p className="text-muted-foreground text-sm">Perfil del Cliente</p>
+          <p className="text-muted-foreground text-sm">{t('clients.detail.profileSubtitle')}</p>
         </div>
         <Button 
           variant="outline" 
@@ -504,7 +532,7 @@ export default function ClientDetail() {
         </Button>
         <Button variant="outline" size="sm" onClick={() => setIsModalOpen(true)} className="h-10 min-h-[44px]">
           <Edit className="h-4 w-4 md:mr-2" />
-          <span className="hidden md:inline">Editar</span>
+          <span className="hidden md:inline">{t('common.edit')}</span>
         </Button>
         <Button variant="destructive" size="icon" onClick={handleDeleteClient} className="h-10 w-10 min-h-[44px] min-w-[44px]">
           <Trash2 className="h-4 w-4" />
@@ -517,7 +545,7 @@ export default function ClientDetail() {
           {/* Contact Card */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle className="text-base">Información de Contacto</CardTitle>
+              <CardTitle className="text-base">{t('clients.detail.contactInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-center mb-4">
@@ -533,7 +561,7 @@ export default function ClientDetail() {
                   className="flex items-center gap-3 hover:text-primary transition-colors"
                 >
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{clientData.phone || 'Sin teléfono'}</span>
+                  <span>{clientData.phone || t('clients.noPhone')}</span>
                 </a>
                 <a 
                   href={clientData.email ? `mailto:${clientData.email}` : undefined}
@@ -543,11 +571,11 @@ export default function ClientDetail() {
                   )}
                 >
                   <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span>{clientData.email || 'Sin email'}</span>
+                  <span>{clientData.email || t('clients.noEmail')}</span>
                 </a>
                 <div className="flex items-center gap-3">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>Cliente desde {format(new Date(clientData.createdAt), 'MMM yyyy', { locale: es })}</span>
+                  <span>{t('clients.detail.clientSince', { date: format(new Date(clientData.createdAt), 'MMM yyyy', { locale: dateLocale }) })}</span>
                 </div>
               </div>
             </CardContent>
@@ -556,13 +584,13 @@ export default function ClientDetail() {
           {/* Stats Card */}
           <Card className="border-border">
             <CardHeader>
-              <CardTitle className="text-base">Estadísticas</CardTitle>
+              <CardTitle className="text-base">{t('clients.detail.statistics')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Scissors className="h-4 w-4" />
-                  <span>Total Visitas</span>
+                  <span>{t('clients.detail.totalVisits')}</span>
                 </div>
                 <span className="font-bold">{clientData.totalVisits}</span>
               </div>
@@ -570,7 +598,7 @@ export default function ClientDetail() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <DollarSign className="h-4 w-4" />
-                  <span>Total Gastado</span>
+                  <span>{t('clients.detail.totalSpent')}</span>
                 </div>
                 <span className="font-bold">€{Number(clientData.totalSpent).toFixed(2)}</span>
               </div>
@@ -578,19 +606,19 @@ export default function ClientDetail() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  <span>Última Visita</span>
+                  <span>{t('clients.detail.lastVisit')}</span>
                 </div>
                 <span className="font-bold">
-                  {clientData.lastVisit 
-                    ? format(new Date(clientData.lastVisit), 'd MMM', { locale: es }) 
-                    : 'Nunca'}
+                  {clientData.lastVisit
+                    ? format(new Date(clientData.lastVisit), 'd MMM', { locale: dateLocale })
+                    : t('clients.never')}
                 </span>
               </div>
               <Separator />
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <DollarSign className="h-4 w-4" />
-                  <span>Prom. por Visita</span>
+                  <span>{t('clients.detail.avgPerVisit')}</span>
                 </div>
                 <span className="font-bold">
                   €{clientData.totalVisits > 0 
@@ -605,7 +633,7 @@ export default function ClientDetail() {
           {sortedServices.length > 0 && (
             <Card className="border-border">
               <CardHeader>
-                <CardTitle className="text-base">Servicios Favoritos</CardTitle>
+                <CardTitle className="text-base">{t('clients.detail.favouriteServices')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -624,7 +652,7 @@ export default function ClientDetail() {
           {clientData.notes && (
             <Card className="border-border">
               <CardHeader>
-                <CardTitle className="text-base">Notas</CardTitle>
+                <CardTitle className="text-base">{t('common.notes')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">{clientData.notes}</p>
@@ -635,7 +663,7 @@ export default function ClientDetail() {
           {/* Tags */}
           <Card className="border-border">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">Etiquetas</CardTitle>
+              <CardTitle className="text-base">{t('clients.detail.tags')}</CardTitle>
               {!isAddingTag && (
                 <Button 
                   variant="ghost" 
@@ -644,7 +672,7 @@ export default function ClientDetail() {
                   className="h-8"
                 >
                   <Plus className="h-4 w-4 mr-1" />
-                  Añadir
+                  {t('common.add')}
                 </Button>
               )}
             </CardHeader>
@@ -652,7 +680,7 @@ export default function ClientDetail() {
               {isAddingTag && (
                 <div className="flex gap-2 mb-3">
                   <Input
-                    placeholder="Nueva etiqueta..."
+                    placeholder={t('clients.detail.newTagPlaceholder')}
                     value={newTag}
                     onChange={(e) => setNewTag(e.target.value)}
                     onKeyDown={(e) => {
@@ -696,7 +724,7 @@ export default function ClientDetail() {
                   ))
                 ) : (
                   !isAddingTag && (
-                    <p className="text-sm text-muted-foreground">Sin etiquetas</p>
+                    <p className="text-sm text-muted-foreground">{t('clients.detail.noTags')}</p>
                   )
                 )}
               </div>
@@ -709,20 +737,25 @@ export default function ClientDetail() {
           <Card className="border-border h-full">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">
-                Historial de Citas ({clientData.bookings.length} visitas)
+                {t(
+                  clientData.bookings.length === 1
+                    ? 'clients.detail.appointmentHistoryOne'
+                    : 'clients.detail.appointmentHistoryOther',
+                  { count: clientData.bookings.length }
+                )}
               </CardTitle>
               <Button size="sm" onClick={openNewBooking} disabled={!isBookingDataReady}>
                 <Plus className="h-4 w-4 mr-2" />
-                Nueva Cita
+                {t('clients.detail.newAppointment')}
               </Button>
             </CardHeader>
             <CardContent>
               {clientData.bookings.length === 0 ? (
                 <div className="text-center py-12">
                   <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Sin citas todavía</p>
+                  <p className="text-muted-foreground">{t('clients.detail.noAppointmentsYet')}</p>
                   <Button variant="outline" className="mt-4" onClick={openNewBooking} disabled={!isBookingDataReady}>
-                    Reservar Primera Cita
+                    {t('clients.detail.bookFirstAppointment')}
                   </Button>
                 </div>
               ) : (
@@ -735,7 +768,7 @@ export default function ClientDetail() {
                         key={booking.id}
                         role="button"
                         tabIndex={0}
-                        aria-label={`Ver detalles de la cita de ${booking.serviceName}`}
+                        aria-label={t('clients.detail.viewAppointmentAria', { service: booking.serviceName })}
                         aria-busy={isOpeningBooking}
                         onClick={() => handleBookingClick(booking.id)}
                         onKeyDown={(e) => {
@@ -752,7 +785,7 @@ export default function ClientDetail() {
                       >
                         <div className="w-12 h-12 shrink-0 rounded-lg bg-card flex flex-col items-center justify-center border border-border">
                           <span className="text-xs text-muted-foreground">
-                            {format(new Date(booking.date), 'MMM', { locale: es })}
+                            {format(new Date(booking.date), 'MMM', { locale: dateLocale })}
                           </span>
                           <span className="font-bold">
                             {format(new Date(booking.date), 'd')}
@@ -774,7 +807,7 @@ export default function ClientDetail() {
                           </div>
                           {booking.notes && (
                             <p className="text-xs text-muted-foreground mt-1 truncate">
-                              Nota: {booking.notes}
+                              {t('clients.detail.notePrefix', { note: booking.notes })}
                             </p>
                           )}
                         </div>

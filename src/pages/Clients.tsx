@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import {
   Search,
@@ -42,6 +41,7 @@ import { cn } from '@/lib/utils';
 import { clientMatchScore } from '@/lib/clientSearch';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { getBusinessId } from '@/config/session';
 import { notifyAllAdmins } from '@/services/supabaseNotifications';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
@@ -56,6 +56,7 @@ const ITEMS_PER_PAGE = 10;
 export default function Clients() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t, dateLocale } = useTranslation();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const { user } = useAuth();
   const { data: clients = [], isLoading, refetch: loadClients } = useClientsQuery();
@@ -151,9 +152,9 @@ export default function Clients() {
   const handleSaveClient = async (clientData: Partial<Client>) => {
     if (editingClient) {
       const confirmed = await confirm({
-        title: 'Actualizar cliente',
-        description: `¿Confirmar los cambios en el cliente "${clientData.name || editingClient.name}"?`,
-        confirmLabel: 'Actualizar',
+        title: t('clients.confirm.updateTitle'),
+        description: t('clients.confirm.updateDescription', { name: clientData.name || editingClient.name }),
+        confirmLabel: t('common.update'),
       });
       if (!confirmed) return;
     }
@@ -167,8 +168,11 @@ export default function Clients() {
           await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'client_modified',
-            title: 'Cliente modificado',
-            message: `${user?.name || 'Usuario'} actualizó el cliente "${clientData.name || editingClient.name}"`,
+            title: t('clients.notifications.clientModifiedTitle'),
+            message: t('clients.notifications.clientModifiedMessage', {
+              user: user?.name || t('clients.userFallback'),
+              name: clientData.name || editingClient.name,
+            }),
             metadata: {
               client_id: editingClient.id,
               client_name: clientData.name || editingClient.name,
@@ -177,7 +181,7 @@ export default function Clients() {
           });
         } catch { /* ignored */ }
 
-        toast({ title: 'Cliente actualizado correctamente' });
+        toast({ title: t('clients.toasts.updated') });
       } else {
         const created = await supabaseClientsApi.create(clientData as Omit<Client, 'id' | 'createdAt' | 'totalVisits' | 'totalSpent' | 'lastVisit'>);
 
@@ -186,8 +190,11 @@ export default function Clients() {
           await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'client_created',
-            title: 'Nuevo cliente',
-            message: `${user?.name || 'Usuario'} creó el cliente "${clientData.name}"`,
+            title: t('clients.notifications.clientCreatedTitle'),
+            message: t('clients.notifications.clientCreatedMessage', {
+              user: user?.name || t('clients.userFallback'),
+              name: clientData.name || '',
+            }),
             metadata: {
               client_id: created.id,
               client_name: clientData.name,
@@ -196,14 +203,14 @@ export default function Clients() {
           });
         } catch { /* ignored */ }
 
-        toast({ title: 'Cliente creado correctamente' });
+        toast({ title: t('clients.toasts.created') });
       }
       invalidateClients();
       setEditingClient(null);
       setIsModalOpen(false);
     } catch (error) {
       toast({
-        title: 'Error al guardar cliente',
+        title: t('clients.toasts.saveError'),
         variant: 'destructive'
       });
       throw error;
@@ -213,9 +220,9 @@ export default function Clients() {
   const handleDeleteClient = async (id: string) => {
     const client = clients.find((c) => c.id === id);
     const confirmed = await confirm({
-      title: '¿Eliminar cliente?',
-      description: `Se eliminará permanentemente el cliente "${client?.name || ''}". Esta acción no se puede deshacer.`,
-      confirmLabel: 'Eliminar',
+      title: t('clients.confirm.deleteTitle'),
+      description: t('clients.confirm.deleteDescription', { name: client?.name || '' }),
+      confirmLabel: t('common.delete'),
       variant: 'destructive',
     });
     if (!confirmed) return;
@@ -228,8 +235,11 @@ export default function Clients() {
         await notifyAllAdmins({
           business_id: getBusinessId(),
           type: 'client_deleted',
-          title: 'Cliente eliminado',
-          message: `${user?.name || 'Usuario'} eliminó el cliente "${client?.name || ''}"`,
+          title: t('clients.notifications.clientDeletedTitle'),
+          message: t('clients.notifications.clientDeletedMessage', {
+            user: user?.name || t('clients.userFallback'),
+            name: client?.name || '',
+          }),
           metadata: {
             client_id: id,
             client_name: client?.name,
@@ -239,10 +249,10 @@ export default function Clients() {
       } catch { /* ignored */ }
 
       invalidateClients();
-      toast({ title: 'Cliente eliminado' });
+      toast({ title: t('clients.toasts.deleted') });
     } catch (error) {
       toast({
-        title: 'Error al eliminar cliente',
+        title: t('clients.toasts.deleteError'),
         variant: 'destructive'
       });
     }
@@ -315,8 +325,8 @@ export default function Clients() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
-          <h1 className="text-xl md:text-2xl font-bold">Clientes</h1>
-          <p className="text-muted-foreground text-sm">Gestiona tu base de datos de clientes</p>
+          <h1 className="text-xl md:text-2xl font-bold">{t('clients.list.title')}</h1>
+          <p className="text-muted-foreground text-sm">{t('clients.list.subtitle')}</p>
         </motion.div>
         <motion.div
           initial={{ opacity: 0, x: 20 }}
@@ -333,7 +343,7 @@ export default function Clients() {
           </Button>
           <Button onClick={() => { setEditingClient(null); setIsModalOpen(true); }} className="h-11 min-h-[44px]">
             <Plus className="h-4 w-4 mr-2" />
-            Añadir Cliente
+            {t('clients.list.addClient')}
           </Button>
         </motion.div>
       </div>
@@ -345,7 +355,7 @@ export default function Clients() {
             <Card className="border-border h-full">
               <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
                 <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-                  Total Clientes
+                  {t('clients.list.totalClients')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
@@ -357,7 +367,7 @@ export default function Clients() {
             <Card className="border-border h-full">
               <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
                 <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-                  Activos Este Mes
+                  {t('clients.list.activeThisMonth')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
@@ -369,7 +379,7 @@ export default function Clients() {
             <Card className="border-border h-full">
               <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
                 <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-                  Ingresos Totales
+                  {t('clients.list.totalRevenue')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
@@ -383,7 +393,7 @@ export default function Clients() {
             <Card className="border-border h-full">
               <CardHeader className="pb-2 p-3 md:p-6 md:pb-2">
                 <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">
-                  Prom. por Cliente
+                  {t('clients.list.avgPerClient')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
@@ -402,7 +412,7 @@ export default function Clients() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por nombre, teléfono, email o etiqueta..."
+                  placeholder={t('clients.list.searchPlaceholder')}
                   className="pl-9 h-11 min-h-[44px]"
                   value={searchQuery}
                   onChange={(e) => {
@@ -412,7 +422,12 @@ export default function Clients() {
                 />
               </div>
               <p className="text-sm text-muted-foreground">
-                {filteredAndSortedClients.length} clientes
+                {t(
+                  filteredAndSortedClients.length === 1
+                    ? 'clients.list.clientCountOne'
+                    : 'clients.list.clientCountOther',
+                  { count: filteredAndSortedClients.length }
+                )}
               </p>
             </div>
           </CardHeader>
@@ -423,13 +438,13 @@ export default function Clients() {
                 <div className="w-16 h-16 mx-auto rounded-full bg-muted flex items-center justify-center mb-4">
                   <Calendar className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <h3 className="font-medium mb-2">No hay clientes todavía</h3>
+                <h3 className="font-medium mb-2">{t('clients.list.emptyTitle')}</h3>
                 <p className="text-muted-foreground text-sm mb-4">
-                  Los nuevos clientes aparecerán aquí cuando reserven.
+                  {t('clients.list.emptyDescription')}
                 </p>
                 <Button onClick={() => { setEditingClient(null); setIsModalOpen(true); }}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Añadir primer cliente
+                  {t('clients.list.addFirstClient')}
                 </Button>
               </div>
             )}
@@ -453,12 +468,17 @@ export default function Clients() {
                             <p className="font-medium truncate">{client.name}</p>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Phone className="h-3 w-3 shrink-0" />
-                              <span className="truncate">{client.phone || 'Sin teléfono'}</span>
+                              <span className="truncate">{client.phone || t('clients.noPhone')}</span>
                             </div>
                           </div>
                           <div className="text-right shrink-0">
                             <p className="font-bold">€{Number(client.totalSpent).toFixed(0)}</p>
-                            <Badge variant="secondary" className="text-xs">{client.totalVisits} visitas</Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              {t(
+                                client.totalVisits === 1 ? 'clients.visitCountOne' : 'clients.visitCountOther',
+                                { count: client.totalVisits }
+                              )}
+                            </Badge>
                           </div>
                         </div>
                         {client.tags && client.tags.length > 0 && (
@@ -480,12 +500,12 @@ export default function Clients() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <SortHeader field="name">Nombre</SortHeader>
-                        <TableHead>Contacto</TableHead>
-                        <SortHeader field="totalVisits">Visitas</SortHeader>
-                        <SortHeader field="totalSpent">Total Gastado</SortHeader>
-                        <SortHeader field="lastVisit">Última Visita</SortHeader>
-                        <TableHead>Etiquetas</TableHead>
+                        <SortHeader field="name">{t('common.name')}</SortHeader>
+                        <TableHead>{t('clients.list.contact')}</TableHead>
+                        <SortHeader field="totalVisits">{t('clients.list.visits')}</SortHeader>
+                        <SortHeader field="totalSpent">{t('clients.list.totalSpent')}</SortHeader>
+                        <SortHeader field="lastVisit">{t('clients.list.lastVisit')}</SortHeader>
+                        <TableHead>{t('clients.list.tags')}</TableHead>
                         <TableHead className="w-[50px]" />
                       </TableRow>
                     </TableHeader>
@@ -512,7 +532,7 @@ export default function Clients() {
                                 className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
                               >
                                 <Phone className="h-3 w-3 text-muted-foreground" />
-                                {client.phone || 'Sin teléfono'}
+                                {client.phone || t('clients.noPhone')}
                               </a>
                               {client.email && (
                                 <a 
@@ -534,10 +554,10 @@ export default function Clients() {
                             {client.lastVisit ? (
                               <div className="flex items-center gap-2 text-sm">
                                 <Calendar className="h-3 w-3 text-muted-foreground" />
-                                {format(new Date(client.lastVisit), 'd MMM yyyy', { locale: es })}
+                                {format(new Date(client.lastVisit), 'd MMM yyyy', { locale: dateLocale })}
                               </div>
                             ) : (
-                              <span className="text-muted-foreground">Nunca</span>
+                              <span className="text-muted-foreground">{t('clients.never')}</span>
                             )}
                           </TableCell>
                           <TableCell>
@@ -566,14 +586,14 @@ export default function Clients() {
                                   e.stopPropagation();
                                   navigate(`/clients/${client.id}`);
                                 }}>
-                                  Ver Detalles
+                                  {t('clients.list.viewDetails')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="min-h-[44px]" onClick={(e) => {
                                   e.stopPropagation();
                                   setEditingClient(client);
                                   setIsModalOpen(true);
                                 }}>
-                                  Editar
+                                  {t('common.edit')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="text-destructive min-h-[44px]"
@@ -582,7 +602,7 @@ export default function Clients() {
                                     handleDeleteClient(client.id);
                                   }}
                                 >
-                                  Eliminar
+                                  {t('common.delete')}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -599,7 +619,11 @@ export default function Clients() {
             {totalPages > 1 && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t border-border">
                 <p className="text-sm text-muted-foreground order-2 sm:order-1">
-                  {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredAndSortedClients.length)} de {filteredAndSortedClients.length}
+                  {t('clients.list.paginationRange', {
+                    from: (currentPage - 1) * ITEMS_PER_PAGE + 1,
+                    to: Math.min(currentPage * ITEMS_PER_PAGE, filteredAndSortedClients.length),
+                    total: filteredAndSortedClients.length,
+                  })}
                 </p>
                 <div className="flex items-center gap-2 order-1 sm:order-2">
                   <Button

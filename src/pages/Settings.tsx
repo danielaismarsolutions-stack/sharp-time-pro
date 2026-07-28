@@ -19,6 +19,7 @@ import {
   Moon,
   Sun,
   Check,
+  Languages,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,9 +58,19 @@ import { notifyAllAdmins } from '@/services/supabaseNotifications';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useBusinessBrand } from '@/contexts/BusinessBrandContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { translate, type Language } from '@/i18n';
 
 const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-const dayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const dayLabelKeys = [
+  'settings.days.monday',
+  'settings.days.tuesday',
+  'settings.days.wednesday',
+  'settings.days.thursday',
+  'settings.days.friday',
+  'settings.days.saturday',
+  'settings.days.sunday',
+] as const;
 
 const ADMIN_TABS = ['business', 'hours', 'booking', 'time-tracking', 'notifications', 'appearance', 'account'];
 const BARBER_TABS = ['notifications', 'appearance', 'account'];
@@ -72,6 +83,25 @@ export default function Settings() {
   const defaultTab = isAdmin ? 'business' : 'notifications';
   const { brand, updateLogoUrl } = useBusinessBrand();
   const { theme, setTheme } = useTheme();
+  const { language, setLanguage, isSavingLanguage, t, intlLocale } = useLanguage();
+
+  const handleLanguageChange = async (next: Language) => {
+    if (next === language || isSavingLanguage) return;
+    try {
+      await setLanguage(next);
+      // Use the new language explicitly: the `t` in this closure is stale.
+      toast({
+        title: translate(next, 'settings.language.changed'),
+        description: translate(next, 'settings.language.changedDescription'),
+      });
+    } catch {
+      toast({
+        title: translate(language, 'common.error'),
+        description: translate(language, 'settings.language.changeError'),
+        variant: 'destructive',
+      });
+    }
+  };
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -236,11 +266,11 @@ export default function Settings() {
   const addClosureDate = async () => {
     const dateStr = newClosureDate.trim();
     if (!dateStr) {
-      toast({ title: 'Selecciona una fecha', variant: 'destructive' });
+      toast({ title: t('settings.closures.selectDate'), variant: 'destructive' });
       return;
     }
     if (closureDates.some((c) => c.date === dateStr)) {
-      toast({ title: 'Esa fecha ya está marcada como cerrada', variant: 'destructive' });
+      toast({ title: t('settings.closures.duplicateDate'), variant: 'destructive' });
       return;
     }
 
@@ -254,18 +284,21 @@ export default function Settings() {
         await notifyAllAdmins({
           business_id: getBusinessId(),
           type: 'business_hours_modified',
-          title: 'Fecha de cierre añadida',
-          message: `${user?.name || 'Usuario'} añadió una fecha de cierre (${dateStr})`,
+          title: t('settings.closures.addedNotificationTitle'),
+          message: t('settings.closures.addedNotificationMessage', {
+            name: user?.name || t('settings.userFallback'),
+            date: dateStr,
+          }),
           metadata: { modified_by: user?.name, closure_date: dateStr },
         });
       } catch { /* ignored */ }
       invalidateClosureDates();
       setNewClosureDate('');
       setNewClosureName('');
-      toast({ title: 'Fecha de cierre añadida' });
+      toast({ title: t('settings.closures.added') });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Error al añadir la fecha';
-      toast({ title: 'Error', description: message, variant: 'destructive' });
+      const message = error instanceof Error ? error.message : t('settings.closures.addError');
+      toast({ title: t('common.error'), description: message, variant: 'destructive' });
     } finally {
       setIsAddingClosure(false);
     }
@@ -273,9 +306,9 @@ export default function Settings() {
 
   const removeClosureDate = async (id: string, dateLabel: string) => {
     const confirmed = await confirm({
-      title: 'Eliminar fecha de cierre',
-      description: `¿Eliminar la fecha de cierre del ${dateLabel}?`,
-      confirmLabel: 'Eliminar',
+      title: t('settings.closures.removeTitle'),
+      description: t('settings.closures.removeDescription', { date: dateLabel }),
+      confirmLabel: t('common.delete'),
       variant: 'destructive',
     });
     if (!confirmed) return;
@@ -284,10 +317,10 @@ export default function Settings() {
     try {
       await supabaseHolidaysApi.remove(id);
       invalidateClosureDates();
-      toast({ title: 'Fecha de cierre eliminada' });
+      toast({ title: t('settings.closures.removed') });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Error al eliminar la fecha';
-      toast({ title: 'Error', description: message, variant: 'destructive' });
+      const message = error instanceof Error ? error.message : t('settings.closures.removeError');
+      toast({ title: t('common.error'), description: message, variant: 'destructive' });
     } finally {
       setRemovingClosureId(null);
     }
@@ -297,7 +330,7 @@ export default function Settings() {
     const [y, m, d] = iso.split('-').map(Number);
     if (!y || !m || !d) return iso;
     const date = new Date(Date.UTC(y, m - 1, d));
-    return date.toLocaleDateString('es-ES', {
+    return date.toLocaleDateString(intlLocale, {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
@@ -317,13 +350,13 @@ export default function Settings() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast({ title: 'Solo se permiten imágenes', variant: 'destructive' });
+      toast({ title: t('settings.business.onlyImages'), variant: 'destructive' });
       return;
     }
 
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast({ title: 'La imagen debe ser menor a 2MB', variant: 'destructive' });
+      toast({ title: t('settings.business.logoTooLarge'), variant: 'destructive' });
       return;
     }
 
@@ -351,12 +384,12 @@ export default function Settings() {
       await supabaseBusinessesApi.update({ logoUrl: publicUrl });
       updateLogoUrl(publicUrl);
 
-      toast({ title: 'Logo actualizado' });
+      toast({ title: t('settings.business.logoUpdated') });
     } catch (error) {
       console.error('Logo upload error:', error);
       const message = error instanceof Error ? error.message : String(error);
       toast({
-        title: 'Error al subir el logo',
+        title: t('settings.business.logoUploadError'),
         description: message,
         variant: 'destructive',
       });
@@ -369,9 +402,9 @@ export default function Settings() {
 
   const handleRemoveLogo = async () => {
     const confirmed = await confirm({
-      title: 'Eliminar logo',
-      description: '¿Estás seguro de que quieres eliminar el logo del negocio?',
-      confirmLabel: 'Eliminar',
+      title: t('settings.business.removeLogoTitle'),
+      description: t('settings.business.removeLogoDescription'),
+      confirmLabel: t('common.delete'),
     });
     if (!confirmed) return;
 
@@ -379,9 +412,9 @@ export default function Settings() {
     try {
       await supabaseBusinessesApi.update({ logoUrl: null });
       updateLogoUrl(null);
-      toast({ title: 'Logo eliminado' });
+      toast({ title: t('settings.business.logoRemoved') });
     } catch {
-      toast({ title: 'Error al eliminar el logo', variant: 'destructive' });
+      toast({ title: t('settings.business.logoRemoveError'), variant: 'destructive' });
     } finally {
       setIsUploadingLogo(false);
     }
@@ -389,9 +422,9 @@ export default function Settings() {
 
   const saveBusinessSettings = async () => {
     const confirmed = await confirm({
-      title: 'Guardar configuración del negocio',
-      description: '¿Confirmar los cambios en la configuración del negocio?',
-      confirmLabel: 'Guardar',
+      title: t('settings.business.saveConfirmTitle'),
+      description: t('settings.business.saveConfirmDescription'),
+      confirmLabel: t('common.save'),
     });
     if (!confirmed) return;
 
@@ -409,8 +442,10 @@ export default function Settings() {
         await notifyAllAdmins({
           business_id: getBusinessId(),
           type: 'business_settings_modified',
-          title: 'Configuración del negocio modificada',
-          message: `${user?.name || 'Usuario'} actualizó la configuración del negocio`,
+          title: t('settings.business.modifiedNotificationTitle'),
+          message: t('settings.business.modifiedNotificationMessage', {
+            name: user?.name || t('settings.userFallback'),
+          }),
           metadata: {
             modified_by: user?.name,
           },
@@ -418,9 +453,9 @@ export default function Settings() {
       } catch { /* ignored */ }
 
       invalidateSettings();
-      toast({ title: 'Configuración guardada' });
+      toast({ title: t('settings.business.saved') });
     } catch (error) {
-      toast({ title: 'Error al guardar configuración', variant: 'destructive' });
+      toast({ title: t('settings.saveError'), variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
@@ -428,9 +463,9 @@ export default function Settings() {
 
   const saveHoursSettings = async () => {
     const confirmed = await confirm({
-      title: 'Guardar horario del negocio',
-      description: '¿Confirmar los cambios en el horario del negocio?',
-      confirmLabel: 'Guardar',
+      title: t('settings.hours.saveConfirmTitle'),
+      description: t('settings.hours.saveConfirmDescription'),
+      confirmLabel: t('common.save'),
     });
     if (!confirmed) return;
 
@@ -443,8 +478,10 @@ export default function Settings() {
         await notifyAllAdmins({
           business_id: getBusinessId(),
           type: 'business_hours_modified',
-          title: 'Horario del negocio modificado',
-          message: `${user?.name || 'Usuario'} actualizó el horario del negocio`,
+          title: t('settings.hours.modifiedNotificationTitle'),
+          message: t('settings.hours.modifiedNotificationMessage', {
+            name: user?.name || t('settings.userFallback'),
+          }),
           metadata: {
             modified_by: user?.name,
           },
@@ -453,9 +490,9 @@ export default function Settings() {
 
       invalidateSettings();
       invalidateBH();
-      toast({ title: 'Horario guardado' });
+      toast({ title: t('settings.hours.saved') });
     } catch (error) {
-      toast({ title: 'Error al guardar configuración', variant: 'destructive' });
+      toast({ title: t('settings.saveError'), variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
@@ -463,9 +500,9 @@ export default function Settings() {
 
   const saveBookingSettings = async () => {
     const confirmed = await confirm({
-      title: 'Guardar configuración de reservas',
-      description: '¿Confirmar los cambios en la configuración de reservas?',
-      confirmLabel: 'Guardar',
+      title: t('settings.booking.saveConfirmTitle'),
+      description: t('settings.booking.saveConfirmDescription'),
+      confirmLabel: t('common.save'),
     });
     if (!confirmed) return;
 
@@ -476,9 +513,9 @@ export default function Settings() {
         maxAdvanceBooking: bookingSettings.maxAdvanceBooking,
       });
       invalidateSettings();
-      toast({ title: 'Configuración de reservas guardada' });
+      toast({ title: t('settings.booking.saved') });
     } catch (error) {
-      toast({ title: 'Error al guardar configuración', variant: 'destructive' });
+      toast({ title: t('settings.saveError'), variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
@@ -486,9 +523,9 @@ export default function Settings() {
 
   const saveNotificationSettings = async () => {
     const confirmed = await confirm({
-      title: 'Guardar configuración de notificaciones',
-      description: '¿Confirmar los cambios en la configuración de notificaciones?',
-      confirmLabel: 'Guardar',
+      title: t('settings.notifications.saveConfirmTitle'),
+      description: t('settings.notifications.saveConfirmDescription'),
+      confirmLabel: t('common.save'),
     });
     if (!confirmed) return;
 
@@ -499,9 +536,9 @@ export default function Settings() {
         reminderTiming: notificationSettings.reminderTiming,
       });
       invalidateSettings();
-      toast({ title: 'Configuración de notificaciones guardada' });
+      toast({ title: t('settings.notifications.saved') });
     } catch (error) {
-      toast({ title: 'Error al guardar configuración', variant: 'destructive' });
+      toast({ title: t('settings.saveError'), variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
@@ -575,8 +612,8 @@ export default function Settings() {
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-xl md:text-2xl font-bold">Ajustes</h1>
-        <p className="text-muted-foreground text-sm">Gestiona la configuración de tu negocio</p>
+        <h1 className="text-xl md:text-2xl font-bold">{t('settings.title')}</h1>
+        <p className="text-muted-foreground text-sm">{t('settings.subtitle')}</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 md:space-y-6">
@@ -584,38 +621,38 @@ export default function Settings() {
           {isAdmin && (
             <TabsTrigger value="business" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
               <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Negocio</span>
+              <span className="hidden sm:inline">{t('settings.tabs.business')}</span>
             </TabsTrigger>
           )}
           {isAdmin && (
             <TabsTrigger value="hours" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
               <Clock className="h-4 w-4" />
-              <span className="hidden sm:inline">Horario</span>
+              <span className="hidden sm:inline">{t('settings.tabs.hours')}</span>
             </TabsTrigger>
           )}
           {isAdmin && (
             <TabsTrigger value="booking" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
               <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Reservas</span>
+              <span className="hidden sm:inline">{t('settings.tabs.booking')}</span>
             </TabsTrigger>
           )}
           {isAdmin && (
             <TabsTrigger value="time-tracking" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
               <Fingerprint className="h-4 w-4" />
-              <span className="hidden sm:inline">Fichajes</span>
+              <span className="hidden sm:inline">{t('settings.tabs.timeTracking')}</span>
             </TabsTrigger>
           )}
           <TabsTrigger value="notifications" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">Notif.</span>
+            <span className="hidden sm:inline">{t('settings.tabs.notifications')}</span>
           </TabsTrigger>
           <TabsTrigger value="appearance" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <Palette className="h-4 w-4" />
-            <span className="hidden sm:inline">Apariencia</span>
+            <span className="hidden sm:inline">{t('settings.tabs.appearance')}</span>
           </TabsTrigger>
           <TabsTrigger value="account" className="gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-3 min-h-[40px]">
             <User className="h-4 w-4" />
-            <span className="hidden sm:inline">Cuenta</span>
+            <span className="hidden sm:inline">{t('settings.tabs.account')}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -623,21 +660,21 @@ export default function Settings() {
         {isAdmin && <TabsContent value="business">
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Perfil del Negocio</CardTitle>
+              <CardTitle>{t('settings.business.title')}</CardTitle>
               <CardDescription>
-                Información de tu negocio visible para los clientes
+                {t('settings.business.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Logo Upload */}
               <div className="space-y-2">
-                <Label>Logo del Negocio</Label>
+                <Label>{t('settings.business.logoLabel')}</Label>
                 <div className="flex items-center gap-4">
                   <div className="relative w-20 h-20 rounded-lg border border-border bg-muted/30 flex items-center justify-center overflow-hidden shrink-0">
                     {brand.logoUrl ? (
                       <img
                         src={brand.logoUrl}
-                        alt="Logo del negocio"
+                        alt={t('settings.business.logoAlt')}
                         className="w-full h-full object-contain"
                       />
                     ) : (
@@ -658,7 +695,7 @@ export default function Settings() {
                         disabled={isUploadingLogo}
                       >
                         <Upload className="h-4 w-4 mr-2" />
-                        {brand.logoUrl ? 'Cambiar logo' : 'Subir logo'}
+                        {brand.logoUrl ? t('settings.business.changeLogo') : t('settings.business.uploadLogo')}
                       </Button>
                       {brand.logoUrl && (
                         <Button
@@ -669,12 +706,12 @@ export default function Settings() {
                           className="text-destructive hover:text-destructive"
                         >
                           <X className="h-4 w-4 mr-2" />
-                          Eliminar
+                          {t('common.delete')}
                         </Button>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      PNG, JPG o SVG. Máximo 2MB.
+                      {t('settings.business.logoHint')}
                     </p>
                   </div>
                   <input
@@ -691,21 +728,21 @@ export default function Settings() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Nombre del Negocio</Label>
+                  <Label>{t('settings.business.nameLabel')}</Label>
                   <Input
                     value={businessSettings.businessName}
                     onChange={(e) => setBusinessSettings({ ...businessSettings, businessName: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Teléfono</Label>
+                  <Label>{t('common.phone')}</Label>
                   <Input
                     value={businessSettings.phone}
                     onChange={(e) => setBusinessSettings({ ...businessSettings, phone: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Correo electrónico de contacto</Label>
+                  <Label>{t('settings.business.contactEmailLabel')}</Label>
                   <Input
                     type="email"
                     value={businessSettings.contactEmail}
@@ -713,7 +750,7 @@ export default function Settings() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Dirección</Label>
+                  <Label>{t('common.address')}</Label>
                   <Input
                     value={businessSettings.address}
                     onChange={(e) => setBusinessSettings({ ...businessSettings, address: e.target.value })}
@@ -721,7 +758,7 @@ export default function Settings() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Descripción</Label>
+                <Label>{t('settings.business.descriptionLabel')}</Label>
                 <Textarea
                   value={businessSettings.description}
                   onChange={(e) => setBusinessSettings({ ...businessSettings, description: e.target.value })}
@@ -730,7 +767,7 @@ export default function Settings() {
               </div>
               <Button onClick={saveBusinessSettings} disabled={isSaving}>
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Guardar Cambios
+                {t('settings.business.saveChanges')}
               </Button>
             </CardContent>
           </Card>
@@ -740,8 +777,8 @@ export default function Settings() {
         {isAdmin && <TabsContent value="hours">
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Horario del Negocio</CardTitle>
-              <CardDescription>Configura el horario de apertura para cada día. Puedes añadir varios turnos por día.</CardDescription>
+              <CardTitle>{t('settings.hours.title')}</CardTitle>
+              <CardDescription>{t('settings.hours.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {dayNames.map((day, index) => {
@@ -753,16 +790,16 @@ export default function Settings() {
                         checked={dayData.isOpen}
                         onCheckedChange={(checked) => toggleDayOpen(day, checked)}
                       />
-                      <Label className="font-semibold w-24">{dayLabels[index]}</Label>
+                      <Label className="font-semibold w-24">{t(dayLabelKeys[index])}</Label>
                       {!dayData.isOpen && (
-                        <span className="text-muted-foreground text-sm">Cerrado</span>
+                        <span className="text-muted-foreground text-sm">{t('settings.hours.closed')}</span>
                       )}
                     </div>
                     {dayData.isOpen && (
                       <div className="pl-0 md:pl-12 space-y-2 mt-2">
                         {dayData.shifts.map((shift, shiftIndex) => (
                           <div key={shiftIndex} className="flex items-center gap-2 flex-wrap md:flex-nowrap">
-                            <span className="text-xs text-muted-foreground w-auto md:w-16 shrink-0">Turno {shiftIndex + 1}</span>
+                            <span className="text-xs text-muted-foreground w-auto md:w-16 shrink-0">{t('settings.hours.shift', { number: shiftIndex + 1 })}</span>
                             <div className="flex items-center gap-2 flex-1 min-w-0">
                               <Input
                                 type="time"
@@ -770,7 +807,7 @@ export default function Settings() {
                                 onChange={(e) => updateShift(day, shiftIndex, { openTime: e.target.value })}
                                 className="w-full md:w-32 min-w-0"
                               />
-                              <span className="text-muted-foreground shrink-0">a</span>
+                              <span className="text-muted-foreground shrink-0">{t('settings.hours.to')}</span>
                               <Input
                                 type="time"
                                 value={shift.closeTime}
@@ -797,7 +834,7 @@ export default function Settings() {
                           className="border-dashed text-xs"
                         >
                           <Plus className="h-3 w-3 mr-1" />
-                          Añadir turno
+                          {t('settings.hours.addShift')}
                         </Button>
                       </div>
                     )}
@@ -806,7 +843,7 @@ export default function Settings() {
               })}
               <Button onClick={saveHoursSettings} disabled={isSaving} className="mt-4">
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Guardar Horario
+                {t('settings.hours.saveButton')}
               </Button>
             </CardContent>
           </Card>
@@ -814,15 +851,15 @@ export default function Settings() {
           {/* Closure Dates (Festivos / Días cerrados) */}
           <Card className="border-border mt-4 md:mt-6">
             <CardHeader>
-              <CardTitle>Días Cerrados (festivos y cierres puntuales)</CardTitle>
+              <CardTitle>{t('settings.closures.title')}</CardTitle>
               <CardDescription>
-                Marca fechas concretas en las que el negocio estará cerrado, como festivos o vacaciones.
+                {t('settings.closures.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-2 md:gap-3 items-end">
                 <div className="space-y-2">
-                  <Label htmlFor="closure-date">Fecha</Label>
+                  <Label htmlFor="closure-date">{t('common.date')}</Label>
                   <Input
                     id="closure-date"
                     type="date"
@@ -833,11 +870,11 @@ export default function Settings() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="closure-name">Motivo (opcional)</Label>
+                  <Label htmlFor="closure-name">{t('settings.closures.reasonLabel')}</Label>
                   <Input
                     id="closure-name"
                     type="text"
-                    placeholder="Ej: Navidad, vacaciones, festivo local"
+                    placeholder={t('settings.closures.reasonPlaceholder')}
                     value={newClosureName}
                     maxLength={120}
                     onChange={(e) => setNewClosureName(e.target.value)}
@@ -853,13 +890,13 @@ export default function Settings() {
                   ) : (
                     <Plus className="h-4 w-4 mr-2" />
                   )}
-                  Añadir
+                  {t('common.add')}
                 </Button>
               </div>
 
               {closureDates.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No hay fechas de cierre registradas.
+                  {t('settings.closures.empty')}
                 </p>
               ) : (
                 <ul className="space-y-2">
@@ -882,7 +919,7 @@ export default function Settings() {
                           onClick={() => removeClosureDate(closure.id, label)}
                           disabled={removingClosureId === closure.id}
                           className="h-10 w-10 md:h-8 md:w-8 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          aria-label={`Eliminar ${label}`}
+                          aria-label={t('settings.closures.removeAria', { date: label })}
                         >
                           {removingClosureId === closure.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -903,15 +940,15 @@ export default function Settings() {
         {isAdmin && <TabsContent value="booking">
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Configuración de Reservas</CardTitle>
-              <CardDescription>Configura cómo los clientes pueden reservar citas</CardDescription>
+              <CardTitle>{t('settings.booking.title')}</CardTitle>
+              <CardDescription>{t('settings.booking.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Habilitar Reservas Online</Label>
+                  <Label>{t('settings.booking.onlineLabel')}</Label>
                   <p className="text-sm text-muted-foreground">
-                    Permitir que los clientes reserven citas online
+                    {t('settings.booking.onlineDescription')}
                   </p>
                 </div>
                 <Switch
@@ -924,7 +961,7 @@ export default function Settings() {
               <Separator />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Antelación Mínima</Label>
+                  <Label>{t('settings.booking.minNotice')}</Label>
                   <Select
                     value={bookingSettings.minAdvanceBooking.toString()}
                     onValueChange={(value) =>
@@ -935,17 +972,19 @@ export default function Settings() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">Sin mínimo</SelectItem>
-                      <SelectItem value="1">1 hora</SelectItem>
-                      <SelectItem value="2">2 horas</SelectItem>
-                      <SelectItem value="4">4 horas</SelectItem>
-                      <SelectItem value="24">24 horas</SelectItem>
-                      <SelectItem value="48">48 horas</SelectItem>
+                      <SelectItem value="0">{t('settings.booking.noMinimum')}</SelectItem>
+                      {[1, 2, 4, 24, 48].map((h) => (
+                        <SelectItem key={h} value={h.toString()}>
+                          {h === 1
+                            ? t('settings.booking.hoursOne', { count: h })
+                            : t('settings.booking.hoursOther', { count: h })}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Antelación Máxima</Label>
+                  <Label>{t('settings.booking.maxNotice')}</Label>
                   <Select
                     value={bookingSettings.maxAdvanceBooking.toString()}
                     onValueChange={(value) =>
@@ -956,29 +995,31 @@ export default function Settings() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="7">7 días</SelectItem>
-                      <SelectItem value="14">14 días</SelectItem>
-                      <SelectItem value="30">30 días</SelectItem>
-                      <SelectItem value="60">60 días</SelectItem>
-                      <SelectItem value="90">90 días</SelectItem>
+                      {[7, 14, 30, 60, 90].map((d) => (
+                        <SelectItem key={d} value={d.toString()}>
+                          {d === 1
+                            ? t('settings.booking.daysOne', { count: d })
+                            : t('settings.booking.daysOther', { count: d })}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Política de Cancelación</Label>
+                <Label>{t('settings.booking.cancellationPolicy')}</Label>
                 <Textarea
                   value={bookingSettings.cancellationPolicy}
                   onChange={(e) =>
                     setBookingSettings({ ...bookingSettings, cancellationPolicy: e.target.value })
                   }
                   rows={3}
-                  placeholder="Introduce el texto de tu política de cancelación..."
+                  placeholder={t('settings.booking.cancellationPolicyPlaceholder')}
                 />
               </div>
               <Button onClick={saveBookingSettings} disabled={isSaving}>
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Guardar Configuración
+                {t('settings.booking.saveButton')}
               </Button>
             </CardContent>
           </Card>
@@ -990,21 +1031,20 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Fingerprint className="h-5 w-5" />
-                Control de Fichajes
+                {t('settings.timeTracking.title')}
               </CardTitle>
               <CardDescription>
-                Permite a tus empleados fichar entrada y salida para registrar sus horas trabajadas.
+                {t('settings.timeTracking.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-1">
                   <Label htmlFor="time-tracking-enabled" className="text-base font-medium">
-                    Activar sistema de fichajes
+                    {t('settings.timeTracking.enableLabel')}
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Al activarlo, aparecerá la sección "Fichajes" en el menú para todos los empleados.
-                    Podrán fichar entrada al llegar y salida al irse.
+                    {t('settings.timeTracking.enableDescription')}
                   </p>
                 </div>
                 <Switch
@@ -1015,15 +1055,17 @@ export default function Settings() {
                       await supabaseBusinessesApi.updateTimeTrackingSettings(checked);
                       invalidateTimeTrackingSettings();
                       toast({
-                        title: checked ? 'Fichajes activados' : 'Fichajes desactivados',
+                        title: checked
+                          ? t('settings.timeTracking.enabledToast')
+                          : t('settings.timeTracking.disabledToast'),
                         description: checked
-                          ? 'Tus empleados ya pueden fichar entrada y salida.'
-                          : 'El sistema de fichajes ha sido desactivado.',
+                          ? t('settings.timeTracking.enabledToastDescription')
+                          : t('settings.timeTracking.disabledToastDescription'),
                       });
                     } catch {
                       toast({
-                        title: 'Error',
-                        description: 'No se pudo actualizar la configuración.',
+                        title: t('common.error'),
+                        description: t('settings.timeTracking.updateError'),
                         variant: 'destructive',
                       });
                     }
@@ -1032,23 +1074,23 @@ export default function Settings() {
               </div>
 
               <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-                <h4 className="font-medium text-sm">Como funciona</h4>
+                <h4 className="font-medium text-sm">{t('settings.timeTracking.howItWorks')}</h4>
                 <ul className="text-sm text-muted-foreground space-y-2">
                   <li className="flex gap-2">
                     <span className="text-green-500 font-bold">1.</span>
-                    Los empleados fichan entrada al llegar con un solo click.
+                    {t('settings.timeTracking.step1')}
                   </li>
                   <li className="flex gap-2">
                     <span className="text-red-500 font-bold">2.</span>
-                    Fichan salida al terminar su jornada.
+                    {t('settings.timeTracking.step2')}
                   </li>
                   <li className="flex gap-2">
                     <span className="text-blue-500 font-bold">3.</span>
-                    Si olvidan fichar salida, el sistema cierra automaticamente a las 23:00 usando el horario programado del empleado.
+                    {t('settings.timeTracking.step3')}
                   </li>
                   <li className="flex gap-2">
                     <span className="text-purple-500 font-bold">4.</span>
-                    Los administradores pueden ver todos los registros y corregir errores.
+                    {t('settings.timeTracking.step4')}
                   </li>
                 </ul>
               </div>
@@ -1060,23 +1102,23 @@ export default function Settings() {
         <TabsContent value="notifications">
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Configuración de Notificaciones</CardTitle>
-              <CardDescription>Configura las notificaciones por email y SMS</CardDescription>
+              <CardTitle>{t('settings.notifications.title')}</CardTitle>
+              <CardDescription>{t('settings.notifications.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Push Notifications Section */}
               <div className="space-y-4">
                 <h3 className="font-medium flex items-center gap-2">
                   <BellRing className="h-4 w-4" />
-                  Notificaciones Push
+                  {t('settings.notifications.pushTitle')}
                 </h3>
                 {isPushSupported ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label>Activar notificaciones push</Label>
+                        <Label>{t('settings.notifications.pushEnableLabel')}</Label>
                         <p className="text-sm text-muted-foreground">
-                          Recibe alertas instantáneas en tu dispositivo
+                          {t('settings.notifications.pushEnableDescription')}
                         </p>
                       </div>
                       <Switch
@@ -1089,13 +1131,13 @@ export default function Settings() {
                       <Alert variant="destructive">
                         <AlertTriangle className="h-4 w-4" />
                         <AlertDescription>
-                          Las notificaciones están bloqueadas. Habilítalas en la configuración de tu navegador.
+                          {t('settings.notifications.pushBlocked')}
                         </AlertDescription>
                       </Alert>
                     )}
                     {isSubscribed && (
                       <p className="text-sm text-green-600 dark:text-green-400">
-                        ✓ Notificaciones push activadas
+                        {t('settings.notifications.pushEnabled')}
                       </p>
                     )}
                   </div>
@@ -1103,7 +1145,7 @@ export default function Settings() {
                   <Alert>
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                      Tu navegador no soporta notificaciones push.
+                      {t('settings.notifications.pushUnsupported')}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -1112,13 +1154,13 @@ export default function Settings() {
               
               {/* Email Notifications Section */}
               <div className="space-y-4">
-                <h3 className="font-medium">Notificaciones por Email</h3>
+                <h3 className="font-medium">{t('settings.notifications.emailTitle')}</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label>Notificaciones de Nueva Reserva</Label>
+                      <Label>{t('settings.notifications.newBookingLabel')}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Recibe un email cuando se realice una nueva reserva
+                        {t('settings.notifications.newBookingDescription')}
                       </p>
                     </div>
                     <Switch
@@ -1130,9 +1172,9 @@ export default function Settings() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label>Notificaciones de Cancelación</Label>
+                      <Label>{t('settings.notifications.cancellationLabel')}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Recibe un email cuando se cancele una reserva
+                        {t('settings.notifications.cancellationDescription')}
                       </p>
                     </div>
                     <Switch
@@ -1144,9 +1186,9 @@ export default function Settings() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label>Notificaciones de Recordatorio</Label>
+                      <Label>{t('settings.notifications.reminderLabel')}</Label>
                       <p className="text-sm text-muted-foreground">
-                        Enviar recordatorios a los clientes antes de sus citas
+                        {t('settings.notifications.reminderDescription')}
                       </p>
                     </div>
                     <Switch
@@ -1158,7 +1200,7 @@ export default function Settings() {
                   </div>
                   {notificationSettings.emailReminder && (
                     <div className="space-y-2 pl-4">
-                      <Label>Enviar recordatorio antes de</Label>
+                      <Label>{t('settings.notifications.reminderTimingLabel')}</Label>
                       <Select
                         value={notificationSettings.reminderTiming.toString()}
                         onValueChange={(value) =>
@@ -1169,11 +1211,13 @@ export default function Settings() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="2">2 horas</SelectItem>
-                          <SelectItem value="4">4 horas</SelectItem>
-                          <SelectItem value="12">12 horas</SelectItem>
-                          <SelectItem value="24">24 horas</SelectItem>
-                          <SelectItem value="48">48 horas</SelectItem>
+                          {[2, 4, 12, 24, 48].map((h) => (
+                            <SelectItem key={h} value={h.toString()}>
+                              {h === 1
+                                ? t('settings.booking.hoursOne', { count: h })
+                                : t('settings.booking.hoursOther', { count: h })}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -1182,12 +1226,12 @@ export default function Settings() {
               </div>
               <Separator />
               <div className="space-y-4">
-                <h3 className="font-medium">Notificaciones SMS</h3>
+                <h3 className="font-medium">{t('settings.notifications.smsTitle')}</h3>
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Habilitar SMS</Label>
+                    <Label>{t('settings.notifications.smsEnableLabel')}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Enviar notificaciones SMS a los clientes (requiere integración)
+                      {t('settings.notifications.smsEnableDescription')}
                     </p>
                   </div>
                   <Switch
@@ -1200,7 +1244,7 @@ export default function Settings() {
               </div>
               <Button onClick={saveNotificationSettings} disabled={isSaving}>
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Guardar Configuración
+                {t('settings.booking.saveButton')}
               </Button>
             </CardContent>
           </Card>
@@ -1212,19 +1256,18 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Palette className="h-5 w-5" />
-                Apariencia
+                {t('settings.appearance.title')}
               </CardTitle>
               <CardDescription>
-                Elige cómo quieres ver la aplicación. Tu preferencia se guarda en tu cuenta y se
-                aplica en todos tus dispositivos.
+                {t('settings.appearance.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Label>Tema</Label>
+              <Label>{t('settings.appearance.theme')}</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md">
                 {([
-                  { value: 'light', label: 'Claro', description: 'Fondo blanco', icon: Sun },
-                  { value: 'dark', label: 'Oscuro', description: 'Fondo negro', icon: Moon },
+                  { value: 'light', label: t('settings.appearance.light'), description: t('settings.appearance.lightDescription'), icon: Sun },
+                  { value: 'dark', label: t('settings.appearance.dark'), description: t('settings.appearance.darkDescription'), icon: Moon },
                 ] as const).map((option) => {
                   const isSelected = theme === option.value;
                   const Icon = option.icon;
@@ -1260,14 +1303,66 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+
+          <Card className="border-border mt-4 md:mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Languages className="h-5 w-5" />
+                {t('settings.language.title')}
+              </CardTitle>
+              <CardDescription>{t('settings.language.description')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md">
+                {([
+                  { value: 'es', label: t('settings.language.spanish'), description: t('settings.language.spanishDescription'), flag: '🇪🇸' },
+                  { value: 'en', label: t('settings.language.english'), description: t('settings.language.englishDescription'), flag: '🇬🇧' },
+                ] as const).map((option) => {
+                  const isSelected = language === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => handleLanguageChange(option.value)}
+                      disabled={!isAdmin || isSavingLanguage}
+                      aria-pressed={isSelected}
+                      className={`relative flex items-center gap-3 rounded-lg border p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                        isSelected
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                          : 'border-border hover:bg-accent'
+                      }`}
+                    >
+                      <span
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-xl ${
+                          isSelected ? 'bg-primary/10' : 'bg-muted'
+                        }`}
+                      >
+                        {option.flag}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block font-medium">{option.label}</span>
+                        <span className="block text-sm text-muted-foreground">{option.description}</span>
+                      </span>
+                      {isSelected && (
+                        <Check className="absolute top-3 right-3 h-4 w-4 text-primary" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {!isAdmin && (
+                <p className="text-sm text-muted-foreground">{t('settings.language.adminOnly')}</p>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Account Settings */}
         <TabsContent value="account">
           <Card className="border-border">
             <CardHeader>
-              <CardTitle>Configuración de Cuenta</CardTitle>
-              <CardDescription>Gestiona tu cuenta y seguridad</CardDescription>
+              <CardTitle>{t('settings.account.title')}</CardTitle>
+              <CardDescription>{t('settings.account.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/30">
@@ -1285,30 +1380,30 @@ export default function Settings() {
               <Separator />
 
               <div className="space-y-4">
-                <h3 className="font-medium">Cambiar Contraseña</h3>
+                <h3 className="font-medium">{t('settings.account.changePassword')}</h3>
                 <div className="grid gap-4 max-w-sm">
                   <div className="space-y-2">
-                    <Label>Contraseña Actual</Label>
+                    <Label>{t('settings.account.currentPassword')}</Label>
                     <Input type="password" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Nueva Contraseña</Label>
+                    <Label>{t('settings.account.newPassword')}</Label>
                     <Input type="password" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Confirmar Nueva Contraseña</Label>
+                    <Label>{t('settings.account.confirmNewPassword')}</Label>
                     <Input type="password" />
                   </div>
-                  <Button variant="outline">Actualizar Contraseña</Button>
+                  <Button variant="outline">{t('settings.account.updatePassword')}</Button>
                 </div>
               </div>
 
               <Separator />
 
               <div className="space-y-4">
-                <h3 className="font-medium">Zona de Peligro</h3>
+                <h3 className="font-medium">{t('settings.account.dangerZone')}</h3>
                 <Button variant="destructive" onClick={logout}>
-                  Cerrar sesión en todos los dispositivos
+                  {t('settings.account.logoutAll')}
                 </Button>
               </div>
             </CardContent>

@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/contexts/LanguageContext';
 import {
   supabaseServiceCategoriesApi,
   type ServiceCategory,
@@ -45,6 +46,7 @@ export default function CategoryModal({
   onPhotoChanged,
 }: CategoryModalProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -76,11 +78,11 @@ export default function CategoryModal({
   const validate = (): boolean => {
     const e: FormErrors = {};
     if (!formData.label.trim()) {
-      e.label = 'El nombre es requerido';
+      e.label = t('services.categoryModal.nameRequired');
     } else if (formData.label.trim().length < 2) {
-      e.label = 'Mínimo 2 caracteres';
+      e.label = t('services.categoryModal.nameMin');
     } else if (formData.label.trim().length > 50) {
-      e.label = 'Máximo 50 caracteres';
+      e.label = t('services.categoryModal.nameMax');
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -90,8 +92,8 @@ export default function CategoryModal({
     ev.preventDefault();
     if (!validate()) {
       toast({
-        title: 'Error de validación',
-        description: 'Revisa los campos del formulario',
+        title: t('services.categoryModal.validationErrorTitle'),
+        description: t('services.categoryModal.validationErrorDescription'),
         variant: 'destructive',
       });
       return;
@@ -113,17 +115,17 @@ export default function CategoryModal({
   const handlePhotoSelect = async (file: File) => {
     if (!category) {
       toast({
-        title: 'Guarda la categoría primero',
-        description: 'Necesitas crear la categoría antes de subir la foto.',
+        title: t('services.categoryModal.saveFirstTitle'),
+        description: t('services.categoryModal.saveFirstDescription'),
       });
       return;
     }
     if (!ALLOWED_TYPES.includes(file.type)) {
-      toast({ title: 'Formato no permitido', description: 'JPG, PNG, WebP o GIF', variant: 'destructive' });
+      toast({ title: t('services.categoryModal.invalidFormatTitle'), description: t('services.categoryModal.invalidFormatDescription'), variant: 'destructive' });
       return;
     }
     if (file.size > MAX_SIZE) {
-      toast({ title: 'Imagen muy grande', description: 'Máximo 5MB', variant: 'destructive' });
+      toast({ title: t('services.categoryModal.tooLargeTitle'), description: t('services.categoryModal.tooLargeDescription'), variant: 'destructive' });
       return;
     }
 
@@ -132,11 +134,11 @@ export default function CategoryModal({
       const url = await supabaseServiceCategoriesApi.uploadPhoto(category.id, category.slug, file);
       setPhotoUrl(url);
       onPhotoChanged?.(category.id, url);
-      toast({ title: 'Foto de portada actualizada' });
+      toast({ title: t('services.categoryModal.coverUpdated') });
     } catch (err) {
       toast({
-        title: 'Error al subir',
-        description: err instanceof Error ? err.message : 'Inténtalo de nuevo',
+        title: t('services.categoryModal.uploadErrorTitle'),
+        description: err instanceof Error ? err.message : t('services.categoryModal.tryAgain'),
         variant: 'destructive',
       });
     } finally {
@@ -152,11 +154,11 @@ export default function CategoryModal({
       await supabaseServiceCategoriesApi.removePhoto(category.id);
       setPhotoUrl(null);
       onPhotoChanged?.(category.id, null);
-      toast({ title: 'Foto eliminada' });
+      toast({ title: t('services.categoryModal.photoDeleted') });
     } catch (err) {
       toast({
-        title: 'Error al eliminar',
-        description: err instanceof Error ? err.message : 'Inténtalo de nuevo',
+        title: t('services.categoryModal.deleteErrorTitle'),
+        description: err instanceof Error ? err.message : t('services.categoryModal.tryAgain'),
         variant: 'destructive',
       });
     } finally {
@@ -170,7 +172,7 @@ export default function CategoryModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-1.5">
             <Tag className="h-4 w-4 text-primary" />
-            {category ? 'Editar Categoría' : 'Nueva Categoría'}
+            {category ? t('services.categoryModal.editTitle') : t('services.categoryModal.newTitle')}
           </DialogTitle>
         </DialogHeader>
 
@@ -178,7 +180,7 @@ export default function CategoryModal({
           {/* Cover photo (only when editing existing category) */}
           {category && (
             <div className="space-y-1">
-              <Label className="text-xs">Foto de portada</Label>
+              <Label className="text-xs">{t('services.categoryModal.coverPhotoLabel')}</Label>
               <div className="flex items-center gap-3">
                 <div
                   className={cn(
@@ -206,7 +208,7 @@ export default function CategoryModal({
                   ) : (
                     <div className="flex flex-col items-center gap-1 text-muted-foreground">
                       <ImagePlus className="h-6 w-6" />
-                      <span className="text-[10px] text-center leading-tight">Subir foto</span>
+                      <span className="text-[10px] text-center leading-tight">{t('services.categoryModal.uploadPhoto')}</span>
                     </div>
                   )}
                   {isUploading && (
@@ -226,22 +228,22 @@ export default function CategoryModal({
                   }}
                 />
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  Aparece en la web cuando un servicio no tiene foto propia.<br />
-                  JPG, PNG, WebP o GIF. Máx. 5MB.
+                  {t('services.categoryModal.coverHintLine1')}<br />
+                  {t('services.categoryModal.coverHintLine2')}
                 </p>
               </div>
             </div>
           )}
 
           <div className="space-y-1">
-            <Label className="text-xs">Nombre de la categoría *</Label>
+            <Label className="text-xs">{t('services.categoryModal.nameLabel')} *</Label>
             <Input
               value={formData.label}
               onChange={(e) => {
                 setFormData({ ...formData, label: e.target.value });
                 if (errors.label) setErrors({ ...errors, label: undefined });
               }}
-              placeholder="Ej: Mechas, Color, Cortes..."
+              placeholder={t('services.categoryModal.namePlaceholder')}
               className={cn('h-8 text-xs', errors.label && 'border-destructive')}
               maxLength={50}
             />
@@ -250,17 +252,17 @@ export default function CategoryModal({
             )}
             {category && (
               <p className="text-[10px] text-muted-foreground">
-                Identificador (slug): <code className="font-mono">{category.slug}</code>
+                {t('services.categoryModal.slugLabel')} <code className="font-mono">{category.slug}</code>
               </p>
             )}
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">Subtítulo</Label>
+            <Label className="text-xs">{t('services.categoryModal.subtitleLabel')}</Label>
             <Textarea
               value={formData.subtitle}
               onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
-              placeholder="Descripción breve para la web pública..."
+              placeholder={t('services.categoryModal.subtitlePlaceholder')}
               rows={2}
               maxLength={200}
               className="text-xs"
@@ -269,9 +271,9 @@ export default function CategoryModal({
 
           <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30">
             <div>
-              <Label className="text-xs">Activa</Label>
+              <Label className="text-xs">{t('services.categoryModal.activeLabel')}</Label>
               <p className="text-[10px] text-muted-foreground">
-                Las inactivas no se ofrecen al asignar servicios
+                {t('services.categoryModal.activeHint')}
               </p>
             </div>
             <Switch
@@ -289,15 +291,15 @@ export default function CategoryModal({
               onClick={() => onOpenChange(false)}
               disabled={isLoading || isUploading}
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button type="submit" size="sm" className="text-xs h-8" disabled={isLoading || isUploading}>
               {isLoading ? (
                 <>
                   <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
-                  Guardando...
+                  {t('common.saving')}
                 </>
-              ) : category ? 'Actualizar' : 'Crear Categoría'}
+              ) : category ? t('common.update') : t('services.categoryModal.createCategory')}
             </Button>
           </div>
         </form>

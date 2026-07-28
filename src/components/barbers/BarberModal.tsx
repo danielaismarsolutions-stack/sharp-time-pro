@@ -12,6 +12,7 @@ import AvatarUpload from './AvatarUpload';
 import { supabaseStorageApi } from '@/services/supabaseStorage';
 import { useToast } from '@/hooks/use-toast';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { BARBER_COLOR_PALETTE } from '@/components/calendar/shared/colorUtils';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const { toast } = useToast();
   const staffTerms = useStaffTerms();
+  const { t } = useTranslation();
 
   const isCreating = !barber;
 
@@ -90,8 +92,8 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
           avatarUrl = result.url;
         } catch (uploadError: unknown) {
           toast({
-            title: 'Error',
-            description: `No se pudo subir la foto, pero el ${staffTerms.singular} se guardará sin ella`,
+            title: t('common.error'),
+            description: t('barbers.modal.photoUploadFailed', { staff: staffTerms.singular }),
             variant: 'destructive',
           });
         } finally {
@@ -133,16 +135,16 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="top-0 left-0 translate-x-0 translate-y-0 w-screen max-w-none h-[100dvh] max-h-[100dvh] rounded-none border-0 overflow-y-auto pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:top-[50%] sm:left-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-[calc(100%-3rem)] sm:max-w-[340px] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:rounded-2xl sm:border sm:p-4">
         <DialogHeader>
-          <DialogTitle>{barber ? `Editar ${staffTerms.singularCap}` : `Nuevo ${staffTerms.singularCap}`}</DialogTitle>
+          <DialogTitle>{barber ? t('barbers.modal.editTitle', { staff: staffTerms.singularCap }) : t('barbers.modal.newTitle', { staff: staffTerms.singularCap })}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="name" className="text-xs">Nombre *</Label>
+            <Label htmlFor="name" className="text-xs">{t('common.name')} *</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={`Nombre del ${staffTerms.singular}`}
+              placeholder={t('barbers.modal.namePlaceholder', { staff: staffTerms.singular })}
               required
               className="h-8 text-xs"
             />
@@ -160,13 +162,13 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
           />
 
           <div className="space-y-1">
-            <Label htmlFor="email" className="text-xs">Email {isCreating && '*'}</Label>
+            <Label htmlFor="email" className="text-xs">{t('common.email')} {isCreating && '*'}</Label>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="email@ejemplo.com"
+              placeholder={t('barbers.modal.emailPlaceholder')}
               required={isCreating}
               className="h-8 text-xs"
             />
@@ -174,13 +176,13 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
 
           {isCreating && (
             <div className="space-y-1">
-              <Label htmlFor="password" className="text-xs">Contraseña *</Label>
+              <Label htmlFor="password" className="text-xs">{t('barbers.modal.passwordLabel')} *</Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
+                placeholder={t('barbers.modal.passwordPlaceholder')}
                 required
                 minLength={6}
                 className="h-8 text-xs"
@@ -190,46 +192,46 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
 
           {isCreating && (
             <div className="space-y-1">
-              <Label className="text-xs">Rol</Label>
+              <Label className="text-xs">{t('barbers.modal.roleLabel')}</Label>
               <Select value={role} onValueChange={(v) => setRole(v as 'barber' | 'admin')}>
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="barber">{staffTerms.singularCap}</SelectItem>
-                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="admin">{t('barbers.modal.roleAdmin')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           )}
 
           <div className="space-y-1">
-            <Label htmlFor="phone" className="text-xs">Teléfono</Label>
+            <Label htmlFor="phone" className="text-xs">{t('common.phone')}</Label>
             <Input
               id="phone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="+34 600 000 000"
+              placeholder={t('barbers.modal.phonePlaceholder')}
               className="h-8 text-xs"
             />
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="bio" className="text-xs">Biografía</Label>
+            <Label htmlFor="bio" className="text-xs">{t('barbers.modal.bioLabel')}</Label>
             <Textarea
               id="bio"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              placeholder={`Descripción breve del ${staffTerms.singular}...`}
+              placeholder={t('barbers.modal.bioPlaceholder', { staff: staffTerms.singular })}
               rows={2}
               className="text-xs"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">Color de citas y eventos</Label>
+            <Label className="text-xs">{t('barbers.modal.colorLabel')}</Label>
             <p className="text-[10px] text-muted-foreground leading-tight">
-              Color por defecto de las tarjetas de este {staffTerms.singular} en el calendario.
+              {t('barbers.modal.colorHelp', { staff: staffTerms.singular })}
             </p>
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
               <button
@@ -242,9 +244,9 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
                     : 'border-border bg-background hover:bg-muted'
                 )}
                 aria-pressed={appointmentColor === null}
-                aria-label="Color automático"
+                aria-label={t('barbers.modal.colorAutoAria')}
               >
-                Automático
+                {t('barbers.modal.colorAuto')}
               </button>
               {BARBER_COLOR_PALETTE.map((opt) => {
                 const selected = appointmentColor === opt.hex;
@@ -259,8 +261,8 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
                     )}
                     style={{ backgroundColor: opt.hex }}
                     aria-pressed={selected}
-                    aria-label={opt.label}
-                    title={opt.label}
+                    aria-label={t(opt.labelKey)}
+                    title={t(opt.labelKey)}
                   >
                     {selected && <Check className="w-3.5 h-3.5 text-white drop-shadow" />}
                   </button>
@@ -270,7 +272,7 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
           </div>
 
           <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30">
-            <Label htmlFor="active" className="text-xs">Activo</Label>
+            <Label htmlFor="active" className="text-xs">{t('barbers.modal.activeLabel')}</Label>
             <Switch
               id="active"
               checked={isActive}
@@ -280,11 +282,11 @@ export default function BarberModal({ open, onOpenChange, barber, onSave }: Barb
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" size="sm" className="text-xs h-8" onClick={() => onOpenChange(false)}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button type="submit" size="sm" className="text-xs h-8" disabled={saving || uploadingAvatar || !name.trim() || (isCreating && (!email.trim() || password.length < 6))}>
               {(saving || uploadingAvatar) && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
-              {uploadingAvatar ? 'Subiendo...' : barber ? 'Guardar' : 'Crear'}
+              {uploadingAvatar ? t('barbers.modal.uploading') : barber ? t('common.save') : t('common.create')}
             </Button>
           </div>
         </form>

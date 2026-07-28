@@ -1,9 +1,9 @@
 import { ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, isToday, startOfWeek, endOfWeek, isSameDay } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { useTranslation } from '@/contexts/LanguageContext';
 import {
   Select,
   SelectContent,
@@ -34,6 +34,7 @@ export function CalendarNav({
   onBarberChange,
 }: CalendarNavProps) {
   const staffTerms = useStaffTerms();
+  const { t, dateLocale } = useTranslation();
   const goToPrevious = () => {
     let newDate: Date;
     if (view === 'month') newDate = subMonths(currentDate, 1);
@@ -74,9 +75,9 @@ export function CalendarNav({
 
   const getDateLabel = () => {
     if (view === 'day') {
-      return format(currentDate, "EEEE, d 'de' MMMM yyyy", { locale: es });
+      return format(currentDate, t('calendar.dateFormats.weekdayDayMonthYear'), { locale: dateLocale });
     }
-    return format(currentDate, "MMMM yyyy", { locale: es });
+    return format(currentDate, "MMMM yyyy", { locale: dateLocale });
   };
 
   return (
@@ -95,7 +96,7 @@ export function CalendarNav({
             disabled={isTodayDisabled}
             className={`h-8 px-2 sm:px-3 text-xs sm:text-sm ${isTodayDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
           >
-            Hoy
+            {t('common.today')}
           </Button>
           <Button variant="outline" size="icon" className="h-8 w-8 sm:h-10 sm:w-10" onClick={goToNext}>
             <ChevronRight className="h-4 w-4" />
@@ -113,9 +114,9 @@ export function CalendarNav({
         {/* View Switcher */}
         <Tabs value={view} onValueChange={(v) => onViewChange(v as CalendarView)}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="month" className="text-xs sm:text-sm">Mes</TabsTrigger>
-            <TabsTrigger value="week" className="text-xs sm:text-sm">Semana</TabsTrigger>
-            <TabsTrigger value="day" className="text-xs sm:text-sm">Día</TabsTrigger>
+            <TabsTrigger value="month" className="text-xs sm:text-sm">{t('calendar.views.month')}</TabsTrigger>
+            <TabsTrigger value="week" className="text-xs sm:text-sm">{t('calendar.views.week')}</TabsTrigger>
+            <TabsTrigger value="day" className="text-xs sm:text-sm">{t('calendar.views.day')}</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -130,7 +131,7 @@ export function CalendarNav({
               <SelectValue placeholder={staffTerms.singularCap} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="all">{t('common.all')}</SelectItem>
               {barbers.map((barber) => (
                 <SelectItem key={barber} value={barber}>
                   {barber}

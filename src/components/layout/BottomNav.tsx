@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { Users, Settings, ListTodo, MessageSquare, Fingerprint } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/LanguageContext';
+import type { TranslationKey } from '@/i18n';
 import { useTimeTrackingSettings } from '@/hooks/useQueryHooks';
 
 // Dynamic calendar icon component showing current date
@@ -66,7 +68,7 @@ function SmileyIcon({ className, isActive }: { className?: string; isActive?: bo
 
 interface NavItem {
   id: string;
-  label: string;
+  labelKey: TranslationKey;
   path: string;
   icon: 'calendar' | 'services' | 'customers' | 'settings' | 'consultations' | 'time-tracking';
   adminOnly?: boolean;
@@ -75,17 +77,18 @@ interface NavItem {
 }
 
 const allNavItems: NavItem[] = [
-  { id: 'calendar', icon: 'calendar', label: 'Agenda', path: '/calendar' },
-  { id: 'consultations', icon: 'consultations', label: 'Consultas', path: '/consultations', barberOnly: true },
-  { id: 'time-tracking', icon: 'time-tracking', label: 'Fichajes', path: '/time-tracking', requiresTimeTracking: true },
-  { id: 'services', icon: 'services', label: 'Servicios', path: '/services', adminOnly: true },
-  { id: 'customers', icon: 'customers', label: 'Clientes', path: '/clients' },
-  { id: 'settings', icon: 'settings', label: 'Ajustes', path: '/settings' },
+  { id: 'calendar', icon: 'calendar', labelKey: 'nav.calendar', path: '/calendar' },
+  { id: 'consultations', icon: 'consultations', labelKey: 'nav.consultations', path: '/consultations', barberOnly: true },
+  { id: 'time-tracking', icon: 'time-tracking', labelKey: 'nav.timeTracking', path: '/time-tracking', requiresTimeTracking: true },
+  { id: 'services', icon: 'services', labelKey: 'nav.services', path: '/services', adminOnly: true },
+  { id: 'customers', icon: 'customers', labelKey: 'nav.clients', path: '/clients' },
+  { id: 'settings', icon: 'settings', labelKey: 'nav.settings', path: '/settings' },
 ];
 
 export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { isAdmin, isBarber } = useAuth();
   const { data: timeTrackingSettings } = useTimeTrackingSettings();
 
@@ -150,7 +153,7 @@ export default function BottomNav() {
                   isActive ? 'text-foreground font-medium' : 'text-gray-400'
                 )}
               >
-                {item.label}
+                {t(item.labelKey)}
               </span>
             </NavLink>
           );

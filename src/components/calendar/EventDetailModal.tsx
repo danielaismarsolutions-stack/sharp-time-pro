@@ -1,6 +1,5 @@
 // Modal for viewing event details with edit/delete actions
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import {
   CalendarDays,
   Clock,
@@ -21,6 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { getBarberHexColor, DEFAULT_EVENT_HEX } from '@/components/calendar/shared/colorUtils';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface EventDetailModalProps {
   event: ApiCalendarEvent | null;
@@ -30,13 +30,6 @@ interface EventDetailModalProps {
   onDelete: (eventId: string) => void;
 }
 
-const repeatLabels: Record<string, string> = {
-  none: 'Solo una vez',
-  daily: 'Todos los días',
-  weekly: 'Cada semana',
-  monthly: 'Cada mes',
-};
-
 export function EventDetailModal({
   event,
   open,
@@ -44,7 +37,15 @@ export function EventDetailModal({
   onEdit,
   onDelete,
 }: EventDetailModalProps) {
+  const { t, dateLocale } = useTranslation();
   if (!event) return null;
+
+  const repeatLabels: Record<string, string> = {
+    none: t('calendar.eventModal.repeatNone'),
+    daily: t('calendar.eventModal.repeatDaily'),
+    weekly: t('calendar.eventModal.repeatWeekly'),
+    monthly: t('calendar.eventModal.repeatMonthly'),
+  };
 
   const startTime = event.start_time.substring(0, 5);
   const endTime = event.end_time.substring(0, 5);
@@ -52,8 +53,8 @@ export function EventDetailModal({
     || (event.barber ? getBarberHexColor(event.barber) : DEFAULT_EVENT_HEX);
   const dateFormatted = format(
     new Date(event.event_date + 'T00:00:00'),
-    "EEEE d 'de' MMMM yyyy",
-    { locale: es }
+    t('calendar.dateFormats.weekdayDayMonthYearCompact'),
+    { locale: dateLocale }
   );
 
   return (
@@ -86,7 +87,7 @@ export function EventDetailModal({
           {/* Repeat */}
           <div className="flex items-center gap-2 text-muted-foreground">
             <Repeat className="h-3.5 w-3.5 shrink-0" />
-            <span>{repeatLabels[event.repeat] || 'Solo una vez'}</span>
+            <span>{repeatLabels[event.repeat] || t('calendar.eventModal.repeatNone')}</span>
           </div>
 
           {/* Location */}
@@ -131,7 +132,7 @@ export function EventDetailModal({
               }}
             >
               <Edit className="h-3 w-3 mr-1.5" />
-              Editar
+              {t('common.edit')}
             </Button>
             <Button
               variant="destructive"
@@ -143,7 +144,7 @@ export function EventDetailModal({
               }}
             >
               <Trash2 className="h-3 w-3 mr-1.5" />
-              Eliminar
+              {t('common.delete')}
             </Button>
           </div>
         </div>

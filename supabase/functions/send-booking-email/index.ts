@@ -24,16 +24,108 @@ interface BusinessInfo {
   contact_email: string | null;
   website: string | null;
   staff_terminology: string | null;
+  language: string | null;
 }
 
 type StaffTerminology = 'barberos' | 'estilistas';
+type Language = 'es' | 'en';
 
-function resolveStaffTerms(value: string | null | undefined): { singularCap: string; singular: string } {
-  const term: StaffTerminology = value === 'estilistas' ? 'estilistas' : 'barberos';
-  return term === 'estilistas'
-    ? { singularCap: 'Estilista', singular: 'estilista' }
-    : { singularCap: 'Barbero', singular: 'barbero' };
+function resolveLanguage(value: string | null | undefined): Language {
+  return value === 'en' ? 'en' : 'es';
 }
+
+function resolveStaffTerms(
+  value: string | null | undefined,
+  language: Language,
+): { singularCap: string; yourStaff: string } {
+  const term: StaffTerminology = value === 'estilistas' ? 'estilistas' : 'barberos';
+  if (language === 'en') {
+    return term === 'estilistas'
+      ? { singularCap: 'Stylist', yourStaff: 'Your stylist' }
+      : { singularCap: 'Barber', yourStaff: 'Your barber' };
+  }
+  return term === 'estilistas'
+    ? { singularCap: 'Estilista', yourStaff: 'Tu estilista' }
+    : { singularCap: 'Barbero', yourStaff: 'Tu barbero' };
+}
+
+// Copy localizado del email de confirmación. 'es' es el comportamiento histórico.
+const COPY: Record<Language, {
+  intlLocale: string;
+  headerTag: string;
+  htmlTitle: string;
+  hello: (name: string) => string;
+  intro: string;
+  dateLabel: string;
+  timeLabel: string;
+  serviceLabel: string;
+  locationLabel: string;
+  mapsLink: string;
+  importantStrong: string;
+  importantBody: string;
+  seeYou: string;
+  cancelButton: string;
+  allRightsReserved: string;
+  subject: (date: string, time: string) => string;
+  textIntro: string;
+  textCancel: (url: string) => string;
+  textSeeYou: string;
+  textLocationLabel: string;
+  textDateLabel: string;
+  textTimeLabel: string;
+  textServiceLabel: string;
+}> = {
+  es: {
+    intlLocale: "es-ES",
+    headerTag: "Confirmación de Reserva",
+    htmlTitle: "Confirmación de Reserva",
+    hello: (name) => `Hola <strong>${name}</strong>,`,
+    intro: "Tu reserva ha sido confirmada. Aquí están los detalles:",
+    dateLabel: "📅 Fecha",
+    timeLabel: "🕐 Hora",
+    serviceLabel: "✂️ Servicio",
+    locationLabel: "📍 UBICACIÓN",
+    mapsLink: "Ver en Google Maps →",
+    importantStrong: "⚠️ Importante:",
+    importantBody: "Si no puedes asistir, por favor cancela tu cita con al menos 2 horas de antelación.",
+    seeYou: "¡Te esperamos! 💈",
+    cancelButton: "❌ Cancelar Reserva",
+    allRightsReserved: "Todos los derechos reservados.",
+    subject: (date, time) => `✅ Reserva confirmada - ${date} a las ${time}`,
+    textIntro: "Tu reserva ha sido confirmada. Aquí están los detalles:",
+    textCancel: (url) => `Si no puedes asistir, cancela tu reserva aquí: ${url}`,
+    textSeeYou: "¡Te esperamos!",
+    textLocationLabel: "Ubicación",
+    textDateLabel: "Fecha",
+    textTimeLabel: "Hora",
+    textServiceLabel: "Servicio",
+  },
+  en: {
+    intlLocale: "en-GB",
+    headerTag: "Booking Confirmation",
+    htmlTitle: "Booking Confirmation",
+    hello: (name) => `Hi <strong>${name}</strong>,`,
+    intro: "Your booking is confirmed. Here are the details:",
+    dateLabel: "📅 Date",
+    timeLabel: "🕐 Time",
+    serviceLabel: "✂️ Service",
+    locationLabel: "📍 LOCATION",
+    mapsLink: "View on Google Maps →",
+    importantStrong: "⚠️ Please note:",
+    importantBody: "If you can't make it, please cancel your appointment at least 2 hours in advance.",
+    seeYou: "See you soon! 💈",
+    cancelButton: "❌ Cancel booking",
+    allRightsReserved: "All rights reserved.",
+    subject: (date, time) => `✅ Booking confirmed - ${date} at ${time}`,
+    textIntro: "Your booking is confirmed. Here are the details:",
+    textCancel: (url) => `If you can't make it, cancel your booking here: ${url}`,
+    textSeeYou: "See you soon!",
+    textLocationLabel: "Location",
+    textDateLabel: "Date",
+    textTimeLabel: "Time",
+    textServiceLabel: "Service",
+  },
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -82,6 +174,8 @@ Deno.serve(async (req) => {
       }
     }
 
+    // NOTE: si la columna language aún no existe, el select con ella fallaría;
+    // por eso se consulta por separado y se degrada a 'es' sin romper el envío.
     const { data: business, error: bizError } = await supabase
       .from("businesses")
       .select("business_name, address, location_url, email, phone, logo_url, contact_email, website, staff_terminology")
@@ -91,11 +185,26 @@ Deno.serve(async (req) => {
       console.error("[send-booking-email] Business lookup error:", bizError);
       return jsonResponse({ ok: false, error: "Business not found" }, 404);
     }
-    const biz = business as BusinessInfo;
-    const staffTerms = resolveStaffTerms(biz.staff_terminology);
-    console.log("[send-booking-email] Sending to:", to_email, "business:", biz.business_name);
+    let businessLanguage: string | null = null;
+    {
+      const { data: langRow, error: langError } = await supabase
+        .from("businesses")
+        .select("language")
+        .eq("id", business_id)
+        .maybeSingle();
+      if (langError) {
+        console.warn("[send-booking-email] Language lookup failed, defaulting to 'es':", langError.message);
+      } else {
+        businessLanguage = (langRow as { language?: string } | null)?.language ?? null;
+      }
+    }
+    const biz = { ...(business as BusinessInfo), language: businessLanguage };
+    const language = resolveLanguage(biz.language);
+    const copy = COPY[language];
+    const staffTerms = resolveStaffTerms(biz.staff_terminology, language);
+    console.log("[send-booking-email] Sending to:", to_email, "business:", biz.business_name, "language:", language);
     const dateObj = new Date(booking_date + "T00:00:00");
-    const formattedDate = new Intl.DateTimeFormat("es-ES", {
+    const formattedDate = new Intl.DateTimeFormat(copy.intlLocale, {
       weekday: "long",
       day: "numeric",
       month: "long",
@@ -113,11 +222,11 @@ Deno.serve(async (req) => {
                 <tr>
                   <td style="padding: 24px;">
                     <p style="color: #d4af37; font-size: 14px; margin: 0 0 8px 0; font-weight: 600;">
-                      📍 UBICACIÓN
+                      ${copy.locationLabel}
                     </p>
                     <p style="color: #ffffff; font-size: 16px; margin: 0; line-height: 1.5;">
                       ${escapeHtml(biz.business_name)}<br>
-                      ${escapeHtml(biz.address)}${biz.location_url ? `<br><a href="${escapeHtml(biz.location_url)}" style="color: #d4af37; text-decoration: none;">Ver en Google Maps →</a>` : ""}
+                      ${escapeHtml(biz.address)}${biz.location_url ? `<br><a href="${escapeHtml(biz.location_url)}" style="color: #d4af37; text-decoration: none;">${copy.mapsLink}</a>` : ""}
                     </p>
                   </td>
                 </tr>
@@ -129,7 +238,7 @@ Deno.serve(async (req) => {
                 <tr>
                   <td align="center">
                     <a href="${cancelUrl}" style="display: inline-block; background-color: #dc3545; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 14px;">
-                      ❌ Cancelar Reserva
+                      ${copy.cancelButton}
                     </a>
                   </td>
                 </tr>
@@ -137,11 +246,11 @@ Deno.serve(async (req) => {
       : "";
     const emailHtml = `
 <!DOCTYPE html>
-<html>
+<html lang="${language}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Confirmación de Reserva</title>
+  <title>${copy.htmlTitle}</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
@@ -154,17 +263,17 @@ Deno.serve(async (req) => {
                 ✨ ${escapeHtml(biz.business_name.toUpperCase())}
               </h1>
               <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">
-                Confirmación de Reserva
+                ${copy.headerTag}
               </p>
             </td>
           </tr>
           <tr>
             <td style="padding: 40px;">
               <p style="color: #333; font-size: 18px; margin: 0 0 20px 0;">
-                Hola <strong>${escapeHtml(customer_name)}</strong>,
+                ${copy.hello(escapeHtml(customer_name))}
               </p>
               <p style="color: #666; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
-                Tu reserva ha sido confirmada. Aquí están los detalles:
+                ${copy.intro}
               </p>
               <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border-radius: 12px; padding: 24px; margin-bottom: 30px;">
                 <tr>
@@ -172,26 +281,26 @@ Deno.serve(async (req) => {
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
                         <td style="padding: 12px 0; border-bottom: 1px solid #eee;">
-                          <span style="color: #999; font-size: 14px;">📅 Fecha</span><br>
+                          <span style="color: #999; font-size: 14px;">${copy.dateLabel}</span><br>
                           <span style="color: #333; font-size: 16px; font-weight: 600; text-transform: capitalize;">${formattedDate}</span>
                         </td>
                       </tr>
                       <tr>
                         <td style="padding: 12px 0; border-bottom: 1px solid #eee;">
-                          <span style="color: #999; font-size: 14px;">🕐 Hora</span><br>
+                          <span style="color: #999; font-size: 14px;">${copy.timeLabel}</span><br>
                           <span style="color: #333; font-size: 16px; font-weight: 600;">${startFormatted}${endFormatted ? ` - ${endFormatted}` : ""}</span>
                         </td>
                       </tr>
                       <tr>
                         <td style="padding: 12px 0; border-bottom: 1px solid #eee;">
-                          <span style="color: #999; font-size: 14px;">✂️ Servicio</span><br>
+                          <span style="color: #999; font-size: 14px;">${copy.serviceLabel}</span><br>
                           <span style="color: #333; font-size: 16px; font-weight: 600;">${escapeHtml(service_name)}</span>
                         </td>
                       </tr>
                       <tr>
                         <td style="padding: 12px 0;">
                           <span style="color: #999; font-size: 14px;">💈 ${staffTerms.singularCap}</span><br>
-                          <span style="color: #333; font-size: 16px; font-weight: 600;">${escapeHtml(barber_name || `Tu ${staffTerms.singular}`)}</span>
+                          <span style="color: #333; font-size: 16px; font-weight: 600;">${escapeHtml(barber_name || staffTerms.yourStaff)}</span>
                         </td>
                       </tr>
                     </table>
@@ -201,11 +310,11 @@ Deno.serve(async (req) => {
               ${locationHtml}
               <div style="background-color: #fff8e6; border-left: 4px solid #d4af37; padding: 16px 20px; border-radius: 0 8px 8px 0; margin-bottom: 30px;">
                 <p style="color: #333; font-size: 14px; margin: 0; line-height: 1.6;">
-                  <strong>⚠️ Importante:</strong> Si no puedes asistir, por favor cancela tu cita con al menos 2 horas de antelación.
+                  <strong>${copy.importantStrong}</strong> ${copy.importantBody}
                 </p>
               </div>
               <p style="color: #666; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
-                ¡Te esperamos! 💈
+                ${copy.seeYou}
               </p>
               ${cancelButtonHtml}
             </td>
@@ -213,7 +322,7 @@ Deno.serve(async (req) => {
           <tr>
             <td style="background-color: #fafafa; padding: 24px 40px; text-align: center; border-top: 1px solid #eee;">
               <p style="color: #999; font-size: 12px; margin: 0;">
-                © ${new Date().getFullYear()} ${escapeHtml(biz.business_name)}. Todos los derechos reservados.
+                © ${new Date().getFullYear()} ${escapeHtml(biz.business_name)}. ${copy.allRightsReserved}
               </p>
             </td>
           </tr>
@@ -224,19 +333,20 @@ Deno.serve(async (req) => {
 </body>
 </html>`;
     // Plain-text version (mejora la entregabilidad: los filtros antispam penalizan HTML sin parte de texto)
+    const greeting = language === "en" ? `Hi ${customer_name},` : `Hola ${customer_name},`;
     const emailText = [
-      `Hola ${customer_name},`,
+      greeting,
       ``,
-      `Tu reserva ha sido confirmada. Aquí están los detalles:`,
+      copy.textIntro,
       ``,
-      `Fecha: ${formattedDate}`,
-      `Hora: ${startFormatted}${endFormatted ? ` - ${endFormatted}` : ""}`,
-      `Servicio: ${service_name}`,
-      `${staffTerms.singularCap}: ${barber_name || `Tu ${staffTerms.singular}`}`,
-      ...(biz.address ? [``, `Ubicación: ${biz.business_name}, ${biz.address}`] : []),
-      ...(cancelUrl ? [``, `Si no puedes asistir, cancela tu reserva aquí: ${cancelUrl}`] : []),
+      `${copy.textDateLabel}: ${formattedDate}`,
+      `${copy.textTimeLabel}: ${startFormatted}${endFormatted ? ` - ${endFormatted}` : ""}`,
+      `${copy.textServiceLabel}: ${service_name}`,
+      `${staffTerms.singularCap}: ${barber_name || staffTerms.yourStaff}`,
+      ...(biz.address ? [``, `${copy.textLocationLabel}: ${biz.business_name}, ${biz.address}`] : []),
+      ...(cancelUrl ? [``, copy.textCancel(cancelUrl)] : []),
       ``,
-      `¡Te esperamos!`,
+      copy.textSeeYou,
       biz.business_name,
     ].join("\n");
 
@@ -252,7 +362,7 @@ Deno.serve(async (req) => {
         from: `${senderName} <claudia@smartflow-labs.com>`,
         ...(replyTo ? { reply_to: [replyTo] } : {}),
         to: [to_email],
-        subject: `✅ Reserva confirmada - ${formattedDate} a las ${startFormatted}`,
+        subject: copy.subject(formattedDate, startFormatted),
         html: emailHtml,
         text: emailText,
       }),

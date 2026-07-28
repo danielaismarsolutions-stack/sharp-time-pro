@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format, getDay, addMinutes, parse, isBefore, isAfter, isSameDay } from 'date-fns';
 import { Calendar as CalendarIcon, AlertCircle, Search, X, UserPlus } from 'lucide-react';
-import { es } from 'date-fns/locale';
 import {
   Dialog,
   DialogContent,
@@ -32,6 +31,7 @@ import { ApiBooking } from '@/types/api';
 import { Barber, BarberSchedule } from '@/types/barber';
 import { useToast } from '@/hooks/use-toast';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { supabaseBookingsApi } from '@/services/supabaseBookings';
 
 interface BookingModalProps {
@@ -168,6 +168,7 @@ export default function BookingModal({
 }: BookingModalProps) {
   const { toast } = useToast();
   const staffTerms = useStaffTerms();
+  const { t, dateLocale } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [date, setDate] = useState<Date | undefined>(selectedDate || new Date());
   const [clientSearch, setClientSearch] = useState('');
@@ -445,8 +446,8 @@ export default function BookingModal({
     const phone = newClient.phone.trim();
     if (!name || !phone) {
       toast({
-        title: 'Campos incompletos',
-        description: 'El nombre y teléfono son obligatorios',
+        title: t('bookings.form.incompleteFieldsTitle'),
+        description: t('bookings.newClient.requiredFieldsDescription'),
         variant: 'destructive',
       });
       return;
@@ -462,8 +463,8 @@ export default function BookingModal({
       setIsCreatingClient(false);
       setClientSearch('');
       toast({
-        title: 'Cliente ya existente',
-        description: `Ya existe un cliente con ese teléfono: se ha seleccionado ${duplicate.name}`,
+        title: t('bookings.newClient.duplicateTitle'),
+        description: t('bookings.newClient.duplicateDescription', { name: duplicate.name }),
       });
       return;
     }
@@ -480,13 +481,13 @@ export default function BookingModal({
       setClientSearch('');
       setNewClient({ name: '', phone: '', email: '' });
       toast({
-        title: 'Cliente creado',
-        description: `${created.name} se ha creado correctamente`,
+        title: t('bookings.newClient.createdTitle'),
+        description: t('bookings.newClient.createdDescription', { name: created.name }),
       });
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'No se pudo crear el cliente',
+        title: t('common.error'),
+        description: t('bookings.newClient.createError'),
         variant: 'destructive',
       });
     } finally {
@@ -527,8 +528,8 @@ export default function BookingModal({
     // this modal), so only date and service are mandatory.
     if (!date || !formData.serviceId) {
       toast({
-        title: 'Campos incompletos',
-        description: 'Por favor, completa todos los campos obligatorios',
+        title: t('bookings.form.incompleteFieldsTitle'),
+        description: t('bookings.form.incompleteFieldsDescription'),
         variant: 'destructive',
       });
       return;
@@ -537,8 +538,8 @@ export default function BookingModal({
     // Only validate end time in edit mode (where the user controls it directly)
     if (booking && formData.endTime && formData.endTime <= formData.time) {
       toast({
-        title: 'Horario inválido',
-        description: 'La hora de fin debe ser posterior a la hora de inicio',
+        title: t('bookings.form.invalidTimeTitle'),
+        description: t('bookings.form.invalidTimeDescription'),
         variant: 'destructive',
       });
       return;
@@ -552,7 +553,7 @@ export default function BookingModal({
         // New appointments carry a "Sin cliente" placeholder so calendar
         // cards and notifications never render an empty name. When editing,
         // an empty value lets the save path keep the booking's stored client.
-        clientName: selectedClient?.name || (booking ? '' : 'Sin cliente'),
+        clientName: selectedClient?.name || (booking ? '' : t('bookings.form.noClient')),
         clientPhone: selectedClient?.phone || '',
         clientEmail: selectedClient?.email || '',
         serviceId: formData.serviceId,
@@ -573,13 +574,15 @@ export default function BookingModal({
       
       onOpenChange(false);
       toast({
-        title: booking ? 'Cita actualizada' : 'Cita creada',
-        description: `La cita se ha ${booking ? 'actualizado' : 'programado'} correctamente`,
+        title: booking ? t('bookings.form.updatedTitle') : t('bookings.form.createdTitle'),
+        description: booking
+          ? t('bookings.form.updatedDescription')
+          : t('bookings.form.createdDescription'),
       });
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'No se pudo guardar la cita',
+        title: t('common.error'),
+        description: t('bookings.form.saveError'),
         variant: 'destructive',
       });
     } finally {
@@ -593,7 +596,7 @@ export default function BookingModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-1.5">
             <CalendarIcon className="h-4 w-4 text-primary" />
-            {booking ? 'Editar Cita' : 'Nueva Cita'}
+            {booking ? t('bookings.form.editTitle') : t('bookings.form.newTitle')}
           </DialogTitle>
         </DialogHeader>
 
@@ -604,20 +607,20 @@ export default function BookingModal({
               When editing: the booking's client is shown read-only. */}
           {booking ? (
             <div className="space-y-1">
-              <Label className="text-xs font-medium">Cliente</Label>
+              <Label className="text-xs font-medium">{t('bookings.form.client')}</Label>
               <div className="flex h-8 w-full items-center rounded-md border border-input bg-muted/50 px-3 text-xs">
                 <span className="truncate">
                   {selectedClient
                     ? `${selectedClient.name} - ${selectedClient.phone}`
                     : booking.clientName
                       ? `${booking.clientName}${booking.clientPhone ? ` - ${booking.clientPhone}` : ''}`
-                      : 'Sin cliente'}
+                      : t('bookings.form.noClient')}
                 </span>
               </div>
             </div>
           ) : (
             <div className="space-y-1">
-              <Label className="text-xs font-medium">Cliente</Label>
+              <Label className="text-xs font-medium">{t('bookings.form.client')}</Label>
               {selectedClient ? (
                 <div className="flex h-8 w-full items-center justify-between rounded-md border border-input px-3 text-xs">
                   <span className="truncate">
@@ -628,7 +631,7 @@ export default function BookingModal({
                     variant="ghost"
                     onClick={() => setFormData({ ...formData, clientId: '' })}
                     className="h-6 w-6 shrink-0 p-0"
-                    aria-label="Quitar cliente"
+                    aria-label={t('bookings.form.removeClient')}
                   >
                     <X className="h-3.5 w-3.5 opacity-50" />
                   </Button>
@@ -647,27 +650,27 @@ export default function BookingModal({
                 >
                   <p className="flex items-center gap-1.5 text-xs font-medium">
                     <UserPlus className="h-3.5 w-3.5 text-primary" />
-                    Nuevo cliente
+                    {t('bookings.newClient.title')}
                   </p>
                   <Input
                     autoFocus
                     value={newClient.name}
                     onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
-                    placeholder="Nombre completo *"
+                    placeholder={t('bookings.newClient.namePlaceholder')}
                     className="h-8 text-xs"
                   />
                   <Input
                     type="tel"
                     value={newClient.phone}
                     onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
-                    placeholder="Teléfono *"
+                    placeholder={t('bookings.newClient.phonePlaceholder')}
                     className="h-8 text-xs"
                   />
                   <Input
                     type="email"
                     value={newClient.email}
                     onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
-                    placeholder="Correo electrónico (opcional)"
+                    placeholder={t('bookings.newClient.emailPlaceholder')}
                     className="h-8 text-xs"
                   />
                   <div className="flex justify-end gap-2">
@@ -679,7 +682,7 @@ export default function BookingModal({
                       onClick={() => setIsCreatingClient(false)}
                       disabled={isSavingClient}
                     >
-                      Cancelar
+                      {t('common.cancel')}
                     </Button>
                     <Button
                       type="button"
@@ -688,7 +691,7 @@ export default function BookingModal({
                       onClick={handleCreateClient}
                       disabled={isSavingClient}
                     >
-                      {isSavingClient ? 'Creando...' : 'Crear cliente'}
+                      {isSavingClient ? t('bookings.newClient.creating') : t('bookings.newClient.createButton')}
                     </Button>
                   </div>
                 </div>
@@ -700,7 +703,7 @@ export default function BookingModal({
                       type="text"
                       inputMode="search"
                       autoComplete="off"
-                      placeholder="Buscar por nombre, teléfono, email o etiqueta..."
+                      placeholder={t('bookings.form.clientSearchPlaceholder')}
                       className="pl-9 h-9 text-xs"
                       value={clientSearch}
                       onChange={(e) => setClientSearch(e.target.value)}
@@ -710,7 +713,7 @@ export default function BookingModal({
                     <div className="max-h-[180px] overflow-y-auto rounded-md border p-1">
                       {filteredClients.length === 0 ? (
                         <p className="py-4 text-center text-xs text-muted-foreground">
-                          No se encontraron clientes
+                          {t('bookings.form.noClientsFound')}
                         </p>
                       ) : (
                         filteredClients.map((client) => (
@@ -739,7 +742,7 @@ export default function BookingModal({
                       onClick={startCreatingClient}
                     >
                       <UserPlus className="mr-1.5 h-3.5 w-3.5" />
-                      Crear nuevo cliente
+                      {t('bookings.newClient.openButton')}
                     </Button>
                   )}
                 </>
@@ -749,7 +752,7 @@ export default function BookingModal({
 
           {/* Service Selection */}
           <div className="space-y-1">
-            <Label className="text-xs font-medium">Servicio</Label>
+            <Label className="text-xs font-medium">{t('bookings.form.service')}</Label>
             <Select
               value={formData.serviceId}
               onValueChange={(value) => {
@@ -770,7 +773,7 @@ export default function BookingModal({
               }}
             >
               <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="Selecciona un servicio" />
+                <SelectValue placeholder={t('bookings.form.selectService')} />
               </SelectTrigger>
               <SelectContent>
                 {services.filter((s) => s.isActive).map((service) => (
@@ -795,10 +798,10 @@ export default function BookingModal({
               onValueChange={(value) => setFormData({ ...formData, barberId: value === 'none' ? '' : value })}
             >
               <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder={`Selecciona un ${staffTerms.singular} (opcional)`} />
+                <SelectValue placeholder={t('bookings.form.selectStaffOptional', { staff: staffTerms.singular })} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Sin asignar</SelectItem>
+                <SelectItem value="none">{t('bookings.form.unassigned')}</SelectItem>
                 {availableBarbers.map((barber) => (
                   <SelectItem key={barber.id} value={barber.id}>
                     {barber.name}
@@ -811,7 +814,7 @@ export default function BookingModal({
           {/* Date & Time */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs font-medium">Fecha</Label>
+              <Label className="text-xs font-medium">{t('common.date')}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -826,10 +829,10 @@ export default function BookingModal({
                     <CalendarIcon className="mr-1.5 h-3 w-3 shrink-0" />
                     <span className="truncate">
                       {!isSlotCreation && !formData.barberId
-                        ? `${staffTerms.singularCap} primero`
+                        ? t('bookings.form.staffFirst', { staff: staffTerms.singularCap })
                         : date
-                          ? format(date, "d 'de' MMM yyyy", { locale: es })
-                          : 'Selecciona fecha'}
+                          ? format(date, t('bookings.dateFormats.medium'), { locale: dateLocale })
+                          : t('bookings.form.selectDate')}
                     </span>
                   </Button>
                 </PopoverTrigger>
@@ -848,7 +851,7 @@ export default function BookingModal({
 
             {!booking && (
               <div className="space-y-1">
-                <Label className="text-xs font-medium">Hora</Label>
+                <Label className="text-xs font-medium">{t('common.time')}</Label>
                 <Select
                   value={formData.time}
                   onValueChange={(value) => setFormData({ ...formData, time: value })}
@@ -862,10 +865,10 @@ export default function BookingModal({
                       !isSlotCreation && !formData.barberId
                         ? staffTerms.singularCap
                         : !date
-                          ? 'Fecha'
+                          ? t('common.date')
                           : availableTimeSlots.length === 0
-                            ? 'Sin horas'
-                            : 'Hora'
+                            ? t('bookings.form.noTimes')
+                            : t('common.time')
                     } />
                   </SelectTrigger>
                   <SelectContent className="max-h-[240px]">
@@ -879,7 +882,7 @@ export default function BookingModal({
                 {!isSlotCreation && formData.barberId && date && availableTimeSlots.length === 0 && (
                   <p className="text-[10px] text-destructive flex items-center gap-1">
                     <AlertCircle className="h-2.5 w-2.5" />
-                    Sin horas disponibles
+                    {t('bookings.form.noAvailableTimes')}
                   </p>
                 )}
               </div>
@@ -890,13 +893,13 @@ export default function BookingModal({
           {booking && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs font-medium">Inicio</Label>
+                <Label className="text-xs font-medium">{t('bookings.form.start')}</Label>
                 <Select
                   value={formData.time}
                   onValueChange={(value) => setFormData({ ...formData, time: value })}
                 >
                   <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Hora de inicio" />
+                    <SelectValue placeholder={t('common.startTime')} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[240px]">
                     {EDIT_TIME_SLOTS.map((time) => (
@@ -908,13 +911,13 @@ export default function BookingModal({
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs font-medium">Fin</Label>
+                <Label className="text-xs font-medium">{t('bookings.form.end')}</Label>
                 <Select
                   value={formData.endTime}
                   onValueChange={(value) => setFormData({ ...formData, endTime: value })}
                 >
                   <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Hora de fin" />
+                    <SelectValue placeholder={t('common.endTime')} />
                   </SelectTrigger>
                   <SelectContent className="max-h-[240px]">
                     {EDIT_TIME_SLOTS.map((time) => (
@@ -930,11 +933,11 @@ export default function BookingModal({
 
           {/* Notes */}
           <div className="space-y-1">
-            <Label className="text-xs font-medium">Notas <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+            <Label className="text-xs font-medium">{t('common.notes')} <span className="text-muted-foreground font-normal">{t('bookings.form.optionalSuffix')}</span></Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Solicitudes especiales o notas..."
+              placeholder={t('bookings.form.notesPlaceholder')}
               rows={2}
               className="resize-none text-xs"
             />
@@ -943,14 +946,14 @@ export default function BookingModal({
           {/* Summary */}
           {selectedService && (
             <div className="bg-muted/50 rounded-lg p-2.5 space-y-0.5">
-              <p className="text-[10px] text-muted-foreground font-medium">Resumen de la cita</p>
+              <p className="text-[10px] text-muted-foreground font-medium">{t('bookings.form.summaryTitle')}</p>
               <div className="flex justify-between text-xs">
                 <span>{selectedService.name}</span>
                 <span className="font-medium">€{selectedService.price}</span>
               </div>
               <div className="flex justify-between text-[10px] text-muted-foreground">
-                <span>Duración</span>
-                <span>{selectedService.duration} minutos</span>
+                <span>{t('common.duration')}</span>
+                <span>{t('bookings.form.durationMinutes', { minutes: selectedService.duration })}</span>
               </div>
             </div>
           )}
@@ -958,10 +961,10 @@ export default function BookingModal({
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" size="sm" className="text-xs h-8" onClick={() => onOpenChange(false)}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button type="submit" size="sm" className="text-xs h-8" disabled={isLoading}>
-              {isLoading ? 'Guardando...' : booking ? 'Actualizar' : 'Crear Cita'}
+              {isLoading ? t('common.saving') : booking ? t('common.update') : t('bookings.form.createButton')}
             </Button>
           </div>
         </form>

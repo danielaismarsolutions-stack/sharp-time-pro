@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +27,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -44,6 +44,7 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
   const isMobile = useIsMobile();
+  const { t, dateLocale } = useTranslation();
 
   const handleAdd = async () => {
     if (!startDate || !endDate) return;
@@ -84,8 +85,8 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
   };
 
   const formatDateRange = (start: string, end: string) => {
-    const startFormatted = format(parseISO(start), "d 'de' MMM", { locale: es });
-    const endFormatted = format(parseISO(end), "d 'de' MMM, yyyy", { locale: es });
+    const startFormatted = format(parseISO(start), t('barbers.timeOff.rangeStartFormat'), { locale: dateLocale });
+    const endFormatted = format(parseISO(end), t('barbers.timeOff.rangeEndFormat'), { locale: dateLocale });
     return `${startFormatted} - ${endFormatted}`;
   };
 
@@ -117,7 +118,7 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
             )}
           >
             <CalendarIcon className="mr-2 h-5 w-5 sm:h-4 sm:w-4" />
-            {date ? format(date, "d 'de' MMMM, yyyy", { locale: es }) : "Seleccionar fecha"}
+            {date ? format(date, t('barbers.timeOff.dateFormat'), { locale: dateLocale }) : t('barbers.timeOff.selectDate')}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 z-[60] pointer-events-auto" align="start">
@@ -127,7 +128,7 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
             onSelect={onSelect}
             disabled={(date) => minDate ? date < minDate : date < new Date()}
             initialFocus
-            locale={es}
+            locale={dateLocale}
             className="p-3 pointer-events-auto"
           />
         </PopoverContent>
@@ -141,23 +142,23 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
   const formContent = (
     <div className="space-y-5 pt-2">
       <DatePickerField
-        label="Fecha inicio"
+        label={t('barbers.timeOff.startDate')}
         date={startDate}
         onSelect={setStartDate}
         minDate={new Date()}
       />
       <DatePickerField
-        label="Fecha fin"
+        label={t('barbers.timeOff.endDate')}
         date={endDate}
         onSelect={setEndDate}
         minDate={startDate || new Date()}
       />
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Motivo (opcional)</Label>
+        <Label className="text-sm font-medium">{t('barbers.timeOff.reasonLabel')}</Label>
         <Input
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="Vacaciones, cita médica, etc."
+          placeholder={t('barbers.timeOff.reasonPlaceholder')}
           className="h-12 sm:h-10 text-base sm:text-sm"
         />
       </div>
@@ -167,7 +168,7 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
           onClick={() => setDialogOpen(false)}
           className="h-12 sm:h-10 text-base sm:text-sm"
         >
-          Cancelar
+          {t('common.cancel')}
         </Button>
         <Button
           onClick={handleAdd}
@@ -175,7 +176,7 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
           className="h-12 sm:h-10 text-base sm:text-sm"
         >
           {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-          Añadir Días Libres
+          {t('barbers.timeOff.add')}
         </Button>
       </div>
     </div>
@@ -185,7 +186,7 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
   const AddButton = (
     <Button size="sm" className="h-10 px-4">
       <Plus className="h-4 w-4 mr-1" />
-      Añadir
+      {t('common.add')}
     </Button>
   );
 
@@ -194,7 +195,7 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
       <CardHeader className="flex flex-row items-center justify-between pb-4">
         <CardTitle className="text-lg flex items-center gap-2">
           <CalendarOff className="h-5 w-5" />
-          Días Libres
+          {t('barbers.timeOff.title')}
         </CardTitle>
         
         {/* Mobile: Drawer, Desktop: Dialog */}
@@ -205,7 +206,7 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
             </DrawerTrigger>
             <DrawerContent className="px-4 pb-8">
               <DrawerHeader className="pb-2">
-                <DrawerTitle>Añadir Días Libres</DrawerTitle>
+                <DrawerTitle>{t('barbers.timeOff.add')}</DrawerTitle>
               </DrawerHeader>
               {formContent}
             </DrawerContent>
@@ -217,7 +218,7 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Añadir Días Libres</DialogTitle>
+                <DialogTitle>{t('barbers.timeOff.add')}</DialogTitle>
               </DialogHeader>
               {formContent}
             </DialogContent>
@@ -227,7 +228,7 @@ export default function TimeOffManager({ timeOff, onSave }: TimeOffManagerProps)
       <CardContent>
         {upcomingTimeOff.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">
-            No hay días libres programados
+            {t('barbers.timeOff.empty')}
           </p>
         ) : (
           <motion.div 

@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { imageValidation } from '@/lib/imageValidation';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface AvatarUploadProps {
   currentAvatarUrl: string | null;
@@ -20,6 +21,7 @@ export default function AvatarUpload({
   disabled = false,
   barberName = '',
 }: AvatarUploadProps) {
+  const { t } = useTranslation();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -94,7 +96,7 @@ export default function AvatarUpload({
 
   return (
     <div className="space-y-3">
-      <Label className="text-xs">Foto de Perfil</Label>
+      <Label className="text-xs">{t('barbers.avatar.label')}</Label>
 
       <div className="flex items-center gap-4">
         {/* Avatar Preview */}
@@ -128,7 +130,7 @@ export default function AvatarUpload({
             className="text-xs h-8"
           >
             <Upload className="h-3.5 w-3.5 mr-1.5" />
-            {displayUrl ? 'Cambiar Foto' : 'Subir Foto'}
+            {displayUrl ? t('barbers.avatar.change') : t('barbers.avatar.upload')}
           </Button>
 
           {displayUrl && (
@@ -141,7 +143,7 @@ export default function AvatarUpload({
               className="text-xs h-8 text-muted-foreground hover:text-destructive"
             >
               <X className="h-3.5 w-3.5 mr-1.5" />
-              Eliminar
+              {t('common.delete')}
             </Button>
           )}
         </div>
@@ -154,7 +156,7 @@ export default function AvatarUpload({
 
       {/* Help Text */}
       <p className="text-xs text-muted-foreground">
-        JPG, PNG o WebP. Máximo 5MB.
+        {t('barbers.avatar.helpText')}
       </p>
     </div>
   );

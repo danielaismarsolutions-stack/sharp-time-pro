@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface CreateChoiceDialogProps {
   open: boolean;
@@ -21,12 +22,13 @@ export function CreateChoiceDialog({
   onChooseBooking,
   onChooseEvent,
 }: CreateChoiceDialogProps) {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-card border-border max-w-xs sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-center text-base">
-            ¿Qué deseas crear?
+            {t('calendar.createChoice.title')}
           </DialogTitle>
         </DialogHeader>
 
@@ -48,9 +50,9 @@ export function CreateChoiceDialog({
               <CalendarPlus className="h-5 w-5 text-primary" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-semibold">Cita</p>
+              <p className="text-sm font-semibold">{t('calendar.createChoice.booking')}</p>
               <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
-                Reserva con cliente
+                {t('calendar.createChoice.bookingDescription')}
               </p>
             </div>
           </button>
@@ -72,9 +74,9 @@ export function CreateChoiceDialog({
               <CalendarDays className="h-5 w-5 text-violet-600" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-semibold">Evento</p>
+              <p className="text-sm font-semibold">{t('calendar.createChoice.event')}</p>
               <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
-                Bloqueo o actividad
+                {t('calendar.createChoice.eventDescription')}
               </p>
             </div>
           </button>

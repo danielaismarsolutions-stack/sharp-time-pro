@@ -1,7 +1,7 @@
 // NotificationContext - handles in-app notifications
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { t, getActiveLanguage, getDateFnsLocale } from '@/i18n';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import {
@@ -105,7 +105,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setNotifications(mapped);
       setUnreadCount(mapped.filter((n) => !n.read).length);
     } catch (err) {
-      setError('Error al cargar notificaciones');
+      setError(t('notifications.loadError'));
     } finally {
       setIsLoading(false);
     }
@@ -264,9 +264,9 @@ export function useNotifications() {
   return context;
 }
 
-// Helper to format notification time
+// Helper to format notification time (uses the active app language)
 export function formatNotificationTime(date: Date): string {
-  return formatDistanceToNow(date, { addSuffix: true, locale: es });
+  return formatDistanceToNow(date, { addSuffix: true, locale: getDateFnsLocale(getActiveLanguage()) });
 }
 
 // Helper to get notification icon component based on type

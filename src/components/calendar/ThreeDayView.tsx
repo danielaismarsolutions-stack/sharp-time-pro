@@ -1,9 +1,9 @@
 import { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import { format, addDays, isToday, isSameDay } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Service } from '@/types';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { useAutoScrollOnDrag } from '@/hooks/useAutoScrollOnDrag';
 import { getServicePastelColor, getOverlapInfo, getUnifiedOverlapInfo, getBookingPosition, getEventPosition } from '@/components/calendar/shared';
@@ -85,6 +85,7 @@ export function ThreeDayView({
   scrollContainerRef,
   isMonthPickerOpen = false,
 }: ThreeDayViewProps) {
+  const { dateLocale } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Use Madrid timezone for current time (consistent with CurrentTimeIndicator)
@@ -507,7 +508,7 @@ export function ThreeDayView({
                   'text-sm',
                   dayIsToday ? 'text-foreground font-medium' : 'text-muted-foreground'
                 )}>
-                  {format(day, 'EEE', { locale: es })}
+                  {format(day, 'EEE', { locale: dateLocale })}
                 </span>
               </div>
             );

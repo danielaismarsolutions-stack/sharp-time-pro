@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import BillingStatusCard, { BillingStatusCardSkeleton } from '@/components/billing/BillingStatusCard';
 import PaymentHistoryTable from '@/components/billing/PaymentHistoryTable';
+import { useTranslation } from '@/contexts/LanguageContext';
 import {
   useBillingInfo,
   useCreateCheckoutSession,
@@ -14,6 +15,7 @@ import {
 
 export default function Billing() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { t } = useTranslation();
   const { invalidateBilling } = useInvalidateQuery();
   const { data: billing, isLoading, error } = useBillingInfo();
   const checkoutMutation = useCreateCheckoutSession();
@@ -25,11 +27,11 @@ export default function Billing() {
     const canceled = searchParams.get('canceled');
 
     if (sessionId) {
-      toast.success('Suscripción activada correctamente');
+      toast.success(t('billing.subscriptionActivated'));
       invalidateBilling();
       setSearchParams({}, { replace: true });
     } else if (canceled) {
-      toast.info('Proceso de pago cancelado');
+      toast.info(t('billing.checkoutCancelled'));
       setSearchParams({}, { replace: true });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -39,14 +41,14 @@ export default function Billing() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <CreditCard className="h-7 w-7 text-primary" />
-        <h1 className="text-2xl font-bold tracking-tight">Facturación</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('billing.title')}</h1>
       </div>
 
       {/* Error state */}
       {error && (
         <Alert variant="destructive">
           <AlertDescription>
-            Error al cargar los datos de facturación: {(error as Error).message}
+            {t('billing.loadError', { message: (error as Error).message })}
           </AlertDescription>
         </Alert>
       )}

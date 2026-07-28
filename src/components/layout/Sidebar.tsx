@@ -18,6 +18,8 @@ import {
 import { NexioMark } from '@/components/NexioLogo';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/LanguageContext';
+import type { TranslationKey } from '@/i18n';
 import { useBusinessBrand } from '@/contexts/BusinessBrandContext';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
 import { useTimeTrackingSettings } from '@/hooks/useQueryHooks';
@@ -28,28 +30,38 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
-const allNavItems = [
-  { icon: Calendar, label: 'Agenda', path: '/calendar', adminOnly: false, requiresTimeTracking: false },
-  { icon: MessageSquare, label: 'Consultas', path: '/consultations', adminOnly: false, requiresTimeTracking: false },
-  { icon: Fingerprint, label: 'Fichajes', path: '/time-tracking', adminOnly: false, requiresTimeTracking: true },
-  { icon: Users, label: 'Clientes', path: '/clients', adminOnly: false, requiresTimeTracking: false },
-  { icon: UserCog, label: 'Estilistas', path: '/barbers', adminOnly: true, requiresTimeTracking: false },
-  { icon: Scissors, label: 'Servicios', path: '/services', adminOnly: true, requiresTimeTracking: false },
-  { icon: LayoutDashboard, label: 'Finanzas', path: '/dashboard', adminOnly: true, requiresTimeTracking: false },
-  { icon: BarChart3, label: 'Informes', path: '/reports', adminOnly: true, requiresTimeTracking: false },
-  { icon: CreditCard, label: 'Facturación', path: '/billing', adminOnly: true, requiresTimeTracking: false },
-  { icon: Settings, label: 'Ajustes', path: '/settings', adminOnly: false, requiresTimeTracking: false },
+const allNavItems: {
+  icon: typeof Calendar;
+  labelKey: TranslationKey;
+  path: string;
+  adminOnly: boolean;
+  requiresTimeTracking: boolean;
+}[] = [
+  { icon: Calendar, labelKey: 'nav.calendar', path: '/calendar', adminOnly: false, requiresTimeTracking: false },
+  { icon: MessageSquare, labelKey: 'nav.consultations', path: '/consultations', adminOnly: false, requiresTimeTracking: false },
+  { icon: Fingerprint, labelKey: 'nav.timeTracking', path: '/time-tracking', adminOnly: false, requiresTimeTracking: true },
+  { icon: Users, labelKey: 'nav.clients', path: '/clients', adminOnly: false, requiresTimeTracking: false },
+  { icon: UserCog, labelKey: 'nav.staff', path: '/barbers', adminOnly: true, requiresTimeTracking: false },
+  { icon: Scissors, labelKey: 'nav.services', path: '/services', adminOnly: true, requiresTimeTracking: false },
+  { icon: LayoutDashboard, labelKey: 'nav.finances', path: '/dashboard', adminOnly: true, requiresTimeTracking: false },
+  { icon: BarChart3, labelKey: 'nav.reports', path: '/reports', adminOnly: true, requiresTimeTracking: false },
+  { icon: CreditCard, labelKey: 'nav.billing', path: '/billing', adminOnly: true, requiresTimeTracking: false },
+  { icon: Settings, labelKey: 'nav.settings', path: '/settings', adminOnly: false, requiresTimeTracking: false },
 ];
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useLocation();
   const { logout, user, isAdmin } = useAuth();
+  const { t } = useTranslation();
   const { brand } = useBusinessBrand();
   const staffTerms = useStaffTerms();
   const { data: timeTrackingSettings } = useTimeTrackingSettings();
 
   const navItems = allNavItems
-    .map(item => (item.path === '/barbers' ? { ...item, label: staffTerms.pluralCap } : item))
+    .map(item => ({
+      ...item,
+      label: item.path === '/barbers' ? staffTerms.pluralCap : t(item.labelKey),
+    }))
     .filter(item => {
       if (item.adminOnly && !isAdmin) return false;
       if (item.requiresTimeTracking && !timeTrackingSettings?.timeTrackingEnabled) return false;
@@ -149,11 +161,11 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               onClick={logout}
             >
               <LogOut className="h-5 w-5" />
-              {!collapsed && <span className="ml-3">Cerrar sesión</span>}
+              {!collapsed && <span className="ml-3">{t('auth.signOut')}</span>}
             </Button>
           </TooltipTrigger>
           {collapsed && (
-            <TooltipContent side="right">Logout</TooltipContent>
+            <TooltipContent side="right">{t('auth.signOut')}</TooltipContent>
           )}
         </Tooltip>
       </div>

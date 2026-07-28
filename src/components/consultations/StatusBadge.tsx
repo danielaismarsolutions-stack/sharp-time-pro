@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { ConsultationStatus, STATUS_CONFIG } from '@/types/consultation';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface StatusBadgeProps {
   status: ConsultationStatus;
@@ -7,8 +8,9 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
+  const { t } = useTranslation();
   const config = STATUS_CONFIG[status];
-  
+
   return (
     <span
       className={cn(
@@ -18,7 +20,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
         className
       )}
     >
-      {config.label}
+      {t(config.labelKey)}
     </span>
   );
 }

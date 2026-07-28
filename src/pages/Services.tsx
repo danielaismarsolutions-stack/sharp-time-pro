@@ -34,6 +34,7 @@ import { Service } from '@/types';
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBarberServicesApi } from '@/services/supabaseBarberServices';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { useServices as useServicesQuery, useBarbers as useBarbersQuery, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,6 +48,7 @@ import { uploadServicePhoto } from '@/utils/uploadServicePhoto';
 
 export default function Services() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const { user } = useAuth();
@@ -98,12 +100,12 @@ export default function Services() {
       setIsSavingOrder(true);
       try {
         await supabaseServicesApi.updateOrder(newServices.map(s => s.id));
-        toast({ title: 'Orden actualizado' });
+        toast({ title: t('services.toasts.orderUpdated') });
       } catch (error) {
         // Rollback on error
         setServices(services);
         toast({ 
-          title: 'Error al guardar orden', 
+          title: t('services.toasts.orderSaveFailed'), 
           variant: 'destructive' 
         });
       } finally {
@@ -115,9 +117,9 @@ export default function Services() {
   const handleSaveService = async (serviceData: Partial<Service>, pendingPhotoFile?: File | null) => {
     if (editingService) {
       const confirmed = await confirm({
-        title: 'Actualizar servicio',
-        description: `¿Confirmar los cambios en el servicio "${serviceData.name || editingService.name}"?`,
-        confirmLabel: 'Actualizar',
+        title: t('services.confirm.updateTitle'),
+        description: t('services.confirm.updateDescription', { name: serviceData.name || editingService.name }),
+        confirmLabel: t('common.update'),
       });
       if (!confirmed) return;
     }
@@ -137,8 +139,11 @@ export default function Services() {
           await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'service_modified',
-            title: 'Servicio modificado',
-            message: `${user?.name || 'Usuario'} actualizó el servicio "${serviceData.name || editingService.name}"`,
+            title: t('services.notifications.modifiedTitle'),
+            message: t('services.notifications.modifiedMessage', {
+              user: user?.name || t('services.notifications.defaultUser'),
+              name: serviceData.name || editingService.name,
+            }),
             metadata: {
               service_id: editingService.id,
               service_name: serviceData.name || editingService.name,
@@ -147,7 +152,7 @@ export default function Services() {
           });
         } catch { /* ignored */ }
 
-        toast({ title: 'Servicio actualizado correctamente' });
+        toast({ title: t('services.toasts.updated') });
       } else {
         // Create new service
         const created = await supabaseServicesApi.create(serviceData as Omit<Service, 'id'>);
@@ -169,8 +174,8 @@ export default function Services() {
           } catch (photoError) {
             console.error('[ServicePhoto] Upload failed:', photoError);
             toast({
-              title: 'Servicio creado, pero no se pudo subir la foto',
-              description: photoError instanceof Error ? photoError.message : 'Puedes intentar subir la foto editando el servicio',
+              title: t('services.toasts.createdPhotoFailed'),
+              description: photoError instanceof Error ? photoError.message : t('services.toasts.createdPhotoFailedHint'),
               variant: 'destructive',
             });
           }
@@ -181,8 +186,11 @@ export default function Services() {
           await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'service_created',
-            title: 'Nuevo servicio',
-            message: `${user?.name || 'Usuario'} creó el servicio "${serviceData.name}"`,
+            title: t('services.notifications.createdTitle'),
+            message: t('services.notifications.createdMessage', {
+              user: user?.name || t('services.notifications.defaultUser'),
+              name: serviceData.name ?? '',
+            }),
             metadata: {
               service_id: created.id,
               service_name: serviceData.name,
@@ -191,7 +199,7 @@ export default function Services() {
           });
         } catch { /* ignored */ }
 
-        toast({ title: 'Servicio creado correctamente' });
+        toast({ title: t('services.toasts.created') });
       }
       invalidateServices();
       setLocalServices(null);
@@ -199,8 +207,8 @@ export default function Services() {
       setIsModalOpen(false);
     } catch (error) {
       toast({
-        title: 'Error al guardar servicio',
-        description: 'Por favor, inténtalo de nuevo',
+        title: t('services.toasts.saveFailed'),
+        description: t('services.toasts.tryAgain'),
         variant: 'destructive'
       });
       throw error; // Re-throw to keep modal open
@@ -211,11 +219,11 @@ export default function Services() {
     const newStatus = !service.isActive;
 
     const confirmed = await confirm({
-      title: newStatus ? 'Activar servicio' : 'Desactivar servicio',
+      title: newStatus ? t('services.confirm.activateTitle') : t('services.confirm.deactivateTitle'),
       description: newStatus
-        ? `¿Activar el servicio "${service.name}"?`
-        : `¿Desactivar el servicio "${service.name}"? Los clientes no podrán reservarlo.`,
-      confirmLabel: newStatus ? 'Activar' : 'Desactivar',
+        ? t('services.confirm.activateDescription', { name: service.name })
+        : t('services.confirm.deactivateDescription', { name: service.name }),
+      confirmLabel: newStatus ? t('services.confirm.activate') : t('services.confirm.deactivate'),
       variant: newStatus ? 'default' : 'destructive',
     });
     if (!confirmed) return;
@@ -234,8 +242,11 @@ export default function Services() {
         await notifyAllAdmins({
           business_id: getBusinessId(),
           type: 'service_modified',
-          title: newStatus ? 'Servicio activado' : 'Servicio desactivado',
-          message: `${user?.name || 'Usuario'} ${newStatus ? 'activó' : 'desactivó'} el servicio "${service.name}"`,
+          title: newStatus ? t('services.notifications.activatedTitle') : t('services.notifications.deactivatedTitle'),
+          message: t(
+            newStatus ? 'services.notifications.activatedMessage' : 'services.notifications.deactivatedMessage',
+            { user: user?.name || t('services.notifications.defaultUser'), name: service.name },
+          ),
           metadata: {
             service_id: service.id,
             service_name: service.name,
@@ -246,14 +257,14 @@ export default function Services() {
       } catch { /* ignored */ }
 
       invalidateServices();
-      toast({ title: `Servicio ${newStatus ? 'activado' : 'desactivado'}` });
+      toast({ title: newStatus ? t('services.toasts.activated') : t('services.toasts.deactivated') });
     } catch (error) {
       // Rollback on error
       setServices((prev) =>
         (prev ?? []).map((s) => s.id === service.id ? { ...s, isActive: !newStatus } : s)
       );
       toast({
-        title: 'Error al actualizar estado',
+        title: t('services.toasts.statusUpdateFailed'),
         variant: 'destructive'
       });
     } finally {
@@ -267,9 +278,9 @@ export default function Services() {
     if (!service) return;
 
     const confirmed = await confirm({
-      title: '¿Desactivar servicio?',
-      description: `Se desactivará el servicio "${service.name}". Los clientes no podrán reservarlo.`,
-      confirmLabel: 'Desactivar',
+      title: t('services.confirm.deleteTitle'),
+      description: t('services.confirm.deleteDescription', { name: service.name }),
+      confirmLabel: t('services.confirm.deactivate'),
       variant: 'destructive',
     });
     if (!confirmed) return;
@@ -285,8 +296,11 @@ export default function Services() {
         await notifyAllAdmins({
           business_id: getBusinessId(),
           type: 'service_deleted',
-          title: 'Servicio desactivado',
-          message: `${user?.name || 'Usuario'} desactivó el servicio "${service.name}"`,
+          title: t('services.notifications.deactivatedTitle'),
+          message: t('services.notifications.deactivatedMessage', {
+            user: user?.name || t('services.notifications.defaultUser'),
+            name: service.name,
+          }),
           metadata: {
             service_id: id,
             service_name: service.name,
@@ -296,12 +310,12 @@ export default function Services() {
       } catch { /* ignored */ }
 
       invalidateServices();
-      toast({ title: 'Servicio desactivado' });
+      toast({ title: t('services.toasts.deactivated') });
     } catch (error) {
       // Rollback
       setServices((prev) => (prev ?? []).map((s) => s.id === id ? { ...s, isActive: true } : s));
       toast({
-        title: 'Error al desactivar servicio',
+        title: t('services.toasts.deactivateFailed'),
         variant: 'destructive'
       });
     }
@@ -346,16 +360,16 @@ export default function Services() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Servicios</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">{t('services.page.title')}</h1>
           <p className="text-sm md:text-base text-muted-foreground">
-            Gestiona los servicios de tu salón. Arrastra para reordenar.
+            {t('services.page.subtitle')}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {isSavingOrder && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Guardando...
+              {t('common.saving')}
             </div>
           )}
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'grid' | 'table')}>
@@ -383,13 +397,13 @@ export default function Services() {
             className="min-h-[44px]"
           >
             <Tag className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Categorías</span>
-            <span className="sm:hidden">Cat.</span>
+            <span className="hidden sm:inline">{t('services.page.categories')}</span>
+            <span className="sm:hidden">{t('services.page.categoriesShort')}</span>
           </Button>
           <Button onClick={() => setIsModalOpen(true)} className="min-h-[44px]">
             <Plus className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Añadir Servicio</span>
-            <span className="sm:hidden">Añadir</span>
+            <span className="hidden sm:inline">{t('services.page.addService')}</span>
+            <span className="sm:hidden">{t('services.page.addShort')}</span>
           </Button>
         </div>
       </div>
@@ -400,7 +414,7 @@ export default function Services() {
           <Card className="p-3 md:p-4">
             <div className="text-center">
               <p className="text-xl md:text-2xl font-bold">{services.length}</p>
-              <p className="text-xs md:text-sm text-muted-foreground">Total</p>
+              <p className="text-xs md:text-sm text-muted-foreground">{t('common.total')}</p>
             </div>
           </Card>
         </AnimatedCard>
@@ -408,7 +422,7 @@ export default function Services() {
           <Card className="p-3 md:p-4">
             <div className="text-center">
               <p className="text-xl md:text-2xl font-bold text-green-500">{activeServices.length}</p>
-              <p className="text-xs md:text-sm text-muted-foreground">Activos</p>
+              <p className="text-xs md:text-sm text-muted-foreground">{t('services.page.statsActive')}</p>
             </div>
           </Card>
         </AnimatedCard>
@@ -426,7 +440,7 @@ export default function Services() {
                   €{avgPrice}
                 </span>
               </div>
-              <p className="text-xs md:text-sm text-muted-foreground">Media</p>
+              <p className="text-xs md:text-sm text-muted-foreground">{t('services.page.statsAverage')}</p>
             </div>
           </Card>
         </AnimatedCard>
@@ -460,10 +474,10 @@ export default function Services() {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left p-4 font-medium">Servicio</th>
-                  <th className="text-left p-4 font-medium">Duración</th>
-                  <th className="text-left p-4 font-medium">Precio</th>
-                  <th className="text-left p-4 font-medium">Estado</th>
+                  <th className="text-left p-4 font-medium">{t('services.page.serviceHeader')}</th>
+                  <th className="text-left p-4 font-medium">{t('common.duration')}</th>
+                  <th className="text-left p-4 font-medium">{t('common.price')}</th>
+                  <th className="text-left p-4 font-medium">{t('common.status')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -505,7 +519,7 @@ export default function Services() {
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
                           : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
                       }`}>
-                        {service.isActive ? 'Activo' : 'Inactivo'}
+                        {service.isActive ? t('services.status.active') : t('services.status.inactive')}
                       </span>
                     </td>
                   </tr>

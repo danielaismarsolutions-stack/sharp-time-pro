@@ -6,6 +6,7 @@ import { CalendarDays, MapPin, Repeat, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ApiCalendarEvent } from '@/types/api';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getBarberHexColor, DEFAULT_EVENT_HEX } from '@/components/calendar/shared/colorUtils';
 import {
@@ -46,6 +47,7 @@ export function EventCard({
   isPendingMove = false,
 }: EventCardProps) {
   const staffTerms = useStaffTerms();
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const startTime = event.start_time.substring(0, 5);
   const endTime = event.end_time.substring(0, 5);
@@ -152,12 +154,14 @@ export function EventCard({
               )}
               {event.repeat !== 'none' && (
                 <p className="text-sm opacity-70">
-                  Repite:{' '}
-                  {event.repeat === 'daily'
-                    ? 'diario'
-                    : event.repeat === 'weekly'
-                      ? 'semanal'
-                      : 'mensual'}
+                  {t('calendar.eventCard.repeats', {
+                    frequency:
+                      event.repeat === 'daily'
+                        ? t('calendar.eventCard.daily')
+                        : event.repeat === 'weekly'
+                          ? t('calendar.eventCard.weekly')
+                          : t('calendar.eventCard.monthly'),
+                  })}
                 </p>
               )}
             </div>

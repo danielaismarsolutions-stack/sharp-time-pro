@@ -4,6 +4,7 @@
 import { SUPABASE_CONFIG } from '@/config/api';
 import { getAuthHeaders, supabase } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
+import { t } from '@/i18n';
 
 export interface ServiceCategory {
   id: string;
@@ -82,7 +83,7 @@ export const supabaseServiceCategoriesApi = {
 
   create: async (input: { label: string; slug?: string; subtitle?: string | null; displayOrder?: number }): Promise<ServiceCategory> => {
     const slug = (input.slug && input.slug.trim()) ? slugify(input.slug) : slugify(input.label);
-    if (!slug) throw new Error('No se pudo generar el identificador de la categoría');
+    if (!slug) throw new Error(t('services.errors.slugGenerationFailed'));
 
     const body = {
       business_id: getBusinessId(),
@@ -115,7 +116,7 @@ export const supabaseServiceCategoriesApi = {
       method: 'PATCH',
       body: JSON.stringify(body),
     });
-    if (!data || data.length === 0) throw new Error('Categoría no encontrada');
+    if (!data || data.length === 0) throw new Error(t('services.errors.categoryNotFound'));
     return mapDb(data[0]);
   },
 
@@ -146,7 +147,7 @@ export const supabaseServiceCategoriesApi = {
     const { error: uploadError } = await supabase.storage
       .from('services_photos')
       .upload(filePath, file, { cacheControl: '3600', upsert: true, contentType: file.type });
-    if (uploadError) throw new Error(`Error al subir foto: ${uploadError.message}`);
+    if (uploadError) throw new Error(t('services.errors.photoUploadFailed', { message: uploadError.message }));
 
     const { data: { publicUrl } } = supabase.storage.from('services_photos').getPublicUrl(filePath);
     const url = `${publicUrl}?t=${Date.now()}`;

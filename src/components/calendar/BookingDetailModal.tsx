@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import {
   X,
@@ -31,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { StatusBadge, BookingStatus } from './StatusBadge';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { ApiBooking, ApiPaymentMethod } from '@/types/api';
 import { cn } from '@/lib/utils';
 import {
@@ -51,10 +51,10 @@ interface BookingDetailModalProps {
 }
 
 const sourceConfig = {
-  online: { label: 'Reserva Online', icon: Globe, color: 'text-blue-400' },
-  phone: { label: 'Llamada', icon: PhoneCall, color: 'text-emerald-400' },
-  walk_in: { label: 'Sin cita', icon: Footprints, color: 'text-amber-400' },
-};
+  online: { labelKey: 'calendar.source.online', icon: Globe, color: 'text-blue-400' },
+  phone: { labelKey: 'calendar.source.phone', icon: PhoneCall, color: 'text-emerald-400' },
+  walk_in: { labelKey: 'calendar.source.walkIn', icon: Footprints, color: 'text-amber-400' },
+} as const;
 
 export function BookingDetailModal({
   booking,
@@ -67,6 +67,7 @@ export function BookingDetailModal({
 }: BookingDetailModalProps) {
   const navigate = useNavigate();
   const staffTerms = useStaffTerms();
+  const { t, dateLocale } = useTranslation();
 
   // Preserve last valid booking for smooth close animation.
   // Without this, setting booking to null unmounts DialogContent
@@ -95,7 +96,7 @@ export function BookingDetailModal({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:w-full sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Detalles de la Cita</DialogTitle>
+          <DialogTitle>{t('calendar.detail.title')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -104,7 +105,7 @@ export function BookingDetailModal({
             <StatusBadge status={currentBooking.status as BookingStatus} />
             <div className={cn('flex items-center gap-1 text-[10px]', source.color)}>
               <SourceIcon className="h-3 w-3" />
-              {source.label}
+              {t(source.labelKey)}
             </div>
           </div>
 
@@ -114,7 +115,7 @@ export function BookingDetailModal({
               <div className="flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5 text-primary" />
                 <span className="text-xs font-medium capitalize">
-                  {format(bookingDate, "EEE, d MMM", { locale: es })}
+                  {format(bookingDate, "EEE, d MMM", { locale: dateLocale })}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -129,7 +130,7 @@ export function BookingDetailModal({
           {/* Client Info */}
           <div className="space-y-1.5">
             <h4 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-              Cliente
+              {t('calendar.detail.client')}
             </h4>
             <div
               className={cn(
@@ -177,7 +178,7 @@ export function BookingDetailModal({
           {/* Service Info */}
           <div className="space-y-1.5">
             <h4 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-              Servicio
+              {t('calendar.detail.service')}
             </h4>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -188,7 +189,7 @@ export function BookingDetailModal({
                   <div>
                     <p className="text-xs font-medium">{currentBooking.service_name}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {currentBooking.service_duration} min
+                      {currentBooking.service_duration} {t('common.minutesShort')}
                     </p>
                   </div>
                 </div>
@@ -219,7 +220,7 @@ export function BookingDetailModal({
               <div className="space-y-1">
                 <h4 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                   <MessageSquare className="h-3 w-3" />
-                  Notas
+                  {t('common.notes')}
                 </h4>
                 <p className="text-[11px] bg-muted/30 rounded-lg p-2">{currentBooking.notes}</p>
               </div>
@@ -231,7 +232,7 @@ export function BookingDetailModal({
           {/* Payment Section */}
           <div className="space-y-1.5">
             <h4 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-              Pago
+              {t('calendar.detail.payment')}
             </h4>
             {currentBooking.payment_status === 'paid' ? (
               <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2.5">
@@ -239,7 +240,14 @@ export function BookingDetailModal({
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
                     <span className="text-xs font-medium text-emerald-400">
-                      Pagado - {currentBooking.payment_method === 'cash' ? 'Efectivo' : currentBooking.payment_method === 'card' ? 'Tarjeta' : 'Bizum'}
+                      {t('calendar.detail.paidWith', {
+                        method:
+                          currentBooking.payment_method === 'cash'
+                            ? t('calendar.payment.cash')
+                            : currentBooking.payment_method === 'card'
+                              ? t('calendar.payment.card')
+                              : t('calendar.payment.bizum'),
+                      })}
                     </span>
                   </div>
                   <Button
@@ -249,7 +257,7 @@ export function BookingDetailModal({
                     onClick={() => onPaymentChange(currentBooking.id, null)}
                   >
                     <Undo2 className="h-3 w-3 mr-1" />
-                    Deshacer
+                    {t('calendar.detail.undoPayment')}
                   </Button>
                 </div>
               </div>
@@ -262,7 +270,7 @@ export function BookingDetailModal({
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 transition-colors group-hover:bg-emerald-500/20">
                     <Banknote className="h-4 w-4 text-emerald-500" />
                   </div>
-                  <span className="text-[10px] font-medium text-muted-foreground group-hover:text-emerald-500 transition-colors">Efectivo</span>
+                  <span className="text-[10px] font-medium text-muted-foreground group-hover:text-emerald-500 transition-colors">{t('calendar.payment.cash')}</span>
                 </button>
                 <button
                   className="group flex flex-col items-center gap-1.5 rounded-xl border border-border/50 bg-muted/20 px-2 py-2.5 transition-all hover:border-blue-500/40 hover:bg-blue-500/10 hover:shadow-sm"
@@ -271,7 +279,7 @@ export function BookingDetailModal({
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 transition-colors group-hover:bg-blue-500/20">
                     <CreditCard className="h-4 w-4 text-blue-500" />
                   </div>
-                  <span className="text-[10px] font-medium text-muted-foreground group-hover:text-blue-500 transition-colors">Tarjeta</span>
+                  <span className="text-[10px] font-medium text-muted-foreground group-hover:text-blue-500 transition-colors">{t('calendar.payment.card')}</span>
                 </button>
                 <button
                   className="group flex flex-col items-center gap-1.5 rounded-xl border border-border/50 bg-muted/20 px-2 py-2.5 transition-all hover:border-violet-500/40 hover:bg-violet-500/10 hover:shadow-sm"
@@ -280,7 +288,7 @@ export function BookingDetailModal({
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10 transition-colors group-hover:bg-violet-500/20">
                     <Smartphone className="h-4 w-4 text-violet-500" />
                   </div>
-                  <span className="text-[10px] font-medium text-muted-foreground group-hover:text-violet-500 transition-colors">Bizum</span>
+                  <span className="text-[10px] font-medium text-muted-foreground group-hover:text-violet-500 transition-colors">{t('calendar.payment.bizum')}</span>
                 </button>
               </div>
             )}
@@ -291,7 +299,7 @@ export function BookingDetailModal({
           {/* Quick Actions */}
           <div className="space-y-1.5">
             <h4 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-              Acciones Rápidas
+              {t('calendar.detail.quickActions')}
             </h4>
             <div className="grid grid-cols-2 gap-1.5">
               {currentBooking.status !== 'completed' && (
@@ -302,7 +310,7 @@ export function BookingDetailModal({
                   onClick={() => onStatusChange(currentBooking.id, 'completed')}
                 >
                   <CheckCircle className="h-3 w-3 mr-1.5 text-emerald-400" />
-                  Completar
+                  {t('calendar.detail.complete')}
                 </Button>
               )}
               {currentBooking.status !== 'no_show' && (
@@ -313,7 +321,7 @@ export function BookingDetailModal({
                   onClick={() => onStatusChange(currentBooking.id, 'no_show' as BookingStatus)}
                 >
                   <AlertCircle className="h-3 w-3 mr-1.5 text-purple-400" />
-                  No presentado
+                  {t('calendar.detail.noShow')}
                 </Button>
               )}
               {currentBooking.status !== 'cancelled' && (
@@ -324,7 +332,7 @@ export function BookingDetailModal({
                   onClick={() => onStatusChange(currentBooking.id, 'cancelled')}
                 >
                   <XCircle className="h-3 w-3 mr-1.5 text-rose-400" />
-                  Cancelar
+                  {t('calendar.detail.cancelAppointment')}
                 </Button>
               )}
               {currentBooking.status !== 'confirmed' && (
@@ -335,7 +343,7 @@ export function BookingDetailModal({
                   onClick={() => onStatusChange(currentBooking.id, 'confirmed')}
                 >
                   <CheckCircle className="h-3 w-3 mr-1.5 text-violet-400" />
-                  Confirmar
+                  {t('common.confirm')}
                 </Button>
               )}
             </div>
@@ -350,7 +358,7 @@ export function BookingDetailModal({
               onClick={() => onEdit(currentBooking)}
             >
               <Edit className="h-3.5 w-3.5 mr-1.5" />
-              Editar
+              {t('common.edit')}
             </Button>
             <Button
               variant="destructive"
@@ -364,8 +372,8 @@ export function BookingDetailModal({
 
           {/* Metadata */}
           <div className="text-[9px] text-muted-foreground space-y-0.5">
-            <p>Creado: {format(parseISO(currentBooking.created_at), "d MMM yyyy, HH:mm", { locale: es })}</p>
-            <p>Actualizado: {format(parseISO(currentBooking.updated_at), "d MMM yyyy, HH:mm", { locale: es })}</p>
+            <p>{t('calendar.detail.createdAt', { date: format(parseISO(currentBooking.created_at), "d MMM yyyy, HH:mm", { locale: dateLocale }) })}</p>
+            <p>{t('calendar.detail.updatedAt', { date: format(parseISO(currentBooking.updated_at), "d MMM yyyy, HH:mm", { locale: dateLocale }) })}</p>
           </div>
         </div>
       </DialogContent>

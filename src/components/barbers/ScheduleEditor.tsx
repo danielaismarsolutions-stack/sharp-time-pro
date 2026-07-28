@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { BarberSchedule, BarberDaySchedule, BarberShift, DAY_NAMES } from '@/types/barber';
+import { BarberSchedule, BarberDaySchedule, BarberShift, DAY_NAME_KEYS } from '@/types/barber';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { Plus, Trash2, Loader2, Save, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -44,12 +45,13 @@ const formatTimeDisplay = (time: string) => {
 };
 
 export default function ScheduleEditor({ schedule, onSave }: ScheduleEditorProps) {
+  const { t } = useTranslation();
   const [editedSchedule, setEditedSchedule] = useState<BarberSchedule>(schedule);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
 
-  const days = Object.keys(DAY_NAMES) as (keyof BarberSchedule)[];
+  const days = Object.keys(DAY_NAME_KEYS) as (keyof BarberSchedule)[];
 
   const toggleDayExpand = (day: string) => {
     setExpandedDays(prev => {
@@ -109,15 +111,15 @@ export default function ScheduleEditor({ schedule, onSave }: ScheduleEditorProps
   };
 
   const getShiftSummary = (daySchedule: BarberDaySchedule): string => {
-    if (!daySchedule.enabled) return 'Cerrado';
-    if (daySchedule.shifts.length === 0) return 'Sin turnos';
+    if (!daySchedule.enabled) return t('barbers.schedule.closed');
+    if (daySchedule.shifts.length === 0) return t('barbers.schedule.noShifts');
     return daySchedule.shifts.map(s => `${formatTimeDisplay(s.start)} - ${formatTimeDisplay(s.end)}`).join(', ');
   };
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3 sm:pb-4 px-3 sm:px-6">
-        <CardTitle className="text-base sm:text-lg">Horario Semanal</CardTitle>
+        <CardTitle className="text-base sm:text-lg">{t('barbers.schedule.weeklyTitle')}</CardTitle>
         <AnimatePresence>
           {hasChanges && (
             <motion.div
@@ -136,7 +138,7 @@ export default function ScheduleEditor({ schedule, onSave }: ScheduleEditorProps
                 ) : (
                   <Save className="h-4 w-4 mr-1.5" />
                 )}
-                Guardar
+                {t('common.save')}
               </Button>
             </motion.div>
           )}
@@ -181,7 +183,7 @@ export default function ScheduleEditor({ schedule, onSave }: ScheduleEditorProps
                   
                   <div className="flex-1 min-w-0">
                     <Label className="font-semibold text-sm sm:text-base block">
-                      {DAY_NAMES[day]}
+                      {t(DAY_NAME_KEYS[day])}
                     </Label>
                     <p className="text-xs sm:text-sm text-muted-foreground truncate mt-0.5">
                       {getShiftSummary(daySchedule)}
@@ -217,7 +219,7 @@ export default function ScheduleEditor({ schedule, onSave }: ScheduleEditorProps
                     <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-1 space-y-3 border-t border-border/50">
                       {daySchedule.shifts.length === 0 ? (
                         <p className="text-sm text-muted-foreground py-2">
-                          Sin turnos configurados
+                          {t('barbers.schedule.noShiftsConfigured')}
                         </p>
                       ) : (
                         daySchedule.shifts.map((shift, index) => {
@@ -234,7 +236,7 @@ export default function ScheduleEditor({ schedule, onSave }: ScheduleEditorProps
                               <div className="flex items-center justify-between">
                                 <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                                   <Clock className="h-3 w-3" />
-                                  Turno {index + 1}
+                                  {t('barbers.schedule.shiftN', { number: index + 1 })}
                                 </span>
                                 <Button
                                   variant="ghost"
@@ -243,14 +245,14 @@ export default function ScheduleEditor({ schedule, onSave }: ScheduleEditorProps
                                   className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
                                 >
                                   <Trash2 className="h-4 w-4 mr-1" />
-                                  <span className="text-xs">Eliminar</span>
+                                  <span className="text-xs">{t('common.delete')}</span>
                                 </Button>
                               </div>
                               
                               {/* Time selectors - Mobile-friendly dropdowns */}
                               <div className="flex items-center gap-2 sm:gap-3">
                                 <div className="flex-1">
-                                  <Label className="text-xs text-muted-foreground mb-1 block">Inicio</Label>
+                                  <Label className="text-xs text-muted-foreground mb-1 block">{t('barbers.schedule.start')}</Label>
                                   <Select
                                     value={shift.start}
                                     onValueChange={(value) => updateShift(day, index, { start: value })}
@@ -282,7 +284,7 @@ export default function ScheduleEditor({ schedule, onSave }: ScheduleEditorProps
                                 <span className="text-muted-foreground mt-5 font-medium">—</span>
                                 
                                 <div className="flex-1">
-                                  <Label className="text-xs text-muted-foreground mb-1 block">Fin</Label>
+                                  <Label className="text-xs text-muted-foreground mb-1 block">{t('barbers.schedule.end')}</Label>
                                   <Select
                                     value={shift.end}
                                     onValueChange={(value) => updateShift(day, index, { end: value })}
@@ -314,7 +316,7 @@ export default function ScheduleEditor({ schedule, onSave }: ScheduleEditorProps
                               
                               {!isValid && (
                                 <p className="text-xs text-destructive">
-                                  La hora de fin debe ser después de la hora de inicio
+                                  {t('barbers.schedule.invalidShift')}
                                 </p>
                               )}
                             </motion.div>
@@ -330,7 +332,7 @@ export default function ScheduleEditor({ schedule, onSave }: ScheduleEditorProps
                         className="w-full h-10 sm:h-9 text-sm font-medium border-dashed"
                       >
                         <Plus className="h-4 w-4 mr-1.5" />
-                        Añadir turno
+                        {t('barbers.schedule.addShift')}
                       </Button>
                     </div>
                   </motion.div>

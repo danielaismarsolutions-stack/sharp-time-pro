@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { format, isSameDay } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Menu, ChevronDown, ChevronLeft, ChevronRight, Bell, List, LayoutGrid, Calendar as CalendarIcon, Filter, Settings, HelpCircle, User, Check, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +23,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/LanguageContext';
 import {
   useNotifications,
   formatNotificationTime,
@@ -70,6 +70,7 @@ export function SetmoreHeader({
   onGoToToday,
 }: SetmoreHeaderProps) {
   const { user, logout, isAdmin } = useAuth();
+  const { t, dateLocale } = useTranslation();
   const navigate = useNavigate();
   const {
     notifications,
@@ -125,7 +126,7 @@ export function SetmoreHeader({
           className="font-medium text-base md:text-lg gap-1 px-2"
         >
           <span className="capitalize">
-            {format(currentDate, 'MMMM yyyy', { locale: es })}
+            {format(currentDate, 'MMMM yyyy', { locale: dateLocale })}
           </span>
           <ChevronDown className={cn(
             "h-4 w-4 opacity-60 transition-transform duration-200",
@@ -157,7 +158,7 @@ export function SetmoreHeader({
             <DropdownMenuContent align="end" className="w-80 max-w-[calc(100vw-2rem)]">
               <div className="flex items-center justify-between px-2">
                 <DropdownMenuLabel className="flex items-center gap-2">
-                  Notificaciones
+                  {t('calendar.header.notifications')}
                   {isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
                 </DropdownMenuLabel>
                 {notifications.length > 0 && (
@@ -173,7 +174,7 @@ export function SetmoreHeader({
                         }}
                       >
                         <Check className="h-3 w-3 mr-1" />
-                        Marcar leídas
+                        {t('calendar.header.markRead')}
                       </Button>
                     )}
                     <Button
@@ -194,7 +195,7 @@ export function SetmoreHeader({
               <ScrollArea className="h-[300px]">
                 {notifications.length === 0 ? (
                   <div className="py-8 text-center text-muted-foreground text-sm">
-                    {isLoading ? 'Cargando...' : 'No hay notificaciones'}
+                    {isLoading ? t('common.loading') : t('calendar.header.noNotifications')}
                   </div>
                 ) : (
                   notifications.map((notif) => {
@@ -266,7 +267,7 @@ export function SetmoreHeader({
                   onClick={() => navigate('/settings')}
                 >
                   <Settings className="h-4 w-4 mr-2" />
-                  Ajustes
+                  {t('calendar.header.settings')}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem
@@ -274,18 +275,18 @@ export function SetmoreHeader({
                 onClick={() => navigate('/settings?tab=account')}
               >
                 <User className="h-4 w-4 mr-2" />
-                Mi perfil
+                {t('calendar.header.myProfile')}
               </DropdownMenuItem>
               <DropdownMenuItem className="min-h-[44px] cursor-pointer">
                 <HelpCircle className="h-4 w-4 mr-2" />
-                Ayuda y soporte
+                {t('calendar.header.helpSupport')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={logout}
                 className="text-destructive focus:text-destructive min-h-[44px] cursor-pointer"
               >
-                Cerrar sesión
+                {t('calendar.header.logout')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -322,7 +323,7 @@ export function SetmoreHeader({
               onClick={() => onGoToToday?.()}
               disabled={isSameDay(currentDate, new Date())}
             >
-              Hoy
+              {t('common.today')}
             </Button>
             <Button
               variant="outline"
@@ -339,25 +340,25 @@ export function SetmoreHeader({
           <TabsList className="h-9">
             <TabsTrigger value="agenda" className="text-xs px-1.5 md:px-3 min-h-[40px]">
               <List className="h-4 w-4 mr-1" />
-              Agenda
+              {t('calendar.views.agenda')}
             </TabsTrigger>
             <TabsTrigger value="day" className="text-xs px-1.5 md:px-3 min-h-[40px]">
               <LayoutGrid className="h-4 w-4 mr-1" />
-              Día
+              {t('calendar.views.day')}
             </TabsTrigger>
             <TabsTrigger value="3day" className="text-xs px-1.5 md:px-3 min-h-[40px]">
               <CalendarIcon className="h-4 w-4 mr-1" />
-              3 Días
+              {t('calendar.views.threeDay')}
             </TabsTrigger>
             {!isMobile && (
               <TabsTrigger value="week" className="text-xs px-1.5 md:px-3 min-h-[40px]">
                 <LayoutGrid className="h-4 w-4 mr-1" />
-                Semana
+                {t('calendar.views.week')}
               </TabsTrigger>
             )}
             <TabsTrigger value="month" className="text-xs px-1.5 md:px-3 min-h-[40px]">
               <CalendarIcon className="h-4 w-4 mr-1" />
-              Mes
+              {t('calendar.views.month')}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -384,10 +385,10 @@ export function SetmoreHeader({
           >
             <SelectTrigger className="w-[76px] md:w-[140px] h-9">
               <Filter className="h-4 w-4 mr-1 shrink-0" />
-              <SelectValue placeholder="Todos" />
+              <SelectValue placeholder={t('common.all')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="all">{t('common.all')}</SelectItem>
               {barberNames.map((barberName) => (
                 <SelectItem key={barberName} value={barberName}>
                   {barberName}

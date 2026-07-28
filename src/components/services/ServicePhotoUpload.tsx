@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { ImagePlus, X, Loader2 } from 'lucide-react';
 import { uploadServicePhoto, deleteServicePhoto } from '@/utils/uploadServicePhoto';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/contexts/LanguageContext';
 
 interface ServicePhotoUploadProps {
   serviceId: string;
@@ -30,6 +31,7 @@ export default function ServicePhotoUpload({
   onPhotoChange,
 }: ServicePhotoUploadProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [isUploading, setIsUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -45,8 +47,8 @@ export default function ServicePhotoUpload({
   const handleUpload = useCallback(async (file: File) => {
     if (!ALLOWED_TYPES.includes(file.type)) {
       toast({
-        title: 'Formato no permitido',
-        description: 'Usa JPG, PNG, WebP o GIF',
+        title: t('services.photo.invalidFormatTitle'),
+        description: t('services.photo.invalidFormatDescription'),
         variant: 'destructive',
       });
       return;
@@ -54,8 +56,8 @@ export default function ServicePhotoUpload({
 
     if (file.size > 5 * 1024 * 1024) {
       toast({
-        title: 'Archivo demasiado grande',
-        description: 'La imagen debe ser menor a 5MB',
+        title: t('services.photo.tooLargeTitle'),
+        description: t('services.photo.tooLargeDescription'),
         variant: 'destructive',
       });
       return;
@@ -69,10 +71,10 @@ export default function ServicePhotoUpload({
     try {
       const url = await uploadServicePhoto(file, businessId, serviceId);
       onPhotoChange(url);
-      toast({ title: 'Foto actualizada correctamente' });
+      toast({ title: t('services.photo.updated') });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Error al subir la imagen';
-      toast({ title: 'Error', description: message, variant: 'destructive' });
+      const message = error instanceof Error ? error.message : t('services.photo.uploadError');
+      toast({ title: t('common.error'), description: message, variant: 'destructive' });
       // Revert preview on failure
       setPreviewUrl(null);
     } finally {
@@ -90,10 +92,10 @@ export default function ServicePhotoUpload({
       await deleteServicePhoto(businessId, serviceId, ext);
       setPreviewUrl(null);
       onPhotoChange(null);
-      toast({ title: 'Foto eliminada' });
+      toast({ title: t('services.photo.deleted') });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Error al eliminar la imagen';
-      toast({ title: 'Error', description: message, variant: 'destructive' });
+      const message = error instanceof Error ? error.message : t('services.photo.deleteError');
+      toast({ title: t('common.error'), description: message, variant: 'destructive' });
     } finally {
       setIsUploading(false);
     }
@@ -125,7 +127,7 @@ export default function ServicePhotoUpload({
 
   return (
     <div className="space-y-1">
-      <p className="text-xs font-medium">Foto del servicio</p>
+      <p className="text-xs font-medium">{t('services.photo.label')}</p>
       <div className="flex items-center gap-3">
         {/* Thumbnail / Upload area */}
         <div
@@ -145,7 +147,7 @@ export default function ServicePhotoUpload({
             <>
               <img
                 src={displayUrl}
-                alt="Foto del servicio"
+                alt={t('services.photo.label')}
                 className="w-full h-full object-cover"
               />
               {/* Delete button on hover */}
@@ -165,7 +167,7 @@ export default function ServicePhotoUpload({
           ) : (
             <div className="flex flex-col items-center gap-1 text-muted-foreground">
               <ImagePlus className="h-6 w-6" />
-              <span className="text-[10px] text-center leading-tight">Subir foto</span>
+              <span className="text-[10px] text-center leading-tight">{t('services.photo.upload')}</span>
             </div>
           )}
 
@@ -186,8 +188,8 @@ export default function ServicePhotoUpload({
         />
 
         <p className="text-[10px] text-muted-foreground leading-relaxed">
-          JPG, PNG, WebP o GIF.<br />
-          Máximo 5MB.
+          {t('services.photo.formatsHint')}<br />
+          {t('services.photo.maxSizeHint')}
         </p>
       </div>
     </div>

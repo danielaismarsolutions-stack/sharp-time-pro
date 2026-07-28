@@ -1,18 +1,22 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-function getAllowedOrigin(req: Request): string {
-  const allowed = (Deno.env.get("FRONTEND_URL") || "http://localhost:5173").replace(/\/$/, "");
+function getCorsOrigin(req: Request): string {
+  const frontendUrl = Deno.env.get("FRONTEND_URL");
+  if (!frontendUrl) return "*";
+  const allowed = frontendUrl.replace(/\/$/, "");
   const origin = req.headers.get("Origin") || "";
   return origin === allowed ? allowed : "";
 }
 
 function corsHeaders(req: Request) {
-  return {
-    "Access-Control-Allow-Origin": getAllowedOrigin(req),
+  const origin = getCorsOrigin(req);
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Vary": "Origin",
   };
+  if (origin !== "*") headers["Vary"] = "Origin";
+  return headers;
 }
 
 function jsonResponse(status: number, body: Record<string, unknown>, req: Request) {
@@ -22,16 +26,56 @@ function jsonResponse(status: number, body: Record<string, unknown>, req: Reques
   });
 }
 
+
+type Language = "es" | "en";
+
+// El frontend envía ?lang=en|es (idioma del negocio). Sin parámetro → 'es'.
+function resolveLanguage(req: Request): Language {
+  try {
+    return new URL(req.url).searchParams.get("lang") === "en" ? "en" : "es";
+  } catch {
+    return "es";
+  }
+}
+
+const MESSAGES: Record<Language, {
+  authRequired: string;
+  sessionExpired: string;
+  profileNotFound: string;
+  noPermission: string;
+  businessNotFound: string;
+  internal: string;
+}> = {
+  es: {
+    authRequired: "Token de autorización requerido",
+    sessionExpired: "Sesión expirada. Inicia sesión de nuevo.",
+    profileNotFound: "No se encontró tu perfil de usuario",
+    noPermission: "No tienes permisos para ver la facturación",
+    businessNotFound: "Negocio no encontrado",
+    internal: "Error interno. Inténtalo de nuevo.",
+  },
+  en: {
+    authRequired: "Authorisation token required",
+    sessionExpired: "Your session has expired. Please sign in again.",
+    profileNotFound: "Your user profile could not be found",
+    noPermission: "You don't have permission to view billing",
+    businessNotFound: "Business not found",
+    internal: "Internal error. Please try again.",
+  },
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders(req) });
   }
 
+  const msg = MESSAGES[resolveLanguage(req)];
+
   try {
     // 1. Verify JWT
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return jsonResponse(401, { error: "Token de autorización requerido" }, req);
+      return jsonResponse(401, { error: msg.authRequired }, req);
     }
     const token = authHeader.replace("Bearer ", "");
 
@@ -46,7 +90,7 @@ Deno.serve(async (req) => {
     } = await supabaseAdmin.auth.getUser(token);
 
     if (authErr || !authUser) {
-      return jsonResponse(401, { error: "Sesión expirada. Inicia sesión de nuevo." }, req);
+      return jsonResponse(401, { error: msg.sessionExpired }, req);
     }
 
     // 2. Get user profile and verify role
@@ -57,11 +101,11 @@ Deno.serve(async (req) => {
       .single();
 
     if (profileErr || !profile) {
-      return jsonResponse(403, { error: "No se encontró tu perfil de usuario" }, req);
+      return jsonResponse(403, { error: msg.profileNotFound }, req);
     }
 
     if (!["owner", "admin"].includes(profile.role)) {
-      return jsonResponse(403, { error: "No tienes permisos para ver la facturación" }, req);
+      return jsonResponse(403, { error: msg.noPermission }, req);
     }
 
     // 3. Get business billing data
@@ -74,7 +118,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (bizErr || !business) {
-      return jsonResponse(404, { error: "Negocio no encontrado" }, req);
+      return jsonResponse(404, { error: msg.businessNotFound }, req);
     }
 
     // 4. Get payment history (last 12 entries)
@@ -102,6 +146,6 @@ Deno.serve(async (req) => {
     }, req);
   } catch (err) {
     console.error("Error in stripe-billing-info:", err);
-    return jsonResponse(500, { error: "Error interno. Inténtalo de nuevo." }, req);
+    return jsonResponse(500, { error: msg.internal }, req);
   }
 });

@@ -4,6 +4,7 @@ import { getAuthHeaders } from '@/lib/supabase';
 import { getBusinessId } from '@/config/session';
 import { Barber, CreateBarberData, UpdateBarberData, DEFAULT_SCHEDULE, BarberSchedule, BarberDaySchedule, TimeOff } from '@/types/barber';
 import { supabaseStorageApi } from './supabaseStorage';
+import { t, getActiveLanguage } from '@/i18n';
 
 const supabaseHeaders = async () => ({
   ...(await getAuthHeaders()),
@@ -265,7 +266,7 @@ export const supabaseBarbersApi = {
     };
 
     const response = await fetch(
-      `${SUPABASE_CONFIG.url}/functions/v1/create-barber`,
+      `${SUPABASE_CONFIG.url}/functions/v1/create-barber?lang=${getActiveLanguage()}`,
       {
         method: 'POST',
         headers: {
@@ -278,7 +279,7 @@ export const supabaseBarbersApi = {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'No se pudo crear el usuario');
+      throw new Error(errorData.error || t('barbers.errors.createUserFailed'));
     }
 
     const { user: newBarber } = await response.json();

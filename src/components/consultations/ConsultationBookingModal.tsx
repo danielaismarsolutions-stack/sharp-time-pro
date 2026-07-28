@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Clock, User, Scissors, Loader2 } from 'lucide-react';
-import { es } from 'date-fns/locale';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +30,7 @@ import { Service } from '@/types';
 import { Barber } from '@/types/barber';
 import { useToast } from '@/hooks/use-toast';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { supabaseBookingsApi, CreateBookingData } from '@/services/supabaseBookings';
 import { supabaseServicesApi } from '@/services/supabaseServices';
 import { supabaseBarbersApi } from '@/services/supabaseBarbers';
@@ -64,6 +64,7 @@ export function ConsultationBookingModal({
   const { toast } = useToast();
   const { user } = useAuth();
   const staffTerms = useStaffTerms();
+  const { t, dateLocale } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
@@ -103,8 +104,8 @@ export function ConsultationBookingModal({
           }
         } catch (error) {
           toast({
-            title: 'Error',
-            description: 'No se pudieron cargar los datos',
+            title: t('common.error'),
+            description: t('common.loadError'),
             variant: 'destructive',
           });
         } finally {
@@ -203,8 +204,8 @@ export function ConsultationBookingModal({
     
     if (!date || !formData.serviceId || !formData.time) {
       toast({
-        title: 'Campos incompletos',
-        description: 'Por favor, selecciona fecha, servicio y hora',
+        title: t('consultations.booking.incompleteFieldsTitle'),
+        description: t('consultations.booking.incompleteFieldsDescription'),
         variant: 'destructive',
       });
       return;
@@ -212,8 +213,8 @@ export function ConsultationBookingModal({
 
     if (!selectedService) {
       toast({
-        title: 'Error',
-        description: 'Servicio no encontrado',
+        title: t('common.error'),
+        description: t('consultations.booking.serviceNotFound'),
         variant: 'destructive',
       });
       return;
@@ -242,7 +243,7 @@ export function ConsultationBookingModal({
         service_duration: effectiveDuration,
         service_price: effectivePrice,
         barber: selectedBarber?.name || null,
-        notes: formData.notes || `Reserva desde consulta: ${consultation.client_notes || ''}`.trim(),
+        notes: formData.notes || t('consultations.booking.notesFromConsultation', { notes: consultation.client_notes || '' }).trim(),
       };
 
       const newBooking = await supabaseBookingsApi.create(bookingData);
@@ -252,8 +253,14 @@ export function ConsultationBookingModal({
         await notifyBookingUsers({
           business_id: getBusinessId(),
           type: 'booking_created',
-          title: 'Nueva reserva desde consulta',
-          message: `${consultation.client_name} ha reservado ${selectedService.name} con ${selectedBarber?.name || 'Sin asignar'} para el ${format(date, "dd/MM/yyyy", { locale: es })} a las ${formData.time}`,
+          title: t('consultations.booking.notifyCreatedTitle'),
+          message: t('consultations.booking.notifyCreatedMessage', {
+            client: consultation.client_name,
+            service: selectedService.name,
+            barber: selectedBarber?.name || t('consultations.booking.unassigned'),
+            date: format(date, 'dd/MM/yyyy', { locale: dateLocale }),
+            time: formData.time,
+          }),
           barber_user_id: formData.barberId || newBooking.user_id,
           performed_by_user_id: user?.id || '',
           metadata: {
@@ -268,16 +275,19 @@ export function ConsultationBookingModal({
       } catch { /* ignored */ }
       
       toast({
-        title: 'Cita creada',
-        description: `Cita programada para ${format(date, "dd/MM/yyyy", { locale: es })} a las ${formData.time}`,
+        title: t('consultations.booking.createdTitle'),
+        description: t('consultations.booking.createdDescription', {
+          date: format(date, 'dd/MM/yyyy', { locale: dateLocale }),
+          time: formData.time,
+        }),
       });
-      
+
       onBooked();
       onOpenChange(false);
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'No se pudo crear la cita',
+        title: t('common.error'),
+        description: t('consultations.booking.createError'),
         variant: 'destructive',
       });
     } finally {
@@ -316,7 +326,7 @@ export function ConsultationBookingModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-1.5">
             <CalendarIcon className="h-4 w-4 text-primary" />
-            Convertir a Reserva
+            {t('consultations.booking.title')}
           </DialogTitle>
         </DialogHeader>
 
@@ -330,13 +340,13 @@ export function ConsultationBookingModal({
             <div className="bg-muted/50 rounded-lg p-2.5 space-y-1">
               <p className="text-xs font-medium flex items-center gap-1.5">
                 <User className="h-3 w-3" />
-                Datos del cliente
+                {t('consultations.booking.clientDetails')}
               </p>
               <div className="text-[11px] text-muted-foreground space-y-0.5">
-                <p><strong>Nombre:</strong> {consultation.client_name}</p>
-                <p><strong>Teléfono:</strong> {consultation.client_phone}</p>
+                <p><strong>{t('common.name')}:</strong> {consultation.client_name}</p>
+                <p><strong>{t('common.phone')}:</strong> {consultation.client_phone}</p>
                 {consultation.client_email && (
-                  <p><strong>Email:</strong> {consultation.client_email}</p>
+                  <p><strong>{t('common.email')}:</strong> {consultation.client_email}</p>
                 )}
               </div>
             </div>
@@ -345,14 +355,14 @@ export function ConsultationBookingModal({
             <div className="space-y-1">
               <Label className="flex items-center gap-1.5 text-xs">
                 <Scissors className="h-3 w-3" />
-                Servicio
+                {t('consultations.booking.service')}
               </Label>
               <Select
                 value={formData.serviceId}
                 onValueChange={(value) => setFormData({ ...formData, serviceId: value })}
               >
                 <SelectTrigger className="h-8 min-h-[40px] md:min-h-0 text-xs">
-                  <SelectValue placeholder="Selecciona un servicio" />
+                  <SelectValue placeholder={t('consultations.booking.selectService')} />
                 </SelectTrigger>
                 <SelectContent>
                   {services.map((service) => (
@@ -375,7 +385,7 @@ export function ConsultationBookingModal({
                 <div className="space-y-1">
                   <Label className="flex items-center gap-1.5 text-xs">
                     <Clock className="h-3 w-3" />
-                    Duración
+                    {t('common.duration')}
                   </Label>
                   <Select
                     value={formData.customDuration.toString()}
@@ -396,7 +406,7 @@ export function ConsultationBookingModal({
                 <div className="space-y-1">
                   <Label className="flex items-center gap-1.5 text-xs">
                     <span>€</span>
-                    Precio
+                    {t('common.price')}
                   </Label>
                   <Input
                     type="number"
@@ -421,10 +431,10 @@ export function ConsultationBookingModal({
                 onValueChange={(value) => setFormData({ ...formData, barberId: value === 'none' ? '' : value })}
               >
                 <SelectTrigger className="h-8 min-h-[40px] md:min-h-0 text-xs">
-                  <SelectValue placeholder={`Selecciona un ${staffTerms.singular} (opcional)`} />
+                  <SelectValue placeholder={t('consultations.booking.selectStaffOptional', { staff: staffTerms.singular })} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Sin asignar</SelectItem>
+                  <SelectItem value="none">{t('consultations.booking.unassigned')}</SelectItem>
                   {barbers.map((barber) => (
                     <SelectItem key={barber.id} value={barber.id}>
                       {barber.name}
@@ -437,7 +447,7 @@ export function ConsultationBookingModal({
             {/* Date & Time */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Fecha</Label>
+                <Label className="text-xs">{t('common.date')}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -448,7 +458,7 @@ export function ConsultationBookingModal({
                       )}
                     >
                       <CalendarIcon className="mr-1.5 h-3 w-3" />
-                      {date ? format(date, "d MMM yyyy", { locale: es }) : 'Selecciona fecha'}
+                      {date ? format(date, "d MMM yyyy", { locale: dateLocale }) : t('consultations.booking.selectDate')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -467,7 +477,7 @@ export function ConsultationBookingModal({
               <div className="space-y-1">
                 <Label className="flex items-center gap-1.5 text-xs">
                   <Clock className="h-3 w-3" />
-                  Hora
+                  {t('common.time')}
                   {isLoadingSlots && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
                 </Label>
                 <Select
@@ -476,7 +486,7 @@ export function ConsultationBookingModal({
                   disabled={isLoadingSlots}
                 >
                   <SelectTrigger className={cn("h-8 min-h-[40px] md:min-h-0 text-xs", !formData.time && 'text-muted-foreground')}>
-                    <SelectValue placeholder="Hora" />
+                    <SelectValue placeholder={t('common.time')} />
                   </SelectTrigger>
                   <SelectContent>
                     {formData.barberId ? (
@@ -488,7 +498,7 @@ export function ConsultationBookingModal({
                         ))
                       ) : (
                         <div className="px-2 py-3 text-[10px] text-muted-foreground text-center">
-                          No hay horarios disponibles
+                          {t('consultations.booking.noAvailableSlots')}
                         </div>
                       )
                     ) : (
@@ -502,7 +512,9 @@ export function ConsultationBookingModal({
                 </Select>
                 {formData.barberId && bookedSlots.length > 0 && (
                   <p className="text-[10px] text-muted-foreground">
-                    {bookedSlots.length} cita(s) ocupada(s)
+                    {bookedSlots.length === 1
+                      ? t('consultations.booking.bookedSlotsOne')
+                      : t('consultations.booking.bookedSlotsOther', { count: bookedSlots.length })}
                   </p>
                 )}
               </div>
@@ -510,11 +522,11 @@ export function ConsultationBookingModal({
 
             {/* Notes */}
             <div className="space-y-1">
-              <Label className="text-xs">Notas adicionales</Label>
+              <Label className="text-xs">{t('consultations.booking.additionalNotes')}</Label>
               <Textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Notas adicionales para la cita..."
+                placeholder={t('consultations.booking.additionalNotesPlaceholder')}
                 rows={2}
                 className="text-xs"
               />
@@ -523,7 +535,7 @@ export function ConsultationBookingModal({
             {/* Original consultation note */}
             {consultation.client_notes && (
               <div className="bg-muted/30 rounded-lg p-2 space-y-0.5">
-                <p className="text-[10px] font-medium text-muted-foreground">Nota original del cliente:</p>
+                <p className="text-[10px] font-medium text-muted-foreground">{t('consultations.booking.originalClientNote')}</p>
                 <p className="text-[11px] text-foreground">{consultation.client_notes}</p>
               </div>
             )}
@@ -531,18 +543,18 @@ export function ConsultationBookingModal({
             {/* Summary */}
             {selectedService && date && (
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-2.5 space-y-0.5">
-                <p className="text-xs font-medium">Resumen de la cita</p>
+                <p className="text-xs font-medium">{t('consultations.booking.summaryTitle')}</p>
                 <div className="flex justify-between text-xs">
                   <span>{selectedService.name}</span>
                   <span className="font-medium">€{effectivePrice}</span>
                 </div>
                 <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>Fecha y hora</span>
-                  <span>{format(date, 'dd/MM/yyyy', { locale: es })} a las {formData.time}</span>
+                  <span>{t('consultations.booking.dateAndTime')}</span>
+                  <span>{t('consultations.booking.dateAtTime', { date: format(date, 'dd/MM/yyyy', { locale: dateLocale }), time: formData.time })}</span>
                 </div>
                 <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>Duración</span>
-                  <span>{effectiveDuration} min</span>
+                  <span>{t('common.duration')}</span>
+                  <span>{effectiveDuration} {t('common.minutesShort')}</span>
                 </div>
                 {selectedBarber && (
                   <div className="flex justify-between text-[10px] text-muted-foreground">
@@ -556,16 +568,16 @@ export function ConsultationBookingModal({
             {/* Actions */}
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" size="sm" className="text-xs h-8 min-h-[40px] md:min-h-0" onClick={() => onOpenChange(false)}>
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button type="submit" size="sm" className="text-xs h-8 min-h-[40px] md:min-h-0" disabled={isLoading || !formData.serviceId || !formData.time}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                    Creando...
+                    {t('common.creating')}
                   </>
                 ) : (
-                  'Crear Cita'
+                  t('consultations.booking.createButton')
                 )}
               </Button>
             </div>

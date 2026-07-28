@@ -22,6 +22,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { useServiceCategories, useInvalidateQuery, useServices } from '@/hooks/useQueryHooks';
 import { useConfirmAction } from '@/hooks/useConfirmAction';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
@@ -58,6 +59,7 @@ function CategoryThumb({ category }: { category: ServiceCategory }) {
 }
 
 function SortableCategoryRow({ category, serviceCount, onEdit, onDelete }: SortableCategoryRowProps) {
+  const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: category.id,
   });
@@ -77,7 +79,7 @@ function SortableCategoryRow({ category, serviceCount, onEdit, onDelete }: Sorta
               className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1"
               {...attributes}
               {...listeners}
-              aria-label="Reordenar"
+              aria-label={t('services.categoriesPage.reorder')}
             >
               <GripVertical className="h-5 w-5" />
             </button>
@@ -89,7 +91,7 @@ function SortableCategoryRow({ category, serviceCount, onEdit, onDelete }: Sorta
                 <h3 className="font-semibold text-sm sm:text-base truncate">{category.label}</h3>
                 {!category.isActive && (
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                    Inactiva
+                    {t('services.categoriesPage.inactive')}
                   </Badge>
                 )}
               </div>
@@ -97,7 +99,7 @@ function SortableCategoryRow({ category, serviceCount, onEdit, onDelete }: Sorta
                 <p className="text-[11px] sm:text-xs text-foreground/80 truncate mt-0.5">{category.subtitle}</p>
               )}
               <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
-                <code className="font-mono">{category.slug}</code> · {serviceCount} servicio{serviceCount !== 1 ? 's' : ''}
+                <code className="font-mono">{category.slug}</code> · {t(serviceCount === 1 ? 'services.categoriesPage.serviceCountOne' : 'services.categoriesPage.serviceCountOther', { count: serviceCount })}
               </p>
             </div>
 
@@ -109,7 +111,7 @@ function SortableCategoryRow({ category, serviceCount, onEdit, onDelete }: Sorta
                 onClick={() => onEdit(category)}
               >
                 <Pencil className="h-3.5 w-3.5 sm:mr-1" />
-                <span className="hidden sm:inline">Editar</span>
+                <span className="hidden sm:inline">{t('common.edit')}</span>
               </Button>
               <Button
                 variant="ghost"
@@ -129,6 +131,7 @@ function SortableCategoryRow({ category, serviceCount, onEdit, onDelete }: Sorta
 
 export default function ServiceCategories() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
   const { data: queryCategories = [], isLoading, refetch } = useServiceCategories(true);
   const { data: services = [] } = useServices(true);
@@ -168,11 +171,11 @@ export default function ServiceCategories() {
     setIsSavingOrder(true);
     try {
       await supabaseServiceCategoriesApi.updateOrder(next.map((c) => c.id));
-      toast({ title: 'Orden actualizado' });
+      toast({ title: t('services.toasts.orderUpdated') });
       invalidateServiceCategories();
     } catch {
       setLocalCategories(categories);
-      toast({ title: 'Error al guardar orden', variant: 'destructive' });
+      toast({ title: t('services.toasts.orderSaveFailed'), variant: 'destructive' });
     } finally {
       setIsSavingOrder(false);
     }
@@ -182,17 +185,17 @@ export default function ServiceCategories() {
     try {
       if (editingCategory) {
         const confirmed = await confirm({
-          title: 'Actualizar categoría',
-          description: `¿Confirmar los cambios en "${editingCategory.label}"?`,
-          confirmLabel: 'Actualizar',
+          title: t('services.categoriesPage.confirmUpdateTitle'),
+          description: t('services.categoriesPage.confirmUpdateDescription', { label: editingCategory.label }),
+          confirmLabel: t('common.update'),
         });
         if (!confirmed) return;
 
         await supabaseServiceCategoriesApi.update(editingCategory.id, data);
-        toast({ title: 'Categoría actualizada' });
+        toast({ title: t('services.categoriesPage.updated') });
       } else {
         await supabaseServiceCategoriesApi.create({ label: data.label, subtitle: data.subtitle });
-        toast({ title: 'Categoría creada' });
+        toast({ title: t('services.categoriesPage.created') });
       }
       invalidateServiceCategories();
       invalidateServices();
@@ -201,8 +204,8 @@ export default function ServiceCategories() {
       setIsModalOpen(false);
     } catch (err) {
       toast({
-        title: 'Error al guardar',
-        description: err instanceof Error ? err.message : 'Inténtalo de nuevo',
+        title: t('services.categoriesPage.saveErrorTitle'),
+        description: err instanceof Error ? err.message : t('services.categoriesPage.tryAgain'),
         variant: 'destructive',
       });
       throw err;
@@ -212,25 +215,25 @@ export default function ServiceCategories() {
   const handleDelete = async (cat: ServiceCategory) => {
     const used = countByCategory(cat.slug);
     const confirmed = await confirm({
-      title: '¿Eliminar categoría?',
+      title: t('services.categoriesPage.deleteTitle'),
       description: used > 0
-        ? `Se eliminará "${cat.label}" y los ${used} servicio${used !== 1 ? 's' : ''} asignado${used !== 1 ? 's' : ''} quedarán sin categoría.`
-        : `Se eliminará la categoría "${cat.label}". Esta acción no se puede deshacer.`,
-      confirmLabel: 'Eliminar',
+        ? t(used === 1 ? 'services.categoriesPage.deleteUsedOne' : 'services.categoriesPage.deleteUsedOther', { label: cat.label, count: used })
+        : t('services.categoriesPage.deleteEmptyDescription', { label: cat.label }),
+      confirmLabel: t('common.delete'),
       variant: 'destructive',
     });
     if (!confirmed) return;
 
     try {
       await supabaseServiceCategoriesApi.delete(cat.id);
-      toast({ title: 'Categoría eliminada' });
+      toast({ title: t('services.categoriesPage.deleted') });
       invalidateServiceCategories();
       invalidateServices();
       setLocalCategories(null);
     } catch (err) {
       toast({
-        title: 'Error al eliminar',
-        description: err instanceof Error ? err.message : 'Inténtalo de nuevo',
+        title: t('services.categoriesPage.deleteErrorTitle'),
+        description: err instanceof Error ? err.message : t('services.categoriesPage.tryAgain'),
         variant: 'destructive',
       });
     }
@@ -257,16 +260,16 @@ export default function ServiceCategories() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Categorías</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">{t('services.categoriesPage.title')}</h1>
           <p className="text-sm md:text-base text-muted-foreground">
-            Organiza tus servicios por categorías para la web pública. Arrastra para reordenar.
+            {t('services.categoriesPage.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {isSavingOrder && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Guardando...
+              {t('common.saving')}
             </div>
           )}
           <Button
@@ -286,8 +289,8 @@ export default function ServiceCategories() {
             className="min-h-[44px]"
           >
             <Plus className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Nueva categoría</span>
-            <span className="sm:hidden">Añadir</span>
+            <span className="hidden sm:inline">{t('services.categoriesPage.newCategory')}</span>
+            <span className="sm:hidden">{t('services.categoriesPage.addShort')}</span>
           </Button>
         </div>
       </div>
@@ -298,7 +301,7 @@ export default function ServiceCategories() {
           <Card className="p-3 md:p-4">
             <div className="text-center">
               <p className="text-xl md:text-2xl font-bold">{categories.length}</p>
-              <p className="text-xs md:text-sm text-muted-foreground">Total</p>
+              <p className="text-xs md:text-sm text-muted-foreground">{t('common.total')}</p>
             </div>
           </Card>
         </AnimatedCard>
@@ -308,7 +311,7 @@ export default function ServiceCategories() {
               <p className="text-xl md:text-2xl font-bold text-green-500">
                 {categories.filter((c) => c.isActive).length}
               </p>
-              <p className="text-xs md:text-sm text-muted-foreground">Activas</p>
+              <p className="text-xs md:text-sm text-muted-foreground">{t('services.categoriesPage.statsActive')}</p>
             </div>
           </Card>
         </AnimatedCard>
@@ -318,7 +321,7 @@ export default function ServiceCategories() {
               <p className="text-xl md:text-2xl font-bold text-amber-500">
                 {services.filter((s) => s.isActive && !s.category).length}
               </p>
-              <p className="text-xs md:text-sm text-muted-foreground">Sin categoría</p>
+              <p className="text-xs md:text-sm text-muted-foreground">{t('services.categoriesPage.statsNoCategory')}</p>
             </div>
           </Card>
         </AnimatedCard>
@@ -329,13 +332,13 @@ export default function ServiceCategories() {
         <Card className="p-12">
           <div className="text-center">
             <Tag className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-            <h3 className="text-lg font-medium mb-1">No hay categorías</h3>
+            <h3 className="text-lg font-medium mb-1">{t('services.categoriesPage.emptyTitle')}</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Añade tu primera categoría para empezar a organizar tus servicios
+              {t('services.categoriesPage.emptyDescription')}
             </p>
             <Button onClick={() => setIsModalOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Crear categoría
+              {t('services.categoriesPage.createCategory')}
             </Button>
           </div>
         </Card>

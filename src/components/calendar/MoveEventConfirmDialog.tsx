@@ -1,7 +1,7 @@
 // Confirmation dialog for drag-and-drop event moves
 // Shows old vs new event details and allows confirm/cancel
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import type { Locale } from 'date-fns';
 import {
   AlertTriangle,
   ArrowRight,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { ApiCalendarEvent } from '@/types/api';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { getBarberHexColor, DEFAULT_EVENT_HEX } from '@/components/calendar/shared/colorUtils';
 import {
   AlertDialog,
@@ -43,10 +44,10 @@ interface MoveEventConfirmDialogProps {
   isLoading?: boolean;
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, pattern: string, locale: Locale): string {
   try {
     const date = new Date(dateStr + 'T00:00:00');
-    return format(date, "EEEE d 'de' MMMM", { locale: es });
+    return format(date, pattern, { locale });
   } catch {
     return dateStr;
   }
@@ -68,11 +69,13 @@ export function MoveEventConfirmDialog({
   isLoading = false,
 }: MoveEventConfirmDialogProps) {
   const staffTerms = useStaffTerms();
+  const { t, dateLocale } = useTranslation();
   if (!details) return null;
 
   const { event, oldDate, oldStartTime, oldEndTime, newDate, newStartTime, newEndTime, warnings = [] } = details;
   const dateChanged = !isSameDate(oldDate, newDate);
   const hasWarnings = warnings.length > 0;
+  const datePattern = t('calendar.dateFormats.weekdayDayMonthCompact');
   const eventHex = event.color
     || (event.barber ? getBarberHexColor(event.barber) : DEFAULT_EVENT_HEX);
 
@@ -83,10 +86,10 @@ export function MoveEventConfirmDialog({
         <AlertDialogHeader className="px-5 pt-5 pb-0">
           <AlertDialogTitle className="text-base font-semibold flex items-center gap-2">
             <CalendarDays className="w-4 h-4 text-primary" />
-            Mover evento
+            {t('calendar.moveDialog.eventTitle')}
           </AlertDialogTitle>
           <AlertDialogDescription className="text-sm text-muted-foreground">
-            Confirma el cambio de horario para este evento
+            {t('calendar.moveDialog.eventDescription')}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -103,7 +106,7 @@ export function MoveEventConfirmDialog({
             <div className="min-w-0">
               <p className="font-semibold text-sm truncate">{event.name}</p>
               <p className="text-xs text-muted-foreground truncate">
-                {event.barber ? `${staffTerms.singularCap}: ${event.barber}` : 'Evento'}
+                {event.barber ? `${staffTerms.singularCap}: ${event.barber}` : t('calendar.moveDialog.eventFallbackLabel')}
                 {event.location && ` - ${event.location}`}
               </p>
             </div>
@@ -114,7 +117,7 @@ export function MoveEventConfirmDialog({
             {/* Old time */}
             <div className="p-3 rounded-lg border border-border bg-card">
               <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1.5">
-                Antes
+                {t('calendar.moveDialog.before')}
               </p>
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5">
@@ -130,7 +133,7 @@ export function MoveEventConfirmDialog({
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-3 h-3 text-muted-foreground shrink-0" />
                     <span className="text-xs text-muted-foreground capitalize">
-                      {formatDate(oldDate)}
+                      {formatDate(oldDate, datePattern, dateLocale)}
                     </span>
                   </div>
                 )}
@@ -147,7 +150,7 @@ export function MoveEventConfirmDialog({
             {/* New time */}
             <div className="p-3 rounded-lg border-2 border-primary/30 bg-primary/5">
               <p className="text-[10px] uppercase font-semibold text-primary tracking-wider mb-1.5">
-                Nuevo
+                {t('calendar.moveDialog.after')}
               </p>
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5">
@@ -163,7 +166,7 @@ export function MoveEventConfirmDialog({
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-3 h-3 text-primary shrink-0" />
                     <span className="text-xs text-primary capitalize">
-                      {formatDate(newDate)}
+                      {formatDate(newDate, datePattern, dateLocale)}
                     </span>
                   </div>
                 )}
@@ -178,7 +181,7 @@ export function MoveEventConfirmDialog({
                 <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
                 <div className="min-w-0 space-y-1">
                   <p className="text-xs font-semibold text-amber-700 dark:text-amber-500">
-                    Fuera de horario
+                    {t('calendar.moveDialog.outsideSchedule')}
                   </p>
                   <ul className="space-y-0.5">
                     {warnings.map((w, i) => (
@@ -188,7 +191,7 @@ export function MoveEventConfirmDialog({
                     ))}
                   </ul>
                   <p className="text-[11px] text-amber-700/70 dark:text-amber-500/70">
-                    Puedes mover el evento igualmente si lo confirmas.
+                    {t('calendar.moveDialog.eventOverrideHint')}
                   </p>
                 </div>
               </div>
@@ -203,14 +206,14 @@ export function MoveEventConfirmDialog({
             disabled={isLoading}
             className="flex-1 h-11 text-sm font-medium mt-0"
           >
-            Cancelar
+            {t('common.cancel')}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             disabled={isLoading}
             className="flex-1 h-11 text-sm font-medium bg-primary hover:bg-primary/90"
           >
-            {isLoading ? 'Moviendo...' : 'Confirmar'}
+            {isLoading ? t('calendar.moveDialog.moving') : t('common.confirm')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

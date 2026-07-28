@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { t } from '@/i18n';
 
 const BUCKET_NAME = 'services_photos';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -106,12 +107,12 @@ export async function uploadServicePhoto(
 ): Promise<string> {
   // Validate file type
   if (!ALLOWED_TYPES.includes(file.type)) {
-    throw new Error('Formato no permitido. Usa JPG, PNG, WebP o GIF');
+    throw new Error(t('services.uploadErrors.invalidFormat'));
   }
 
   // Validate file size
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error('La imagen debe ser menor a 5MB');
+    throw new Error(t('services.uploadErrors.tooLarge'));
   }
 
   // Optimize image before upload
@@ -133,7 +134,7 @@ export async function uploadServicePhoto(
 
   if (uploadError) {
     console.error('[uploadServicePhoto] Storage upload error:', uploadError);
-    throw new Error(`Error al subir la imagen: ${uploadError.message}`);
+    throw new Error(t('services.uploadErrors.uploadFailed', { message: uploadError.message }));
   }
 
   // Get public URL
@@ -154,7 +155,7 @@ export async function uploadServicePhoto(
 
   if (updateError) {
     console.error('[uploadServicePhoto] DB update error:', updateError);
-    throw new Error(`Error al actualizar el servicio: ${updateError.message}`);
+    throw new Error(t('services.uploadErrors.updateFailed', { message: updateError.message }));
   }
 
   console.log('[uploadServicePhoto] Success');
@@ -176,7 +177,7 @@ export async function deleteServicePhoto(
     .remove([filePath]);
 
   if (deleteError) {
-    throw new Error(`Error al eliminar la imagen: ${deleteError.message}`);
+    throw new Error(t('services.uploadErrors.deleteFailed', { message: deleteError.message }));
   }
 
   // Clear the service_photo column
@@ -187,6 +188,6 @@ export async function deleteServicePhoto(
     .eq('business_id', businessId);
 
   if (updateError) {
-    throw new Error(`Error al actualizar el servicio: ${updateError.message}`);
+    throw new Error(t('services.uploadErrors.updateFailed', { message: updateError.message }));
   }
 }

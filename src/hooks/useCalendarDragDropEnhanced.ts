@@ -6,13 +6,14 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { DragEndEvent, DragStartEvent, DragMoveEvent } from '@dnd-kit/core';
 import { parse, format, addMinutes, differenceInMinutes, getDay } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { ApiBooking, ApiCalendarEvent } from '@/types/api';
 import { Barber, BarberSchedule } from '@/types/barber';
 import { BusinessHours, ClosureDate } from '@/types';
 import { supabaseBookingsApi, supabaseEventBookingsApi, UpdateBookingData } from '@/services/supabaseBookings';
 import { notifyAllAdmins, notifyBookingUsers } from '@/services/supabaseNotifications';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/LanguageContext';
+import { t as translateGlobal } from '@/i18n';
 import { getBusinessId } from '@/config/session';
 import { useToast } from '@/hooks/use-toast';
 import type { MoveBookingDetails } from '@/components/calendar/MoveBookingConfirmDialog';
@@ -126,8 +127,8 @@ export function checkClosureDate(
   return {
     isClosed: true,
     reason: closure.name
-      ? `El negocio está cerrado ese día (${closure.name})`
-      : 'El negocio está cerrado ese día',
+      ? translateGlobal('calendar.schedule.businessClosedOnDateWithName', { name: closure.name })
+      : translateGlobal('calendar.schedule.businessClosedOnDate'),
   };
 }
 
@@ -152,14 +153,16 @@ export function checkBusinessSchedule(
     if (start < fallbackOpenHour * 60 || end > fallbackCloseHour * 60) {
       return {
         isWithin: false,
-        reason: `Fuera del horario del negocio (${fallbackOpenHour}:00-${fallbackCloseHour}:00)`,
+        reason: translateGlobal('calendar.schedule.outsideBusinessHours', {
+          hours: `${fallbackOpenHour}:00-${fallbackCloseHour}:00`,
+        }),
       };
     }
     return { isWithin: true };
   }
 
   if (!dayData.isOpen || dayData.shifts.length === 0) {
-    return { isWithin: false, reason: 'El negocio no abre este día' };
+    return { isWithin: false, reason: translateGlobal('calendar.schedule.businessClosedThisDay') };
   }
 
   const fitsInShift = dayData.shifts.some(shift =>
@@ -172,7 +175,7 @@ export function checkBusinessSchedule(
       .join(', ');
     return {
       isWithin: false,
-      reason: `Fuera del horario del negocio (${shiftsText})`,
+      reason: translateGlobal('calendar.schedule.outsideBusinessHours', { hours: shiftsText }),
     };
   }
 
@@ -212,8 +215,8 @@ export function checkBarberSchedule(
     return {
       isAvailable: false,
       reason: timeOff.reason
-        ? `${barberName} tiene el día libre (${timeOff.reason})`
-        : `${barberName} tiene el día libre`,
+        ? translateGlobal('calendar.schedule.staffDayOffWithReason', { name: barberName, reason: timeOff.reason })
+        : translateGlobal('calendar.schedule.staffDayOff', { name: barberName }),
     };
   }
 
@@ -221,7 +224,7 @@ export function checkBarberSchedule(
   if (!daySchedule || !daySchedule.enabled || daySchedule.shifts.length === 0) {
     return {
       isAvailable: false,
-      reason: `${barberName} no trabaja este día`,
+      reason: translateGlobal('calendar.schedule.staffNotWorking', { name: barberName }),
     };
   }
 
@@ -239,7 +242,7 @@ export function checkBarberSchedule(
       .join(', ');
     return {
       isAvailable: false,
-      reason: `Fuera del horario de ${barberName} (${shiftsText})`,
+      reason: translateGlobal('calendar.schedule.outsideStaffHours', { name: barberName, hours: shiftsText }),
     };
   }
 
@@ -305,6 +308,7 @@ export function useCalendarDragDropEnhanced({
 }: UseCalendarDragDropEnhancedOptions) {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { t, dateLocale } = useTranslation();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [undoStack, setUndoStack] = useState<UndoAction[]>([]);
@@ -479,7 +483,7 @@ export function useCalendarDragDropEnhanced({
         hasConflict: crossesMidnight,
         conflictingBookings: [],
         scheduleWarning: crossesMidnight
-          ? 'Terminaría después de medianoche'
+          ? t('calendar.dragDrop.pastMidnightWarning')
           : warnings.length > 0 ? warnings.join(' · ') : undefined,
       });
     } else {
@@ -516,7 +520,7 @@ export function useCalendarDragDropEnhanced({
         hasConflict: hasConflict || crossesMidnight,
         conflictingBookings: conflictingBookings.map(b => b.client_name),
         scheduleWarning: crossesMidnight
-          ? 'Terminaría después de medianoche'
+          ? t('calendar.dragDrop.pastMidnightWarning')
           : warnings.length > 0 ? warnings.join(' · ') : undefined,
       });
     }
@@ -525,7 +529,7 @@ export function useCalendarDragDropEnhanced({
     if ('vibrate' in navigator && dropPreview?.time !== newStartTime) {
       navigator.vibrate(5);
     }
-  }, [activeId, isDraggingEvent, activeEvent, bookings, getBookingDuration, getEventDuration, computeSnappedStartTime, collectScheduleWarnings, dropPreview?.time]);
+  }, [activeId, isDraggingEvent, activeEvent, bookings, getBookingDuration, getEventDuration, computeSnappedStartTime, collectScheduleWarnings, dropPreview?.time, t]);
 
   const handleDragCancel = useCallback(() => {
     setActiveId(null);
@@ -545,13 +549,13 @@ export function useCalendarDragDropEnhanced({
 
     try {
       await supabaseBookingsApi.update(bookingId, previousState as UpdateBookingData);
-      toast({ title: 'Cambio deshecho' });
+      toast({ title: t('calendar.dragDrop.undone') });
       setUndoStack(prev => prev.filter(a => a.bookingId !== bookingId));
     } catch (error) {
       onBookingsChange(bookings);
-      toast({ title: 'Error al deshacer', variant: 'destructive' });
+      toast({ title: t('calendar.dragDrop.undoError'), variant: 'destructive' });
     }
-  }, [bookings, onBookingsChange, toast]);
+  }, [bookings, onBookingsChange, toast, t]);
 
   // Called when user drops a card - shows confirmation dialog
   const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -608,8 +612,8 @@ export function useCalendarDragDropEnhanced({
       // Block moves whose end would roll past midnight (end < start in DB)
       if (timeToMinutes(newStartTime) + duration > 24 * 60) {
         toast({
-          title: 'Horario no válido',
-          description: 'El evento terminaría después de medianoche',
+          title: t('calendar.dragDrop.invalidTimeTitle'),
+          description: t('calendar.dragDrop.eventPastMidnight'),
           variant: 'destructive',
         });
         if ('vibrate' in navigator) {
@@ -659,8 +663,8 @@ export function useCalendarDragDropEnhanced({
       // Block moves whose end would roll past midnight (end < start in DB)
       if (timeToMinutes(newStartTime) + duration > 24 * 60) {
         toast({
-          title: 'Horario no válido',
-          description: 'La cita terminaría después de medianoche',
+          title: t('calendar.dragDrop.invalidTimeTitle'),
+          description: t('calendar.dragDrop.bookingPastMidnight'),
           variant: 'destructive',
         });
         if ('vibrate' in navigator) {
@@ -681,8 +685,10 @@ export function useCalendarDragDropEnhanced({
 
       if (hasConflict) {
         toast({
-          title: 'Horario ocupado',
-          description: `Conflicto con: ${conflictingBookings.map(b => b.client_name).join(', ')}`,
+          title: t('calendar.dragDrop.conflictTitle'),
+          description: t('calendar.dragDrop.conflictWith', {
+            names: conflictingBookings.map(b => b.client_name).join(', '),
+          }),
           variant: 'destructive',
         });
         if ('vibrate' in navigator) {
@@ -717,7 +723,7 @@ export function useCalendarDragDropEnhanced({
         navigator.vibrate([10, 50, 10]);
       }
     }
-  }, [bookings, events, toast, getBookingDuration, getEventDuration, computeSnappedStartTime, collectScheduleWarnings, dropPreview]);
+  }, [bookings, events, toast, getBookingDuration, getEventDuration, computeSnappedStartTime, collectScheduleWarnings, dropPreview, t]);
 
   // Confirm booking move
   const confirmMove = useCallback(async () => {
@@ -762,8 +768,14 @@ export function useCalendarDragDropEnhanced({
         await notifyBookingUsers({
           business_id: getBusinessId(),
           type: 'booking_modified',
-          title: 'Cita movida',
-          message: `${user?.name || 'Usuario'} movió la cita de ${booking.client_name} (${booking.service_name}) al ${format(parseLocalDate(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,
+          title: t('calendar.notify.bookingMovedTitle'),
+          message: t('calendar.notify.bookingMovedMessage', {
+            user: user?.name || t('calendar.notify.userFallback'),
+            client: booking.client_name,
+            service: booking.service_name,
+            date: format(parseLocalDate(newDate), 'dd/MM/yyyy', { locale: dateLocale }),
+            time: newStartTime.substring(0, 5),
+          }),
           barber_user_id: booking.user_id,
           performed_by_user_id: user?.id || '',
           metadata: {
@@ -783,16 +795,20 @@ export function useCalendarDragDropEnhanced({
 
       const movedOutOfSchedule = (pendingMove.warnings?.length ?? 0) > 0;
       toast({
-        title: movedOutOfSchedule ? 'Cita movida fuera de horario' : 'Cita movida',
-        description: `${booking.client_name} → ${format(parseLocalDate(newDate), 'dd/MM')} a las ${newStartTime.substring(0, 5)}`,
+        title: movedOutOfSchedule ? t('calendar.dragDrop.movedOutside') : t('calendar.dragDrop.moved'),
+        description: t('calendar.dragDrop.movedTo', {
+          name: booking.client_name,
+          date: format(parseLocalDate(newDate), 'dd/MM'),
+          time: newStartTime.substring(0, 5),
+        }),
         duration: movedOutOfSchedule ? 4000 : 2000,
       });
     } catch (error) {
       // Revert on backend error - put booking back
       onBookingUpdate(bookingId, booking);
       toast({
-        title: 'Error al mover cita',
-        description: 'No se pudo actualizar la cita',
+        title: t('calendar.dragDrop.moveError'),
+        description: t('calendar.dragDrop.moveErrorDescription'),
         variant: 'destructive',
       });
     } finally {
@@ -800,7 +816,7 @@ export function useCalendarDragDropEnhanced({
       setShowConfirmDialog(false);
       setIsUpdating(false);
     }
-  }, [pendingMove, bookings, onBookingUpdate, onBookingsChange, toast, user?.id, user?.name]);
+  }, [pendingMove, bookings, onBookingUpdate, onBookingsChange, toast, user?.id, user?.name, t, dateLocale]);
 
   // Cancel booking move
   const cancelMove = useCallback(() => {
@@ -850,8 +866,13 @@ export function useCalendarDragDropEnhanced({
         await notifyAllAdmins({
           business_id: getBusinessId(),
           type: 'event_modified',
-          title: 'Evento movido',
-          message: `${user?.name || 'Usuario'} movió el evento "${evt.name}" al ${format(parseLocalDate(newDate), 'dd/MM/yyyy', { locale: es })} a las ${newStartTime.substring(0, 5)}`,
+          title: t('calendar.notify.eventMovedTitle'),
+          message: t('calendar.notify.eventMovedMessage', {
+            user: user?.name || t('calendar.notify.userFallback'),
+            name: evt.name,
+            date: format(parseLocalDate(newDate), 'dd/MM/yyyy', { locale: dateLocale }),
+            time: newStartTime.substring(0, 5),
+          }),
           performed_by_user_id: user?.id || '',
           metadata: {
             event_id: evt.id,
@@ -868,16 +889,20 @@ export function useCalendarDragDropEnhanced({
 
       const movedOutOfSchedule = (pendingEventMove.warnings?.length ?? 0) > 0;
       toast({
-        title: movedOutOfSchedule ? 'Evento movido fuera de horario' : 'Evento movido',
-        description: `${evt.name} → ${format(parseLocalDate(newDate), 'dd/MM')} a las ${newStartTime.substring(0, 5)}`,
+        title: movedOutOfSchedule ? t('calendar.dragDrop.eventMovedOutside') : t('calendar.dragDrop.eventMoved'),
+        description: t('calendar.dragDrop.movedTo', {
+          name: evt.name,
+          date: format(parseLocalDate(newDate), 'dd/MM'),
+          time: newStartTime.substring(0, 5),
+        }),
         duration: movedOutOfSchedule ? 4000 : 2000,
       });
     } catch (error) {
       // Revert on backend error
       onEventsChange(events);
       toast({
-        title: 'Error al mover evento',
-        description: 'No se pudo actualizar el evento',
+        title: t('calendar.dragDrop.eventMoveError'),
+        description: t('calendar.dragDrop.eventMoveErrorDescription'),
         variant: 'destructive',
       });
     } finally {
@@ -885,7 +910,7 @@ export function useCalendarDragDropEnhanced({
       setPendingEventMove(null);
       setShowEventConfirmDialog(false);
     }
-  }, [pendingEventMove, events, onEventUpdate, onEventsChange, toast, user?.id, user?.name]);
+  }, [pendingEventMove, events, onEventUpdate, onEventsChange, toast, user?.id, user?.name, t, dateLocale]);
 
   // Cancel event move
   const cancelEventMove = useCallback(() => {

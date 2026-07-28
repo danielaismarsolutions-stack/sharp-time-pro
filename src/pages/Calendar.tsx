@@ -19,7 +19,6 @@ import {
   isSameDay,
   differenceInMinutes,
 } from 'date-fns';
-import { es } from 'date-fns/locale';
 import {
   DndContext,
   MouseSensor,
@@ -60,6 +59,7 @@ import { notifyAllAdmins, notifyBookingUsers } from '@/services/supabaseNotifica
 import { supabaseBusinessHoursApi } from '@/services/supabaseBusinessHours';
 import { useBookings, useClients, useServices, useBarbers, useBusinessHours, useClosureDates, useInvalidateQuery } from '@/hooks/useQueryHooks';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/LanguageContext';
 import { useStaffTerms } from '@/hooks/useStaffTerms';
 import { getBusinessId } from '@/config/session';
 import { supabase } from '@/lib/supabase';
@@ -130,6 +130,7 @@ const BUSINESS_CLOSE_HOUR = 21;
 export default function Calendar() {
   const { toast } = useToast();
   const { user, isBarber } = useAuth();
+  const { t, dateLocale } = useTranslation();
   const staffTerms = useStaffTerms();
   const isMobile = useIsMobile();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmAction();
@@ -298,10 +299,12 @@ export default function Calendar() {
     const notFoundToast = (isEvent: boolean) => {
       goToDate(dateParam);
       toast({
-        title: isEvent ? 'Evento no disponible' : 'Cita no disponible',
+        title: isEvent
+          ? t('calendar.event.notAvailableTitle')
+          : t('calendar.appointment.notAvailableTitle'),
         description: isEvent
-          ? 'El evento de esta notificación ya no existe.'
-          : 'La cita de esta notificación ya no existe.',
+          ? t('calendar.event.notAvailableDescription')
+          : t('calendar.appointment.notAvailableDescription'),
         variant: 'destructive',
       });
     };
@@ -340,7 +343,7 @@ export default function Calendar() {
       goToDate(dateParam);
       clearParams();
     }
-  }, [searchParams, setSearchParams, isLoading, bookings, calendarEvents, toast]);
+  }, [searchParams, setSearchParams, isLoading, bookings, calendarEvents, toast, t]);
 
   // Set view mode based on screen size
   useEffect(() => {
@@ -422,8 +425,16 @@ export default function Calendar() {
               await notifyBookingUsers({
                 business_id: getBusinessId(),
                 type: 'booking_created',
-                title: `Nueva reserva online - ${newBooking.barber || 'Sin asignar'}`,
-                message: `${newBooking.client_name} ha reservado ${newBooking.service_name} con ${newBooking.barber || 'Sin asignar'} para el ${format(new Date(newBooking.booking_date), 'dd/MM/yyyy', { locale: es })} a las ${newBooking.start_time.substring(0, 5)}`,
+                title: t('calendar.notify.newOnlineBookingTitle', {
+                  barber: newBooking.barber || t('calendar.notify.unassigned'),
+                }),
+                message: t('calendar.notify.newOnlineBookingMessage', {
+                  client: newBooking.client_name,
+                  service: newBooking.service_name,
+                  barber: newBooking.barber || t('calendar.notify.unassigned'),
+                  date: format(new Date(newBooking.booking_date), 'dd/MM/yyyy', { locale: dateLocale }),
+                  time: newBooking.start_time.substring(0, 5),
+                }),
                 barber_user_id: newBooking.user_id,
                 performed_by_user_id: '', // online booking = no logged-in user, notify everyone
                 metadata: {
@@ -446,7 +457,7 @@ export default function Calendar() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, invalidateBookings]);
+  }, [user?.id, invalidateBookings, t, dateLocale]);
 
   // Real-time subscription for users table changes (new barbers added externally)
   useEffect(() => {
@@ -834,17 +845,17 @@ export default function Calendar() {
     const apiStatus: ApiBookingStatus = status === 'no-show' ? 'no_show' : status as ApiBookingStatus;
 
     const statusLabels: Record<ApiBookingStatus, string> = {
-      pending: 'pendiente',
-      confirmed: 'confirmada',
-      completed: 'completada',
-      cancelled: 'cancelada',
-      no_show: 'no presentado',
+      pending: t('calendar.status.pendingLower'),
+      confirmed: t('calendar.status.confirmedLower'),
+      completed: t('calendar.status.completedLower'),
+      cancelled: t('calendar.status.cancelledLower'),
+      no_show: t('calendar.status.noShowLower'),
     };
 
     const confirmed = await confirm({
-      title: 'Cambiar estado de cita',
-      description: `¿Estás seguro de marcar esta cita como "${statusLabels[apiStatus]}"?`,
-      confirmLabel: 'Confirmar',
+      title: t('calendar.appointment.changeStatusTitle'),
+      description: t('calendar.appointment.changeStatusDescription', { status: statusLabels[apiStatus] }),
+      confirmLabel: t('common.confirm'),
       variant: apiStatus === 'cancelled' ? 'destructive' : 'default',
     });
     if (!confirmed) return;
@@ -875,8 +886,12 @@ export default function Calendar() {
           await notifyBookingUsers({
             business_id: getBusinessId(),
             type: 'booking_status_changed',
-            title: 'Estado de cita cambiado',
-            message: `${user?.name || 'Usuario'} cambió la cita de ${booking?.client_name || 'cliente'} a "${statusLabels[apiStatus]}"`,
+            title: t('calendar.notify.statusChangedTitle'),
+            message: t('calendar.notify.statusChangedMessage', {
+              user: user?.name || t('calendar.notify.userFallback'),
+              client: booking?.client_name || t('calendar.notify.clientFallback'),
+              status: statusLabels[apiStatus],
+            }),
             barber_user_id: booking?.user_id,
             performed_by_user_id: user?.id || '',
             metadata: {
@@ -889,11 +904,11 @@ export default function Calendar() {
         } catch { /* ignored */ }
       }
 
-      toast({ title: `Cita marcada como ${statusLabels[apiStatus]}` });
+      toast({ title: t('calendar.appointment.markedAs', { status: statusLabels[apiStatus] }) });
     } catch (error) {
       setBookings(previousBookings);
       setSelectedBooking(previousSelected);
-      toast({ title: 'Error al actualizar', variant: 'destructive' });
+      toast({ title: t('calendar.appointment.updateError'), variant: 'destructive' });
     }
   };
 
@@ -938,24 +953,28 @@ export default function Calendar() {
       } else {
         await supabaseBookingsApi.clearPayment(bookingId);
       }
-      const methodLabels: Record<string, string> = { cash: 'efectivo', card: 'tarjeta', bizum: 'Bizum' };
+      const methodLabels: Record<string, string> = {
+        cash: t('calendar.payment.cashLower'),
+        card: t('calendar.payment.cardLower'),
+        bizum: t('calendar.payment.bizum'),
+      };
       toast({
         title: isPaying
-          ? `Pago registrado (${methodLabels[method]})`
-          : 'Pago desmarcado',
+          ? t('calendar.payment.registered', { method: methodLabels[method] })
+          : t('calendar.payment.cleared'),
       });
     } catch {
       setBookings(previousBookings);
       setSelectedBooking(previousSelected);
-      toast({ title: 'Error al actualizar el pago', variant: 'destructive' });
+      toast({ title: t('calendar.payment.updateError'), variant: 'destructive' });
     }
   };
 
   const handleDeleteBooking = async (bookingId: string) => {
     const confirmed = await confirm({
-      title: '¿Eliminar cita?',
-      description: 'Se eliminará permanentemente esta cita. Esta acción no se puede deshacer.',
-      confirmLabel: 'Eliminar',
+      title: t('calendar.appointment.deleteTitle'),
+      description: t('calendar.appointment.deleteDescription'),
+      confirmLabel: t('common.delete'),
       variant: 'destructive',
     });
     if (!confirmed) return;
@@ -975,8 +994,12 @@ export default function Calendar() {
           await notifyBookingUsers({
             business_id: getBusinessId(),
             type: 'booking_deleted',
-            title: 'Cita eliminada',
-            message: `${user?.name || 'Usuario'} eliminó la cita de ${deletedBooking.client_name} (${deletedBooking.service_name})`,
+            title: t('calendar.notify.bookingDeletedTitle'),
+            message: t('calendar.notify.bookingDeletedMessage', {
+              user: user?.name || t('calendar.notify.userFallback'),
+              client: deletedBooking.client_name,
+              service: deletedBooking.service_name,
+            }),
             barber_user_id: deletedBooking.user_id,
             performed_by_user_id: user?.id || '',
             metadata: {
@@ -989,10 +1012,10 @@ export default function Calendar() {
         } catch { /* ignored */ }
       }
 
-      toast({ title: 'Cita eliminada correctamente' });
+      toast({ title: t('calendar.appointment.deleted') });
     } catch (error) {
       setBookings(previousBookings);
-      toast({ title: 'Error al eliminar la cita', variant: 'destructive' });
+      toast({ title: t('calendar.appointment.deleteError'), variant: 'destructive' });
     }
   };
 
@@ -1010,10 +1033,10 @@ export default function Calendar() {
       if (closureDateSet.has(dateStr)) {
         const closure = queryClosureDates.find((c) => c.date === dateStr);
         toast({
-          title: 'Día cerrado',
+          title: t('calendar.closedDay.title'),
           description: closure?.name
-            ? `El negocio está cerrado este día (${closure.name}).`
-            : 'El negocio está cerrado este día.',
+            ? t('calendar.closedDay.withName', { name: closure.name })
+            : t('calendar.closedDay.generic'),
           variant: 'destructive',
         });
         return;
@@ -1062,9 +1085,9 @@ export default function Calendar() {
 
   const handleDeleteEvent = async (eventId: string) => {
     const confirmed = await confirm({
-      title: '¿Eliminar evento?',
-      description: 'Se eliminará permanentemente este evento. Esta acción no se puede deshacer.',
-      confirmLabel: 'Eliminar',
+      title: t('calendar.event.deleteTitle'),
+      description: t('calendar.event.deleteDescription'),
+      confirmLabel: t('common.delete'),
       variant: 'destructive',
     });
     if (!confirmed) return;
@@ -1084,8 +1107,11 @@ export default function Calendar() {
           await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'event_deleted',
-            title: 'Evento eliminado',
-            message: `${user?.name || 'Usuario'} eliminó el evento "${deletedEvent.name}"`,
+            title: t('calendar.notify.eventDeletedTitle'),
+            message: t('calendar.notify.eventDeletedMessage', {
+              user: user?.name || t('calendar.notify.userFallback'),
+              name: deletedEvent.name,
+            }),
             performed_by_user_id: user?.id || '',
             metadata: {
               event_id: eventId,
@@ -1096,10 +1122,10 @@ export default function Calendar() {
         } catch { /* ignored */ }
       }
 
-      toast({ title: 'Evento eliminado correctamente' });
+      toast({ title: t('calendar.event.deleted') });
     } catch {
       setCalendarEvents(previous);
-      toast({ title: 'Error al eliminar el evento', variant: 'destructive' });
+      toast({ title: t('calendar.event.deleteError'), variant: 'destructive' });
     }
   };
 
@@ -1130,9 +1156,9 @@ export default function Calendar() {
   const handleSaveEvent = async (data: EventFormData) => {
     if (selectedEvent) {
       const confirmed = await confirm({
-        title: 'Actualizar evento',
-        description: '¿Confirmar los cambios en este evento?',
-        confirmLabel: 'Actualizar',
+        title: t('calendar.event.updateConfirmTitle'),
+        description: t('calendar.event.updateConfirmDescription'),
+        confirmLabel: t('common.update'),
       });
       if (!confirmed) return;
     }
@@ -1164,8 +1190,11 @@ export default function Calendar() {
           await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'event_modified',
-            title: 'Evento modificado',
-            message: `${user?.name || 'Usuario'} modificó el evento "${data.name}"`,
+            title: t('calendar.notify.eventModifiedTitle'),
+            message: t('calendar.notify.eventModifiedMessage', {
+              user: user?.name || t('calendar.notify.userFallback'),
+              name: data.name,
+            }),
             performed_by_user_id: user?.id || '',
             metadata: {
               event_id: selectedEvent.id,
@@ -1176,7 +1205,7 @@ export default function Calendar() {
           });
         } catch { /* ignored */ }
 
-        toast({ title: 'Evento actualizado correctamente' });
+        toast({ title: t('calendar.event.updated') });
       } else {
         // Create new event
         const createdBooking = await supabaseEventBookingsApi.create({
@@ -1203,8 +1232,12 @@ export default function Calendar() {
           await notifyAllAdmins({
             business_id: getBusinessId(),
             type: 'event_created',
-            title: 'Nuevo evento creado',
-            message: `${user?.name || 'Usuario'} creó el evento "${data.name}" para el ${format(new Date(data.date), 'dd/MM/yyyy', { locale: es })}`,
+            title: t('calendar.notify.eventCreatedTitle'),
+            message: t('calendar.notify.eventCreatedMessage', {
+              user: user?.name || t('calendar.notify.userFallback'),
+              name: data.name,
+              date: format(new Date(data.date), 'dd/MM/yyyy', { locale: dateLocale }),
+            }),
             performed_by_user_id: user?.id || '',
             metadata: {
               event_id: createdBooking.id,
@@ -1215,12 +1248,12 @@ export default function Calendar() {
             });
           } catch { /* ignored */ }
 
-        toast({ title: 'Evento creado correctamente' });
+        toast({ title: t('calendar.event.created') });
       }
       setIsEventModalOpen(false);
       setSelectedEvent(null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Error al guardar el evento';
+      const message = error instanceof Error ? error.message : t('calendar.event.saveError');
       toast({ title: message, variant: 'destructive' });
       throw error; // Re-throw so EventModal keeps its loading state
     }
@@ -1301,11 +1334,11 @@ export default function Calendar() {
               scroll away when panning across barber columns. */}
           <div className="sticky left-0 w-fit max-w-[100vw] h-10 flex items-center gap-2 px-3 md:pl-6 bg-card">
             <span className="text-sm md:text-base font-medium capitalize text-foreground">
-              {format(currentDate, "EEEE, d 'de' MMMM", { locale: es })}
+              {format(currentDate, t('calendar.dateFormats.weekdayDayMonth'), { locale: dateLocale })}
             </span>
             {isToday(currentDate) && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                Hoy
+                {t('common.today')}
               </span>
             )}
           </div>
@@ -1323,7 +1356,7 @@ export default function Calendar() {
           <div className="flex-1 flex">
             {!hasBarbers && (
               <div className="flex-1 h-20 border-b border-border flex items-center justify-center text-muted-foreground text-sm">
-                No hay {staffTerms.plural} disponibles
+                {t('calendar.dayView.noStaffAvailable', { staff: staffTerms.plural })}
               </div>
             )}
             {visibleBarbers.map((barber) => {
@@ -1531,8 +1564,8 @@ export default function Calendar() {
         {hasBarbers && isEmpty && (
           <div className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 flex items-center justify-center">
             <div className="text-center text-muted-foreground bg-background/60 px-4 py-2 rounded-md">
-              <p className="text-lg font-medium">Sin citas</p>
-              <p className="text-sm">No hay reservas para este día</p>
+              <p className="text-lg font-medium">{t('calendar.emptyState.noAppointments')}</p>
+              <p className="text-sm">{t('calendar.emptyState.noBookingsForDay')}</p>
             </div>
           </div>
         )}
@@ -1559,7 +1592,7 @@ export default function Calendar() {
                 onClick={() => openCreateChoice(day)}
               >
                 <p className="text-[10px] md:text-xs text-muted-foreground uppercase">
-                  {format(day, 'EEE', { locale: es })}
+                  {format(day, 'EEE', { locale: dateLocale })}
                 </p>
                 <p className={cn('text-base md:text-lg font-semibold', isCurrentDay && 'text-primary')}>
                   {format(day, 'd')}
@@ -1758,7 +1791,7 @@ export default function Calendar() {
       <div className="flex items-center justify-center h-[calc(100dvh-120px)]">
         <div className="text-center space-y-3">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Cargando calendario...</p>
+          <p className="text-muted-foreground">{t('calendar.loading')}</p>
         </div>
       </div>
     );
@@ -1896,7 +1929,7 @@ export default function Calendar() {
               className="shadow-lg bg-card"
             >
               <Undo2 className="h-4 w-4 mr-2" />
-              Deshacer
+              {t('calendar.undo')}
             </Button>
           </div>
         )}
@@ -1990,9 +2023,9 @@ export default function Calendar() {
           onSave={async (data) => {
             if (selectedBooking) {
               const confirmed = await confirm({
-                title: 'Actualizar cita',
-                description: `¿Confirmar los cambios en la cita de ${data.clientName}?`,
-                confirmLabel: 'Actualizar',
+                title: t('calendar.appointment.updateConfirmTitle'),
+                description: t('calendar.appointment.updateConfirmDescription', { name: data.clientName ?? '' }),
+                confirmLabel: t('common.update'),
               });
               if (!confirmed) return;
             }
@@ -2039,8 +2072,14 @@ export default function Calendar() {
                   await notifyBookingUsers({
                     business_id: getBusinessId(),
                     type: 'booking_modified',
-                    title: 'Reserva modificada',
-                    message: `${user?.name || 'Usuario'} modificó la cita de ${data.clientName} (${data.serviceName}) al ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
+                    title: t('calendar.notify.bookingModifiedTitle'),
+                    message: t('calendar.notify.bookingModifiedMessage', {
+                      user: user?.name || t('calendar.notify.userFallback'),
+                      client: data.clientName ?? '',
+                      service: data.serviceName ?? '',
+                      date: format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: dateLocale }),
+                      time: data.time ?? '',
+                    }),
                     barber_user_id: data.barberId || selectedBooking.user_id,
                     performed_by_user_id: user?.id || '',
                     metadata: {
@@ -2054,7 +2093,7 @@ export default function Calendar() {
                   });
                 } catch { /* ignored */ }
                 
-                toast({ title: 'Cita actualizada correctamente' });
+                toast({ title: t('calendar.appointment.updated') });
               } else {
                 const newBooking = await supabaseBookingsApi.create({
                   // null (not '') when the appointment has no client: the
@@ -2086,8 +2125,17 @@ export default function Calendar() {
                   await notifyBookingUsers({
                     business_id: getBusinessId(),
                     type: 'booking_created',
-                    title: `Nueva reserva - ${data.barber || 'Sin asignar'}`,
-                    message: `${user?.name || 'Usuario'} creó una cita para ${data.clientName} (${data.serviceName}) con ${data.barber || 'Sin asignar'} el ${format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: es })} a las ${data.time}`,
+                    title: t('calendar.notify.newBookingTitle', {
+                      barber: data.barber || t('calendar.notify.unassigned'),
+                    }),
+                    message: t('calendar.notify.newBookingMessage', {
+                      user: user?.name || t('calendar.notify.userFallback'),
+                      client: data.clientName ?? '',
+                      service: data.serviceName ?? '',
+                      barber: data.barber || t('calendar.notify.unassigned'),
+                      date: format(new Date(data.date || ''), 'dd/MM/yyyy', { locale: dateLocale }),
+                      time: data.time ?? '',
+                    }),
                     barber_user_id: data.barberId || newBooking.user_id,
                     performed_by_user_id: user?.id || '',
                     metadata: {
@@ -2101,13 +2149,13 @@ export default function Calendar() {
                   });
                 } catch { /* ignored */ }
                 
-                toast({ title: 'Cita creada correctamente' });
+                toast({ title: t('calendar.appointment.created') });
               }
               
               setIsModalOpen(false);
               setSelectedBooking(null);
             } catch (error) {
-              toast({ title: 'Error al guardar la cita', variant: 'destructive' });
+              toast({ title: t('calendar.appointment.saveError'), variant: 'destructive' });
             }
           }}
           selectedDate={selectedDate}

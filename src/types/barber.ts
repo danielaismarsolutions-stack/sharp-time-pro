@@ -1,5 +1,7 @@
 // Barber Types
 
+import type { TranslationKey } from '@/i18n';
+
 export interface BarberShift {
   start: string; // HH:MM format
   end: string; // HH:MM format
@@ -81,12 +83,14 @@ export const DEFAULT_SCHEDULE: BarberSchedule = {
   sunday: { enabled: false, shifts: [] },
 };
 
-export const DAY_NAMES: Record<keyof BarberSchedule, string> = {
-  monday: 'Lunes',
-  tuesday: 'Martes',
-  wednesday: 'Miércoles',
-  thursday: 'Jueves',
-  friday: 'Viernes',
-  saturday: 'Sábado',
-  sunday: 'Domingo',
+// Visible day labels are resolved per language via these translation keys
+// (values are never persisted — only the BarberSchedule keys are).
+export const DAY_NAME_KEYS: Record<keyof BarberSchedule, TranslationKey> = {
+  monday: 'barbers.days.monday',
+  tuesday: 'barbers.days.tuesday',
+  wednesday: 'barbers.days.wednesday',
+  thursday: 'barbers.days.thursday',
+  friday: 'barbers.days.friday',
+  saturday: 'barbers.days.saturday',
+  sunday: 'barbers.days.sunday',
 };
